@@ -1,0 +1,44 @@
+# ── Credentials — NEVER commit these ─────────────────────────────────
+.Renviron
+.env
+.env.*
+*.env
+**/secrets.*
+hf_*
+sk-ant-*
+
+# ── Python virtual environment ────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ── Output files (transcripts, summaries) ────────────────────────────
+output/*
+!output/.gitkeep
+
+# ── Audio files ───────────────────────────────────────────────────────
+*.wav
+*.mp3
+*.m4a
+*.mp4
+*.ogg
+*.flac
+
+# ── R ────────────────────────────────────────────────────────────────
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj.user/
+
+# ── macOS ────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── Model cache ───────────────────────────────────────────────────────
+.cache/
+models/
