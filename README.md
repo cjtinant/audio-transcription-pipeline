@@ -95,27 +95,118 @@ Step 2 — Summarize (R or Python)
 
 ---
 
+## Daily Use — Once You're Set Up
+
+Once installed, this is all you need to transcribe and summarize any
+recording. You do not need to be inside the repo folder.
+
+### Step 1 — Transcribe (terminal, any directory)
+
+```fish
+# macOS fish shell — pass the full path to any audio file
+cd ~/audio-transcription-pipeline
+source .venv/bin/activate.fish
+.venv/bin/whisperx "/full/path/to/your/meeting.m4a" \
+  --model large-v2 \
+  --diarize \
+  --hf_token (grep HF_TOKEN ~/.Renviron | cut -d= -f2 | tr -d '\r') \
+  --device cpu \
+  --compute_type int8 \
+  --output_format json \
+  --output_dir ~/audio-transcription-pipeline/output \
+  --language en
+```
+
+**For Zoom recordings on macOS**, your files are in
+`~/Documents/Zoom/`. Pass the full path:
+
+```fish
+cd ~/audio-transcription-pipeline
+source .venv/bin/activate.fish
+.venv/bin/whisperx ~/Documents/Zoom/2026-05-07*/audio*.m4a \
+  --model large-v2 \
+  --diarize \
+  --hf_token (grep HF_TOKEN ~/.Renviron | cut -d= -f2 | tr -d '\r') \
+  --device cpu \
+  --compute_type int8 \
+  --output_format json \
+  --output_dir ~/audio-transcription-pipeline/output \
+  --language en
+```
+
+> **Note:** If the folder name has spaces or parentheses (Zoom folders
+> always do), wrap the path in quotes:
+> `"/Users/yourname/Documents/Zoom/2026-05-07 13.06.45 Name/audio.m4a"`
+
+Output saved to: `~/audio-transcription-pipeline/output/audio.json`
+
+---
+
+### Step 2 — Summarize (R)
+
+Open Positron or RStudio, set your working directory to the repo, then:
+
+```r
+source("~/audio-transcription-pipeline/transcribe.R")
+
+# Choose your meeting type: general, standup, interview, research, lecture
+result <- run_pipeline(
+  "~/audio-transcription-pipeline/output/audio1234567.json",
+  engine       = "anthropic",   # or "ollama" for local/free
+  meeting_type = "lecture"      # match to your recording type
+)
+```
+
+Outputs saved automatically to `~/audio-transcription-pipeline/output/`:
+- `audio1234567_transcript_20260507_130000.txt`
+- `audio1234567_summary_20260507_130000.txt`
+
+---
+
+### Step 2 — Summarize (Python CLI)
+
+```bash
+cd ~/audio-transcription-pipeline
+source .venv/bin/activate  # or activate.fish
+
+python transcribe.py output/audio1234567.json \
+  --engine anthropic \
+  --type lecture
+```
+
+---
+
+### Before you start — checklist
+
+- [ ] Ollama is running in a separate terminal (`ollama serve`) if using
+  local summarization
+- [ ] `~/.Renviron` contains `HF_TOKEN` and optionally `ANTHROPIC_API_KEY`
+- [ ] The venv is activated before calling whisperx
+
+---
+
 ## Table of Contents
 
-1. [Security First](#security-first)
-2. [Quick Start — Simple Instructions](#quick-start--simple-instructions)
+1. [Daily Use — Once You're Set Up](#daily-use--once-youre-set-up)
+2. [Security First](#security-first)
+3. [Quick Start — Simple Instructions](#quick-start--simple-instructions)
    - [macOS Apple Silicon](#macos-apple-silicon-simple)
    - [macOS Intel](#macos-intel-simple)
    - [Windows](#windows-simple)
    - [Linux](#linux-simple)
-3. [Technical Setup](#technical-setup)
+4. [Technical Setup](#technical-setup)
    - [macOS Apple Silicon](#macos-apple-silicon-technical)
    - [macOS Intel](#macos-intel-technical)
    - [Windows WSL2](#windows-wsl2-technical)
    - [Linux](#linux-technical)
-4. [HuggingFace Setup](#huggingface-setup)
-5. [Testing Your Setup](#testing-your-setup)
-6. [Running the Pipeline](#running-the-pipeline)
-7. [R Pipeline Reference](#r-pipeline-reference)
-8. [Python Pipeline Reference](#python-pipeline-reference)
-9. [Meeting Type Presets](#meeting-type-presets)
-10. [LLM Backend Options](#llm-backend-options)
-11. [Troubleshooting](#troubleshooting)
+5. [HuggingFace Setup](#huggingface-setup)
+6. [Testing Your Setup](#testing-your-setup)
+7. [Running the Pipeline](#running-the-pipeline)
+8. [R Pipeline Reference](#r-pipeline-reference)
+9. [Python Pipeline Reference](#python-pipeline-reference)
+10. [Meeting Type Presets](#meeting-type-presets)
+11. [LLM Backend Options](#llm-backend-options)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -837,6 +928,14 @@ In R: `engine = "anthropic"`
 ---
 
 ## Troubleshooting
+
+**`whisperx: command not found` even after activating the venv**
+Use the full path to the whisperx binary instead:
+```fish
+.venv/bin/whisperx your_audio.m4a ...
+```
+This happens because some terminals (Positron, fish) don't always add
+the venv `bin/` to PATH after activation. The full path always works.
 
 **`whisperx: command not found`**
 The virtual environment is not activated.
