@@ -7,11 +7,18 @@
 #   source ~/.config/fish/config.fish
 #
 # Usage:
-#   transcribe mymeeting.m4a
-#   transcribe mymeeting.m4a --language en --min_speakers 2 --max_speakers 4
+#   transcribe /full/path/to/meeting.m4a
+#   transcribe /full/path/to/meeting.m4a --language en --min_speakers 2 --max_speakers 4
+#
+# Note: Always pass the full path to the audio file.
+#       Zoom recordings live in ~/Documents/Zoom/ — wrap paths in quotes
+#       if the folder name contains spaces or parentheses.
 # ─────────────────────────────────────────────────────────────────────
 
 function transcribe
+    # Suppress harmless torchcodec warning
+    set -x PYTHONWARNINGS "ignore::UserWarning:pyannote"
+
     # Activate the WhisperX virtual environment
     source ~/audio-transcription-pipeline/.venv/bin/activate.fish
 
@@ -24,8 +31,8 @@ function transcribe
         return 1
     end
 
-    # Run WhisperX with sensible defaults for Apple Silicon CPU
-    whisperx $argv \
+    # Run WhisperX using full path to avoid PATH issues in fish
+    ~/audio-transcription-pipeline/.venv/bin/whisperx $argv \
         --model large-v2 \
         --diarize \
         --hf_token "$hf_token" \
