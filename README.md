@@ -6,6 +6,7 @@ transcription, with support for both local (Ollama) and cloud (Anthropic API)
 summarization.
 
 **What it does:**
+
 - Transcribes audio to text with accurate word-level timestamps
 - Identifies who is speaking at each moment (speaker diarization)
 - Generates structured summaries tailored to your meeting type
@@ -17,9 +18,8 @@ conversation, lecture, or custom prompt
 **Supported platforms:** macOS (Apple Silicon), macOS (Intel), Windows (WSL2),
 Linux
 
-**Privacy:**
-This pipeline is designed so that your audio and transcripts never have to
-leave your computer. The transcription step (WhisperX + pyannote) runs
+**Privacy:** This pipeline is designed so that your audio and transcripts never
+have to leave your computer. The transcription step (WhisperX + pyannote) runs
 entirely locally — no audio is uploaded anywhere, ever.
 
 For the summarization step you have two options:
@@ -29,11 +29,11 @@ For the summarization step you have two options:
   sensitive recordings: interviews, clinical conversations, confidential
   meetings, or anything you would not want stored on a third-party server.
 
-- **Anthropic API** — sends the text transcript (not the audio) to
-  Anthropic's servers for summarization. Faster and higher quality, but
-  your transcript content is processed externally. Review
-  [Anthropic's privacy policy](https://www.anthropic.com/privacy) before
-  using this option with sensitive material.
+- **Anthropic API** — sends the text transcript (not the audio) to Anthropic's
+  servers for summarization. Faster and higher quality, but your transcript
+  content is processed externally. Review
+  [Anthropic's privacy policy](https://www.anthropic.com/privacy) before using
+  this option with sensitive material.
 
 In both cases, your audio file stays on your machine.
 
@@ -41,8 +41,8 @@ In both cases, your audio file stays on your machine.
 
 ## How It Works
 
-This pipeline is built from two separate, independent tools that each do
-one job well. Understanding this split is the key to using it confidently.
+This pipeline is built from two separate, independent tools that each do one job
+well. Understanding this split is the key to using it confidently.
 
 ```
 Step 1 — Transcribe (terminal)
@@ -68,37 +68,37 @@ Step 2 — Summarize (R or Python)
 
 **Why two steps instead of one?**
 
-- **Step 1 is slow and runs once.** Transcribing a 1-hour recording takes
-  a few minutes. The JSON output is saved so you never have to re-transcribe
-  the same file.
+- **Step 1 is slow and runs once.** Transcribing a 1-hour recording takes a few
+  minutes. The JSON output is saved so you never have to re-transcribe the same
+  file.
 
 - **Step 2 is fast and runs many times.** Once you have the JSON, you can
   summarize it with different meeting types, different models, or different
   prompts in seconds — without touching the audio again.
 
 - **They are independent by design.** The terminal step (WhisperX) and the
-  summarization step (R or Python) do not depend on each other being open
-  or running. If one fails, the other is unaffected. This also means R users
-  and Python users can share the same JSON output and run their own
-  summarization step independently.
+  summarization step (R or Python) do not depend on each other being open or
+  running. If one fails, the other is unaffected. This also means R users and
+  Python users can share the same JSON output and run their own summarization
+  step independently.
 
 **The files and what they do:**
 
-| File | Role | When you touch it |
-|------|------|-------------------|
-| `transcribe.fish` | Runs WhisperX on any audio file | Step 1 — once per recording |
-| `transcribe.R` | Reads JSON, summarizes via R | Step 2 — R users |
-| `transcribe.py` | Reads JSON, summarizes via Python or CLI | Step 2 — Python users |
-| `output/*.json` | WhisperX output — intermediate file | Created in Step 1, read in Step 2 |
-| `output/*_transcript.txt` | Clean readable transcript | Created in Step 2 |
-| `output/*_summary.txt` | LLM summary | Created in Step 2 |
+| File                      | Role                                     | When you touch it                 |
+| ------------------------- | ---------------------------------------- | --------------------------------- |
+| `transcribe.fish`         | Runs WhisperX on any audio file          | Step 1 — once per recording       |
+| `transcribe.R`            | Reads JSON, summarizes via R             | Step 2 — R users                  |
+| `transcribe.py`           | Reads JSON, summarizes via Python or CLI | Step 2 — Python users             |
+| `output/*.json`           | WhisperX output — intermediate file      | Created in Step 1, read in Step 2 |
+| `output/*_transcript.txt` | Clean readable transcript                | Created in Step 2                 |
+| `output/*_summary.txt`    | LLM summary                              | Created in Step 2                 |
 
 ---
 
 ## Daily Use — Once You're Set Up
 
-Once installed, this is all you need to transcribe and summarize any
-recording. You do not need to be inside the repo folder.
+Once installed, this is all you need to transcribe and summarize any recording.
+You do not need to be inside the repo folder.
 
 ### Step 1 — Transcribe (terminal, any directory)
 
@@ -117,8 +117,8 @@ source .venv/bin/activate.fish
   --language en
 ```
 
-**For Zoom recordings on macOS**, your files are in
-`~/Documents/Zoom/`. Pass the full path:
+**For Zoom recordings on macOS**, your files are in `~/Documents/Zoom/`. Pass
+the full path:
 
 ```fish
 cd ~/audio-transcription-pipeline
@@ -134,8 +134,8 @@ source .venv/bin/activate.fish
   --language en
 ```
 
-> **Note:** If the folder name has spaces or parentheses (Zoom folders
-> always do), wrap the path in quotes:
+> **Note:** If the folder name has spaces or parentheses (Zoom folders always
+> do), wrap the path in quotes:
 > `"/Users/yourname/Documents/Zoom/2026-05-07 13.06.45 Name/audio.m4a"`
 
 Output saved to: `~/audio-transcription-pipeline/output/audio.json`
@@ -158,6 +158,7 @@ result <- run_pipeline(
 ```
 
 Outputs saved automatically to `~/audio-transcription-pipeline/output/`:
+
 - `audio1234567_transcript_20260507_130000.txt`
 - `audio1234567_summary_20260507_130000.txt`
 
@@ -178,8 +179,8 @@ python transcribe.py output/audio1234567.json \
 
 ### Before you start — checklist
 
-- [ ] Ollama is running in a separate terminal (`ollama serve`) if using
-  local summarization
+- [ ] Ollama is running in a separate terminal (`ollama serve`) if using local
+      summarization
 - [ ] `~/.Renviron` contains `HF_TOKEN` and optionally `ANTHROPIC_API_KEY`
 - [ ] The venv is activated before calling whisperx
 
@@ -214,8 +215,8 @@ python transcribe.py output/audio1234567.json \
 
 **Your API tokens must never appear in code or be committed to git.**
 
-This repo's `.gitignore` is configured to exclude credential files, audio
-files, and output files. Before doing anything else:
+This repo's `.gitignore` is configured to exclude credential files, audio files,
+and output files. Before doing anything else:
 
 1. Never paste a token into any `.R`, `.py`, or `.fish` file
 2. Never commit `.Renviron` or `.env` files
@@ -233,9 +234,9 @@ echo 'ANTHROPIC_API_KEY=sk-ant-yourkey' >> ~/.Renviron
 
 ## Quick Start — Simple Instructions
 
-These instructions assume you can copy and paste commands into a terminal.
-On Mac, open **Terminal** (search for it with Cmd+Space). On Windows, follow
-the WSL2 setup first, then use the Ubuntu terminal.
+These instructions assume you can copy and paste commands into a terminal. On
+Mac, open **Terminal** (search for it with Cmd+Space). On Windows, follow the
+WSL2 setup first, then use the Ubuntu terminal.
 
 ### macOS Apple Silicon (Simple)
 
@@ -244,21 +245,26 @@ the WSL2 setup first, then use the Ubuntu terminal.
 **Step 1 — Install Homebrew (Mac package manager)**
 
 Open Terminal and paste:
+
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
+
 Follow the prompts. When it finishes, paste:
+
 ```bash
 echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
 source ~/.zprofile
 ```
 
 **Step 2 — Install required tools**
+
 ```bash
 brew install uv ffmpeg git
 ```
 
 **Step 3 — Clone this repo and set up the environment**
+
 ```bash
 git clone https://github.com/your-username/audio-transcription-pipeline.git
 cd audio-transcription-pipeline
@@ -273,11 +279,13 @@ uv pip install whisperx
 **Step 5 — Install R packages**
 
 Open R or RStudio and run:
+
 ```r
 install.packages(c("jsonlite", "httr2"))
 ```
 
 **Step 6 — Test it**
+
 ```bash
 source .venv/bin/activate
 curl -L "https://www.voiptroubleshooter.com/open_speech/american/OSR_us_000_0010_8k.wav" -o test.wav
@@ -315,18 +323,21 @@ Everything else is identical.
 
 ### Windows (Simple)
 
-> Windows requires WSL2 (Windows Subsystem for Linux). This is a free
-> Microsoft feature that gives you a full Linux environment inside Windows.
-> It is the recommended approach for this pipeline.
+> Windows requires WSL2 (Windows Subsystem for Linux). This is a free Microsoft
+> feature that gives you a full Linux environment inside Windows. It is the
+> recommended approach for this pipeline.
 
 **Step 1 — Enable WSL2**
 
-Open PowerShell as Administrator (right-click Start → Windows PowerShell (Admin)):
+Open PowerShell as Administrator (right-click Start → Windows PowerShell
+(Admin)):
+
 ```powershell
 wsl --install
 ```
-Restart your computer when prompted. After restart, Ubuntu will open and ask
-you to create a username and password — do this.
+
+Restart your computer when prompted. After restart, Ubuntu will open and ask you
+to create a username and password — do this.
 
 **Step 2 — Open Ubuntu terminal**
 
@@ -334,6 +345,7 @@ Search for "Ubuntu" in the Start menu and open it. All remaining steps run
 inside this Ubuntu terminal.
 
 **Step 3 — Install required tools**
+
 ```bash
 sudo apt update && sudo apt install -y git ffmpeg python3-pip curl
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -341,6 +353,7 @@ source ~/.bashrc
 ```
 
 **Step 4 — Clone repo and set up environment**
+
 ```bash
 git clone https://github.com/your-username/audio-transcription-pipeline.git
 cd audio-transcription-pipeline
@@ -355,10 +368,13 @@ uv pip install whisperx
 **Step 6 — Install R**
 
 In the Ubuntu terminal:
+
 ```bash
 sudo apt install -y r-base
 ```
+
 Then start R with `R` and install packages:
+
 ```r
 install.packages(c("jsonlite", "httr2"))
 ```
@@ -390,9 +406,11 @@ R -e 'install.packages(c("jsonlite", "httr2"), repos="https://cloud.r-project.or
 ```
 
 If you have an NVIDIA GPU, replace the torch install with:
+
 ```bash
 uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
+
 And use `--device cuda --compute_type float16` when running WhisperX.
 
 ---
@@ -426,12 +444,12 @@ file .venv/bin/python3
 # Expected: Mach-O 64-bit executable arm64
 ```
 
-**Note on Metal/MPS:** WhisperX uses `faster-whisper` which does not yet
-support MPS natively. CPU + int8 quantization on Apple Silicon with 16GB+
-unified memory is fast and reliable. large-v2 transcribes at ~10-15x realtime
-on M1 Max.
+**Note on Metal/MPS:** WhisperX uses `faster-whisper` which does not yet support
+MPS natively. CPU + int8 quantization on Apple Silicon with 16GB+ unified memory
+is fast and reliable. large-v2 transcribes at ~10-15x realtime on M1 Max.
 
 **fish shell one-command setup:**
+
 ```fish
 cp transcribe.fish ~/.config/fish/functions/transcribe.fish
 source ~/.config/fish/config.fish
@@ -465,8 +483,8 @@ uv pip install whisperx
 
 ### Windows WSL2 (Technical)
 
-WSL2 runs a real Linux kernel via Hyper-V. Performance is near-native for
-CPU workloads. GPU passthrough requires WSL2 + CUDA drivers (NVIDIA only).
+WSL2 runs a real Linux kernel via Hyper-V. Performance is near-native for CPU
+workloads. GPU passthrough requires WSL2 + CUDA drivers (NVIDIA only).
 
 ```powershell
 # PowerShell (Admin) — install WSL2 with Ubuntu 22.04
@@ -475,6 +493,7 @@ wsl --set-default-version 2
 ```
 
 In Ubuntu terminal:
+
 ```bash
 # System deps
 sudo apt update && sudo apt install -y \
@@ -499,12 +518,14 @@ uv pip install whisperx
 
 **Audio files on Windows:** Your Windows files are accessible at
 `/mnt/c/Users/YourName/`. Copy audio files to your WSL2 home first:
+
 ```bash
 cp /mnt/c/Users/YourName/Downloads/meeting.m4a ~/audio-transcription-pipeline/
 ```
 
-**Tokens in WSL2:** Add to `~/.bashrc` (WSL2 doesn't use `~/.Renviron`
-unless you install R inside WSL2):
+**Tokens in WSL2:** Add to `~/.bashrc` (WSL2 doesn't use `~/.Renviron` unless
+you install R inside WSL2):
+
 ```bash
 echo 'export HF_TOKEN=hf_yourtoken' >> ~/.bashrc
 echo 'export ANTHROPIC_API_KEY=sk-ant-yourkey' >> ~/.bashrc
@@ -512,9 +533,11 @@ source ~/.bashrc
 ```
 
 **NVIDIA GPU in WSL2:** Install CUDA-enabled PyTorch:
+
 ```bash
 uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
+
 Then use `--device cuda --compute_type float16` with WhisperX.
 
 ---
@@ -552,8 +575,8 @@ uv pip install whisperx
 
 ## HuggingFace Setup
 
-WhisperX uses pyannote models for speaker diarization. These are gated
-(require a free account and license agreement).
+WhisperX uses pyannote models for speaker diarization. These are gated (require
+a free account and license agreement).
 
 1. Create a free account at [huggingface.co](https://huggingface.co)
 2. Go to **Settings → Access Tokens → New token**
@@ -565,32 +588,34 @@ WhisperX uses pyannote models for speaker diarization. These are gated
 6. Add the token to your credentials file:
 
 **macOS/Linux (R users):**
+
 ```bash
 echo 'HF_TOKEN=hf_yourtoken' >> ~/.Renviron
 ```
 
 **Windows WSL2:**
+
 ```bash
 echo 'export HF_TOKEN=hf_yourtoken' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-> ⚠️ If you ever accidentally paste your token into a file that gets
-> committed to git, go to huggingface.co/settings/tokens immediately,
-> invalidate the token, and generate a new one.
+> ⚠️ If you ever accidentally paste your token into a file that gets committed
+> to git, go to huggingface.co/settings/tokens immediately, invalidate the
+> token, and generate a new one.
 
 ---
 
 ## Testing Your Setup
 
-Before using your own audio, verify the full pipeline works end-to-end
-using a free public domain speech sample. Run these steps in order after
-completing setup and HuggingFace configuration.
+Before using your own audio, verify the full pipeline works end-to-end using a
+free public domain speech sample. Run these steps in order after completing
+setup and HuggingFace configuration.
 
 ### Step 1 — Download the test audio
 
-This is a ~32 second phonetics test recording (Harvard Sentences) — a
-single speaker, clean audio, ideal for verifying transcription works.
+This is a ~32 second phonetics test recording (Harvard Sentences) — a single
+speaker, clean audio, ideal for verifying transcription works.
 
 ```bash
 cd ~/audio-transcription-pipeline
@@ -620,10 +645,11 @@ whisperx test.wav \
   --language en
 ```
 
-This will download models on first run (~3.5GB total). Subsequent runs
-use cached models and are much faster.
+This will download models on first run (~3.5GB total). Subsequent runs use
+cached models and are much faster.
 
 **Expected output:**
+
 ```
 Performing voice activity detection using Pyannote...
 Performing transcription...
@@ -647,14 +673,16 @@ result <- run_pipeline(
 ```
 
 **Expected transcript output:**
+
 ```
 [SPEAKER_00 @ 0.5s] The birch canoe slid on the smooth planks.
 [SPEAKER_00 @ 4.3s] Glued the sheet to the dark blue background.
 ...
 ```
 
-**Expected summary output** (will note no decisions/action items since
-this is a phonetics test, not a real meeting — that is correct behavior):
+**Expected summary output** (will note no decisions/action items since this is a
+phonetics test, not a real meeting — that is correct behavior):
+
 ```
 Key Decisions Made: None apparent from the transcript.
 Action Items: None apparent from the transcript.
@@ -668,8 +696,8 @@ Action Items: None apparent from the transcript.
 rm test.wav output/test.json
 ```
 
-> Note: `test.wav` and `output/*.json` are excluded by `.gitignore` —
-> they will never be accidentally committed to the repo.
+> Note: `test.wav` and `output/*.json` are excluded by `.gitignore` — they will
+> never be accidentally committed to the repo.
 
 ---
 
@@ -678,11 +706,13 @@ rm test.wav output/test.json
 ### Step 1 — Transcribe your audio file
 
 **macOS/Linux (fish shell, after installing the fish function):**
+
 ```fish
 transcribe /path/to/your/meeting.m4a
 ```
 
 **Any platform (direct command):**
+
 ```bash
 source .venv/bin/activate  # or activate.fish for fish shell
 
@@ -700,6 +730,7 @@ whisperx /path/to/your/meeting.m4a \
 Output: `output/meeting.json`
 
 **Optional flags:**
+
 - `--min_speakers 2 --max_speakers 4` — constrain speaker count if known
 - `--language fr` — specify language (default: auto-detect)
 - `--model medium` — use smaller model for speed (less accurate)
@@ -707,6 +738,7 @@ Output: `output/meeting.json`
 ### Step 2 — Generate summary
 
 **R (primary — recommended for R users):**
+
 ```r
 source("transcribe.R")
 
@@ -723,6 +755,7 @@ result <- run_pipeline("output/meeting.json",
 ```
 
 **Python (CLI — recommended for Python users):**
+
 ```bash
 # Local Ollama
 python transcribe.py output/meeting.json
@@ -738,6 +771,7 @@ python transcribe.py --list-types
 ```
 
 Outputs saved automatically to `output/`:
+
 - `meeting_transcript_20260502_175200.txt`
 - `meeting_summary_20260502_175200.txt`
 
@@ -759,12 +793,14 @@ run_pipeline(
 ```
 
 **Change the Ollama model:**
+
 ```r
 result <- run_pipeline("output/meeting.json",
                        model = "llama3.1:8b-instruct-q8_0")
 ```
 
 **Change the Anthropic model:**
+
 ```r
 result <- run_pipeline("output/meeting.json",
                        engine = "anthropic",
@@ -772,6 +808,7 @@ result <- run_pipeline("output/meeting.json",
 ```
 
 **Access results programmatically:**
+
 ```r
 result$segments    # data frame: start, end, speaker, text
 result$transcript  # formatted string
@@ -785,8 +822,9 @@ result$paths       # list of saved file paths
 
 ### Installation
 
-The Python script requires `httpx` for API calls. Install it into the
-existing venv:
+The Python script requires `httpx` for API calls. Install it into the existing
+venv:
+
 ```bash
 source .venv/bin/activate  # or activate.fish
 uv pip install httpx
@@ -843,6 +881,7 @@ result = run_pipeline("output/meeting.json",
 ```
 
 **Access results programmatically:**
+
 ```python
 result["segments"]    # list of dicts: start, end, speaker, text
 result["transcript"]  # formatted string
@@ -854,16 +893,17 @@ result["paths"]       # dict of saved file paths (if save=True)
 
 ## Meeting Type Presets
 
-| Type | Best for | Output includes |
-|------|----------|-----------------|
-| `general` | Team meetings, calls | Overview, decisions, action items, open questions |
-| `standup` | Daily standups | Completed work, today's plan, blockers per speaker |
-| `interview` | Research interviews, user interviews | Themes, insights, notable quotes, follow-ups |
-| `research` | Academic discussions, lab meetings | Research question, findings, methods, next steps |
-| `lecture` | Lectures, presentations, webinars | Topics, key concepts with timestamps, study notes |
-| `custom` | Anything else | Whatever your prompt specifies |
+| Type        | Best for                             | Output includes                                    |
+| ----------- | ------------------------------------ | -------------------------------------------------- |
+| `general`   | Team meetings, calls                 | Overview, decisions, action items, open questions  |
+| `standup`   | Daily standups                       | Completed work, today's plan, blockers per speaker |
+| `interview` | Research interviews, user interviews | Themes, insights, notable quotes, follow-ups       |
+| `research`  | Academic discussions, lab meetings   | Research question, findings, methods, next steps   |
+| `lecture`   | Lectures, presentations, webinars    | Topics, key concepts with timestamps, study notes  |
+| `custom`    | Anything else                        | Whatever your prompt specifies                     |
 
 **Custom prompt example:**
+
 ```r
 result <- run_pipeline(
   "output/meeting.json",
@@ -904,17 +944,17 @@ In R: `engine = "ollama"` (default)
 
 ### Anthropic API (Cloud)
 
-Requires an [Anthropic account](https://console.anthropic.com) and API key.
-Data is sent to Anthropic's servers — do not use for sensitive/confidential
+Requires an [Anthropic account](https://console.anthropic.com) and API key. Data
+is sent to Anthropic's servers — do not use for sensitive/confidential
 recordings without reviewing their data policy.
 
 **Pricing (May 2026, per million tokens):**
 
-| Model | Input | Output | Notes |
-|-------|-------|--------|-------|
-| `claude-haiku-4-5` | $1.00 | $5.00 | Fastest, cheapest |
+| Model               | Input | Output | Notes               |
+| ------------------- | ----- | ------ | ------------------- |
+| `claude-haiku-4-5`  | $1.00 | $5.00  | Fastest, cheapest   |
 | `claude-sonnet-4-6` | $3.00 | $15.00 | Recommended balance |
-| `claude-opus-4-6` | $5.00 | $25.00 | Highest quality |
+| `claude-opus-4-6`   | $5.00 | $25.00 | Highest quality     |
 
 **Typical cost per 1-hour meeting summary:** ~$0.035 (Sonnet 4.6)
 
@@ -929,42 +969,46 @@ In R: `engine = "anthropic"`
 
 ## Troubleshooting
 
-**`whisperx: command not found` even after activating the venv**
-Use the full path to the whisperx binary instead:
+**`whisperx: command not found` even after activating the venv** Use the full
+path to the whisperx binary instead:
+
 ```fish
 .venv/bin/whisperx your_audio.m4a ...
 ```
-This happens because some terminals (Positron, fish) don't always add
-the venv `bin/` to PATH after activation. The full path always works.
 
-**`whisperx: command not found`**
-The virtual environment is not activated.
+This happens because some terminals (Positron, fish) don't always add the venv
+`bin/` to PATH after activation. The full path always works.
+
+**`whisperx: command not found`** The virtual environment is not activated.
+
 ```bash
 source .venv/bin/activate       # bash/zsh
 source .venv/bin/activate.fish  # fish
 ```
 
-**`GatedRepoError: 403`**
-You haven't accepted the pyannote model licenses, or your HF token is wrong.
+**`GatedRepoError: 403`** You haven't accepted the pyannote model licenses, or
+your HF token is wrong.
+
 - Visit the two model pages and click Agree (must be logged in)
 - Verify your token: `grep HF_TOKEN ~/.Renviron`
 
-**`ANTHROPIC_API_KEY not set`**
-Restart R after adding the key to `~/.Renviron` — R only reads it at startup.
+**`ANTHROPIC_API_KEY not set`** Restart R after adding the key to `~/.Renviron`
+— R only reads it at startup.
 
-**`could not find function "run_pipeline"`**
-Source the script first: `source("transcribe.R")`
+**`could not find function "run_pipeline"`** Source the script first:
+`source("transcribe.R")`
 
-**Ollama connection refused**
-Start the Ollama server in a separate terminal: `ollama serve`
+**Ollama connection refused** Start the Ollama server in a separate terminal:
+`ollama serve`
 
-**Poor diarization (speakers mixed up)**
-Add speaker count hints:
+**Poor diarization (speakers mixed up)** Add speaker count hints:
+
 ```bash
 whisperx meeting.m4a --diarize --min_speakers 2 --max_speakers 2 ...
 ```
 
 **Slow transcription**
+
 - Use a smaller model: `--model medium` or `--model base`
 - Reduce batch size: `--batch_size 4`
 - On Linux with NVIDIA GPU: use `--device cuda --compute_type float16`
@@ -986,26 +1030,25 @@ audio-transcription-pipeline/
 
 **Why is there an `output/` folder but no `input/` folder?**
 
-Audio files are excluded by `.gitignore` and should stay wherever they
-naturally live on your machine (`~/Downloads/`, `~/Recordings/`, etc.).
-You pass the full path to whisperx at run time — no fixed input location
-is needed.
+Audio files are excluded by `.gitignore` and should stay wherever they naturally
+live on your machine (`~/Downloads/`, `~/Recordings/`, etc.). You pass the full
+path to whisperx at run time — no fixed input location is needed.
 
-The `output/` folder is tracked (via `.gitkeep`) because R's
-`run_pipeline()` writes to a known location that needs to exist on a
-fresh clone. Git does not track empty folders, so `.gitkeep` is a
-conventional empty placeholder file that ensures the folder is created
-when someone clones the repo.
+The `output/` folder is tracked (via `.gitkeep`) because R's `run_pipeline()`
+writes to a known location that needs to exist on a fresh clone. Git does not
+track empty folders, so `.gitkeep` is a conventional empty placeholder file that
+ensures the folder is created when someone clones the repo.
 
-After cloning, a colleague gets a ready-to-use `output/` folder with no
-extra setup required.
+After cloning, a colleague gets a ready-to-use `output/` folder with no extra
+setup required.
 
 ---
 
 ## Acknowledgements
 
 - [WhisperX](https://github.com/m-bain/whisperX) — Max Bain et al.
-- [pyannote.audio](https://github.com/pyannote/pyannote-audio) — Hervé Bredin et al.
+- [pyannote.audio](https://github.com/pyannote/pyannote-audio) — Hervé Bredin et
+  al.
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — SYSTRAN
 - [Ollama](https://ollama.com) — local LLM serving
 - [Anthropic](https://anthropic.com) — Claude API
