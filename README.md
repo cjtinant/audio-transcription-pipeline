@@ -1130,10 +1130,10 @@ setup required.
 
 This project was written by
 [Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic) in
-collaboration with a faculty-member at a small college Tribal College whose
-research interests are primarily statistical hydrology and surface-water quality
-— who is not a software developer. The architecture, use case, and design
-decisions are human-originated; the code is AI-generated.
+collaboration with a faculty-member at a small Tribal College whose research
+interests are primarily statistical hydrology and surface-water quality — who is
+not a software developer. The architecture, use case, and design decisions are
+human-originated; the code is AI-generated.
 
 The intended user is a researcher or practitioner who works with recorded
 conversations — interviews, meetings, lectures — and wants a local, private
@@ -1142,4 +1142,4 @@ it. That context is relevant for anyone considering how to contribute or extend
 the work.
 
 This is noted in the interest of transparency about how the project was built,
-and because AI-assisted authorship is relevant context for evaluating the code
+and because AI-assisted authorship is relevant context for evaluating the code.
