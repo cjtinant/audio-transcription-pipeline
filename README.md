@@ -86,7 +86,7 @@ Step 2 — Summarize (R or Python)
 
 | File                      | Role                                     | When you touch it                 |
 | ------------------------- | ---------------------------------------- | --------------------------------- |
-| `transcribe.fish`         | Runs WhisperX on any audio file          | Step 1 — once per recording       |
+| `transcribe.sh`           | Runs WhisperX on any audio file          | Step 1 — once per recording       |
 | `transcribe.R`            | Reads JSON, summarizes via R             | Step 2 — R users                  |
 | `transcribe.py`           | Reads JSON, summarizes via Python or CLI | Step 2 — Python users             |
 | `output/*.json`           | WhisperX output — intermediate file      | Created in Step 1, read in Step 2 |
@@ -105,7 +105,7 @@ You do not need to be inside the repo folder.
 If you installed the `transcribe` script, this is all you need:
 
 ```bash
-# Works in bash, zsh, fish, or any terminal
+# Works in bash or zsh
 transcribe "/full/path/to/your/meeting.m4a"
 
 # Pin speaker count for better diarization (see Speaker count tuning below)
@@ -148,7 +148,7 @@ speakers have similar voices or talk over each other.
 **When you know the speaker count, always pin it.** This is the single highest-
 impact change you can make to diarization quality:
 
-```fish
+```bash
 # 3-person meeting — pin exactly
 transcribe meeting.m4a --min_speakers 3 --max_speakers 3
 
@@ -159,8 +159,8 @@ transcribe interview.m4a --min_speakers 2 --max_speakers 2
 transcribe lecture.m4a --min_speakers 1 --max_speakers 4
 ```
 
-These flags pass directly through the `transcribe` function to WhisperX —
-no wrapper changes needed.
+These flags pass directly through the `transcribe` function to WhisperX — no
+wrapper changes needed.
 
 **Signs diarization went wrong:** a single speaker's turn split across two
 speaker labels, or two different speakers merged into one. Both improve
@@ -194,7 +194,7 @@ Outputs saved automatically to `~/audio-transcription-pipeline/output/`:
 
 ```bash
 cd ~/audio-transcription-pipeline
-source .venv/bin/activate  # or activate.fish
+source .venv/bin/activate
 
 python transcribe.py output/audio1234567.json \
   --engine anthropic \
@@ -244,7 +244,7 @@ python transcribe.py output/audio1234567.json \
 This repo's `.gitignore` is configured to exclude credential files, audio files,
 and output files. Before doing anything else:
 
-1. Never paste a token into any `.R`, `.py`, or `.fish` file
+1. Never paste a token into any `.R`, `.py`, or `.sh` file
 2. Never commit `.Renviron` or `.env` files
 3. Store all tokens in `~/.Renviron` (R reads this automatically at startup)
 4. If you accidentally expose a token, invalidate it immediately at the
@@ -322,12 +322,6 @@ Add `~/bin` to your PATH if it isn't already (add to `~/.zshrc` or `~/.bashrc`):
 
 ```bash
 export PATH="$HOME/bin:$PATH"
-```
-
-Fish users, add to `~/.config/fish/config.fish`:
-
-```fish
-fish_add_path ~/bin
 ```
 
 **Step 7 — Test it**
@@ -492,8 +486,8 @@ file .venv/bin/python3
 
 **Device and compute settings:** `--device cpu --compute_type int8` is the
 correct choice for Apple Silicon. WhisperX uses `faster-whisper` as its
-transcription engine, which does not support Metal (MPS) natively. CPU with
-int8 quantization on Apple Silicon unified memory is both fast and reliable —
+transcription engine, which does not support Metal (MPS) natively. CPU with int8
+quantization on Apple Silicon unified memory is both fast and reliable —
 `large-v2` transcribes at approximately 10–15× realtime on M1 Max, meaning a
 1-hour recording completes in 4–6 minutes. No alternative device flags are
 needed or recommended.
@@ -505,10 +499,8 @@ mkdir -p ~/bin
 cp transcribe.sh ~/bin/transcribe
 chmod +x ~/bin/transcribe
 
-# Make sure ~/bin is on your PATH — add to ~/.zshrc, ~/.bashrc, or
-# ~/.config/fish/config.fish if it isn't already:
-#   export PATH="$HOME/bin:$PATH"   # bash / zsh
-#   fish_add_path ~/bin             # fish
+# Make sure ~/bin is on your PATH — add to ~/.zshrc or ~/.bashrc:
+#   export PATH="$HOME/bin:$PATH"
 
 # Verify
 transcribe --help   # should print WhisperX usage
@@ -684,11 +676,7 @@ curl -L "https://www.voiptroubleshooter.com/open_speech/american/OSR_us_000_0010
 ### Step 2 — Activate the environment and transcribe
 
 ```bash
-# bash/zsh
 source .venv/bin/activate
-
-# fish shell
-source .venv/bin/activate.fish
 ```
 
 ```bash
@@ -763,16 +751,16 @@ rm test.wav output/test.json
 
 ### Step 1 — Transcribe your audio file
 
-**macOS/Linux (fish shell, after installing the fish function):**
+**After installing the `transcribe` script:**
 
-```fish
+```bash
 transcribe /path/to/your/meeting.m4a
 ```
 
-**Any platform (direct command):**
+**Or call WhisperX directly:**
 
 ```bash
-source .venv/bin/activate  # or activate.fish for fish shell
+source .venv/bin/activate
 
 whisperx /path/to/your/meeting.m4a \
   --model large-v2 \
@@ -884,7 +872,7 @@ The Python script requires `httpx` for API calls. Install it into the existing
 venv:
 
 ```bash
-source .venv/bin/activate  # or activate.fish
+source .venv/bin/activate
 uv pip install httpx
 ```
 
@@ -1030,18 +1018,17 @@ In R: `engine = "anthropic"`
 **`whisperx: command not found` even after activating the venv** Use the full
 path to the whisperx binary instead:
 
-```fish
+```bash
 .venv/bin/whisperx your_audio.m4a ...
 ```
 
-This happens because some terminals (Positron, fish) don't always add the venv
-`bin/` to PATH after activation. The full path always works.
+This happens because some terminals (Positron) don't always add the venv `bin/`
+to PATH after activation. The full path always works.
 
 **`whisperx: command not found`** The virtual environment is not activated.
 
 ```bash
-source .venv/bin/activate       # bash/zsh
-source .venv/bin/activate.fish  # fish
+source .venv/bin/activate
 ```
 
 **`GatedRepoError: 403`** You haven't accepted the pyannote model licenses, or
@@ -1060,10 +1047,10 @@ your HF token is wrong.
 `ollama serve`
 
 **Poor diarization (speakers mixed up or merged)** This is almost always fixed
-by pinning the speaker count. Add `--min_speakers` and `--max_speakers` with
-the exact number of speakers in your recording:
+by pinning the speaker count. Add `--min_speakers` and `--max_speakers` with the
+exact number of speakers in your recording:
 
-```fish
+```bash
 # 3-person meeting
 transcribe meeting.m4a --min_speakers 3 --max_speakers 3
 
@@ -1127,9 +1114,10 @@ setup required.
 
 ## A note on authorship
 
-This project was written by [Claude Sonnet 4.6](https://www.anthropic.com/claude)
-(Anthropic) in collaboration with a non-programmer domain expert. The
-architecture, use case, and design decisions are human-originated; the code is
-AI-generated. This is noted here in the interest of transparency, and because
-it is relevant context for anyone who wants to contribute, extend, or evaluate
-the work.
+This project was written by
+[Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic) in
+collaboration with a hydrologist / data scientist who primarily uses R and
+vibe-codes a bit. The architecture, use case, and design decisions are
+human-originated; the code is AI-generated. This is noted here in the interest
+of transparency, and because it is relevant context for anyone who wants to
+contribute, extend, or evaluate the work.
