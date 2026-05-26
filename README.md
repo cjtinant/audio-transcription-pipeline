@@ -100,6 +100,20 @@ Step 2 — Summarize (R or Python)
 Once installed, this is all you need to transcribe and summarize any recording.
 You do not need to be inside the repo folder.
 
+### Starting from a video file?
+
+If your recording is a `.mp4`, `.mov`, or other video format, extract the audio
+first with ffmpeg:
+
+```bash
+ffmpeg -i your_recording.mp4 -vn audio.wav
+```
+
+The `-vn` flag drops the video stream. WhisperX works with the resulting `.wav`
+directly.
+
+---
+
 ### Step 1 — Transcribe (terminal, any directory)
 
 If you installed the `transcribe` script, this is all you need:
@@ -1116,8 +1130,16 @@ setup required.
 
 This project was written by
 [Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic) in
-collaboration with a hydrologist / data scientist who primarily uses R and
-vibe-codes a bit. The architecture, use case, and design decisions are
-human-originated; the code is AI-generated. This is noted here in the interest
-of transparency, and because it is relevant context for anyone who wants to
-contribute, extend, or evaluate the work.
+collaboration with a faculty-member at a small college Tribal College whose
+research interests are primarily statistical hydrology and surface-water quality
+— who is not a software developer. The architecture, use case, and design
+decisions are human-originated; the code is AI-generated.
+
+The intended user is a researcher or practitioner who works with recorded
+conversations — interviews, meetings, lectures — and wants a local, private
+transcription workflow without depending on a developer to set it up or maintain
+it. That context is relevant for anyone considering how to contribute or extend
+the work.
+
+This is noted in the interest of transparency about how the project was built,
+and because AI-assisted authorship is relevant context for evaluating the code
