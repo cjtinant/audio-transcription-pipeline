@@ -102,14 +102,25 @@ You do not need to be inside the repo folder.
 
 ### Step 1 — Transcribe (terminal, any directory)
 
-```fish
-# macOS fish shell — pass the full path to any audio file
+If you installed the `transcribe` script, this is all you need:
+
+```bash
+# Works in bash, zsh, fish, or any terminal
+transcribe "/full/path/to/your/meeting.m4a"
+
+# Pin speaker count for better diarization (see Speaker count tuning below)
+transcribe "/full/path/to/your/meeting.m4a" --min_speakers 3 --max_speakers 3
+```
+
+Or call WhisperX directly:
+
+```bash
 cd ~/audio-transcription-pipeline
-source .venv/bin/activate.fish
+source .venv/bin/activate
 .venv/bin/whisperx "/full/path/to/your/meeting.m4a" \
   --model large-v2 \
   --diarize \
-  --hf_token (grep HF_TOKEN ~/.Renviron | cut -d= -f2 | tr -d '\r') \
+  --hf_token "$(grep HF_TOKEN ~/.Renviron | cut -d= -f2 | tr -d '\r')" \
   --device cpu \
   --compute_type int8 \
   --output_format json \
@@ -117,28 +128,43 @@ source .venv/bin/activate.fish
   --language en
 ```
 
-**For Zoom recordings on macOS**, your files are in `~/Documents/Zoom/`. Pass
-the full path:
+**For Zoom recordings on macOS**, your files are in `~/Documents/Zoom/`. Zoom
+folder names always contain spaces — always wrap the path in quotes:
 
-```fish
-cd ~/audio-transcription-pipeline
-source .venv/bin/activate.fish
-.venv/bin/whisperx ~/Documents/Zoom/2026-05-07*/audio*.m4a \
-  --model large-v2 \
-  --diarize \
-  --hf_token (grep HF_TOKEN ~/.Renviron | cut -d= -f2 | tr -d '\r') \
-  --device cpu \
-  --compute_type int8 \
-  --output_format json \
-  --output_dir ~/audio-transcription-pipeline/output \
-  --language en
+```bash
+transcribe "~/Documents/Zoom/2026-05-22 13.06.45 Meeting Name/audio.m4a"
 ```
-
-> **Note:** If the folder name has spaces or parentheses (Zoom folders always
-> do), wrap the path in quotes:
-> `"/Users/yourname/Documents/Zoom/2026-05-07 13.06.45 Name/audio.m4a"`
 
 Output saved to: `~/audio-transcription-pipeline/output/audio.json`
+
+---
+
+### Speaker count tuning (diarization quality)
+
+By default, pyannote auto-detects how many speakers are present. Auto-detection
+works well for 1–2 speakers but degrades with 3 or more speakers, or when
+speakers have similar voices or talk over each other.
+
+**When you know the speaker count, always pin it.** This is the single highest-
+impact change you can make to diarization quality:
+
+```fish
+# 3-person meeting — pin exactly
+transcribe meeting.m4a --min_speakers 3 --max_speakers 3
+
+# Interview — one interviewer, one subject
+transcribe interview.m4a --min_speakers 2 --max_speakers 2
+
+# Lecture with occasional student questions — set a range
+transcribe lecture.m4a --min_speakers 1 --max_speakers 4
+```
+
+These flags pass directly through the `transcribe` function to WhisperX —
+no wrapper changes needed.
+
+**Signs diarization went wrong:** a single speaker's turn split across two
+speaker labels, or two different speakers merged into one. Both improve
+significantly with pinned speaker counts.
 
 ---
 
@@ -284,12 +310,32 @@ Open R or RStudio and run:
 install.packages(c("jsonlite", "httr2"))
 ```
 
-**Step 6 — Test it**
+**Step 6 — Install the transcribe script**
+
+```bash
+mkdir -p ~/bin
+cp transcribe.sh ~/bin/transcribe
+chmod +x ~/bin/transcribe
+```
+
+Add `~/bin` to your PATH if it isn't already (add to `~/.zshrc` or `~/.bashrc`):
+
+```bash
+export PATH="$HOME/bin:$PATH"
+```
+
+Fish users, add to `~/.config/fish/config.fish`:
+
+```fish
+fish_add_path ~/bin
+```
+
+**Step 7 — Test it**
 
 ```bash
 source .venv/bin/activate
 curl -L "https://www.voiptroubleshooter.com/open_speech/american/OSR_us_000_0010_8k.wav" -o test.wav
-whisperx test.wav \
+.venv/bin/whisperx test.wav \
   --model large-v2 \
   --diarize \
   --hf_token "YOUR_HF_TOKEN" \
@@ -419,9 +465,9 @@ And use `--device cuda --compute_type float16` when running WhisperX.
 
 ### macOS Apple Silicon (Technical)
 
-**Requirements:** macOS 13+, Homebrew at `/opt/homebrew`, uv, fish or zsh
+**Requirements:** macOS 13+, Homebrew at `/opt/homebrew`, uv
 
-```fish
+```bash
 # Verify ARM Homebrew
 file $(which brew)
 # Expected: Bourne-Again shell script text executable
@@ -432,9 +478,9 @@ brew install uv ffmpeg git
 # Create project venv with ARM-native Python 3.11
 cd ~/audio-transcription-pipeline
 uv venv --python 3.11 .venv
-source .venv/bin/activate.fish  # or: source .venv/bin/activate for zsh/bash
+source .venv/bin/activate
 
-# Install PyTorch (CPU — MPS experimental, CPU+int8 is reliable)
+# Install PyTorch and WhisperX
 uv pip install torch torchaudio
 uv pip install whisperx
 
@@ -444,16 +490,28 @@ file .venv/bin/python3
 # Expected: Mach-O 64-bit executable arm64
 ```
 
-**Note on Metal/MPS:** WhisperX uses `faster-whisper` which does not yet support
-MPS natively. CPU + int8 quantization on Apple Silicon with 16GB+ unified memory
-is fast and reliable. large-v2 transcribes at ~10-15x realtime on M1 Max.
+**Device and compute settings:** `--device cpu --compute_type int8` is the
+correct choice for Apple Silicon. WhisperX uses `faster-whisper` as its
+transcription engine, which does not support Metal (MPS) natively. CPU with
+int8 quantization on Apple Silicon unified memory is both fast and reliable —
+`large-v2` transcribes at approximately 10–15× realtime on M1 Max, meaning a
+1-hour recording completes in 4–6 minutes. No alternative device flags are
+needed or recommended.
 
-**fish shell one-command setup:**
+**Install the transcribe script:**
 
-```fish
-cp transcribe.fish ~/.config/fish/functions/transcribe.fish
-source ~/.config/fish/config.fish
-# Usage: transcribe mymeeting.m4a
+```bash
+mkdir -p ~/bin
+cp transcribe.sh ~/bin/transcribe
+chmod +x ~/bin/transcribe
+
+# Make sure ~/bin is on your PATH — add to ~/.zshrc, ~/.bashrc, or
+# ~/.config/fish/config.fish if it isn't already:
+#   export PATH="$HOME/bin:$PATH"   # bash / zsh
+#   fish_add_path ~/bin             # fish
+
+# Verify
+transcribe --help   # should print WhisperX usage
 ```
 
 ---
@@ -1001,11 +1059,23 @@ your HF token is wrong.
 **Ollama connection refused** Start the Ollama server in a separate terminal:
 `ollama serve`
 
-**Poor diarization (speakers mixed up)** Add speaker count hints:
+**Poor diarization (speakers mixed up or merged)** This is almost always fixed
+by pinning the speaker count. Add `--min_speakers` and `--max_speakers` with
+the exact number of speakers in your recording:
 
-```bash
-whisperx meeting.m4a --diarize --min_speakers 2 --max_speakers 2 ...
+```fish
+# 3-person meeting
+transcribe meeting.m4a --min_speakers 3 --max_speakers 3
+
+# 2-person interview
+transcribe interview.m4a --min_speakers 2 --max_speakers 2
 ```
+
+When auto-detection is left on (no flags), pyannote guesses the speaker count
+from audio energy patterns — it works for 1–2 speakers but becomes unreliable
+for 3+ speakers or when voices are similar. Pinning both values is low-effort
+and high-impact. If you're unsure of the exact count, set a narrow range:
+`--min_speakers 2 --max_speakers 4`.
 
 **Slow transcription**
 
@@ -1023,7 +1093,7 @@ audio-transcription-pipeline/
 ├── README.md            # This file
 ├── transcribe.R         # R pipeline (primary — R users)
 ├── transcribe.py        # Python pipeline (Python users — CLI + interactive)
-├── transcribe.fish      # Fish shell one-command wrapper
+├── transcribe.sh        # Bash one-command wrapper (install to ~/bin/transcribe)
 └── output/              # Transcripts and summaries saved here (gitignored)
     └── .gitkeep         # Empty placeholder — keeps output/ in git
 ```
@@ -1052,3 +1122,14 @@ setup required.
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — SYSTRAN
 - [Ollama](https://ollama.com) — local LLM serving
 - [Anthropic](https://anthropic.com) — Claude API
+
+---
+
+## A note on authorship
+
+This project was written by [Claude Sonnet 4.6](https://www.anthropic.com/claude)
+(Anthropic) in collaboration with a non-programmer domain expert. The
+architecture, use case, and design decisions are human-originated; the code is
+AI-generated. This is noted here in the interest of transparency, and because
+it is relevant context for anyone who wants to contribute, extend, or evaluate
+the work.
