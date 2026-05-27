@@ -102,9 +102,9 @@ You do not need to be inside the repo folder.
 
 ### Poor audio quality?
 
-Background noise, echo, or room reflections can hurt transcription accuracy.
-See [docs/noise-reduction.md](docs/noise-reduction.md) for options ranging from
-a one-click cloud tool (Adobe Podcast Enhance) to manual Audacity workflows.
+Background noise, echo, or room reflections can hurt transcription accuracy. See
+[docs/noise-reduction.md](docs/noise-reduction.md) for options ranging from a
+one-click cloud tool (Adobe Podcast Enhance) to manual Audacity workflows.
 
 ---
 
@@ -997,7 +997,7 @@ Runs entirely on your machine. No data leaves your computer. Requires
 ```bash
 # Install Ollama
 # macOS: download from https://ollama.com
-# Linux:
+# Linux / WSL2 Ubuntu:
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Pull a model
@@ -1007,6 +1007,12 @@ ollama pull llama3.1:8b-instruct-q8_0   # higher quality (8.5GB)
 # Start Ollama server (keep running in a separate terminal)
 ollama serve
 ```
+
+**WSL2 users:** install Ollama inside the WSL2 Ubuntu environment using the
+command above — not the Windows installer. Your scripts connect to it at
+`http://localhost:11434` with no extra configuration. If that address is
+unreachable, start Ollama with `OLLAMA_HOST=0.0.0.0:11434 ollama serve` to make
+it listen on all interfaces.
 
 In R: `engine = "ollama"` (default)
 
