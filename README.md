@@ -1,275 +1,310 @@
-# Pipeline Reference
+# Audio Transcription Pipeline
 
-R and Python API reference, meeting type presets, and LLM backend options.
+A local, private, free pipeline for transcribing multi-speaker audio recordings
+and generating AI summaries. Built on WhisperX + pyannote for speaker-aware
+transcription, with support for both local (Ollama) and cloud (Anthropic API)
+summarization.
+
+**What it does:**
+
+- Transcribes audio to text with accurate word-level timestamps
+- Identifies who is speaking at each moment (speaker diarization)
+- Generates structured summaries tailored to your meeting type
+- Saves both the full transcript and summary to disk automatically
+
+**Supported meeting types:** General meeting, standup, interview, research
+conversation, lecture, or custom prompt
+
+**Supported platforms:** macOS (Apple Silicon), macOS (Intel), Windows (WSL2),
+Linux
+
+**Privacy:** This pipeline is designed so that your audio and transcripts never
+have to leave your computer. The transcription step (WhisperX + pyannote) runs
+entirely locally — no audio is uploaded anywhere, ever.
+
+For the summarization step you have two options:
+
+- **Ollama (default)** — runs a local AI model on your own machine. Nothing
+  leaves your computer. Free, private, and works offline. Recommended for
+  sensitive recordings: interviews, clinical conversations, confidential
+  meetings, or anything you would not want stored on a third-party server.
+
+- **Anthropic API** — sends the text transcript (not the audio) to Anthropic's
+  servers for summarization. Faster and higher quality, but your transcript
+  content is processed externally. Review
+  [Anthropic's privacy policy](https://www.anthropic.com/privacy) before using
+  this option with sensitive material.
+
+In both cases, your audio file stays on your machine.
 
 ---
 
-## Running the Pipeline
+## How It Works
 
-### Step 1 — Transcribe your audio file
+This pipeline is built from two separate, independent tools that each do one job
+well. Understanding this split is the key to using it confidently.
 
-**After installing the `transcribe` script:**
-
-```bash
-transcribe /path/to/your/meeting.m4a
+```
+Step 1 — Transcribe (terminal)
+  transcribe meeting.m4a
+       │
+       │  whisperx converts audio → text with speaker labels + timestamps
+       │  pyannote identifies who is speaking at each moment
+       ▼
+  output/meeting.json
+       │
+       │  a structured file containing every segment: who said what, when
+       ▼
+Step 2 — Summarize (R or Python)
+  source("transcribe.R")
+  result <- run_pipeline("output/meeting.json")
+       │
+       │  R reads the JSON, formats it, sends it to an LLM
+       │  LLM returns a structured summary
+       ▼
+  output/meeting_transcript_20260502.txt
+  output/meeting_summary_20260502.txt
 ```
 
-**Or call WhisperX directly:**
+**Why two steps instead of one?**
+
+- **Step 1 is slow and runs once.** Transcribing a 1-hour recording takes a few
+  minutes. The JSON output is saved so you never have to re-transcribe the same
+  file.
+
+- **Step 2 is fast and runs many times.** Once you have the JSON, you can
+  summarize it with different meeting types, different models, or different
+  prompts in seconds — without touching the audio again.
+
+- **They are independent by design.** The terminal step (WhisperX) and the
+  summarization step (R or Python) do not depend on each other being open or
+  running. If one fails, the other is unaffected. This also means R users and
+  Python users can share the same JSON output and run their own summarization
+  step independently.
+
+**The files and what they do:**
+
+| File                      | Role                                     | When you touch it                 |
+| ------------------------- | ---------------------------------------- | --------------------------------- |
+| `transcribe.sh`           | Runs WhisperX on any audio file          | Step 1 — once per recording       |
+| `transcribe.R`            | Reads JSON, summarizes via R             | Step 2 — R users                  |
+| `transcribe.py`           | Reads JSON, summarizes via Python or CLI | Step 2 — Python users             |
+| `output/*.json`           | WhisperX output — intermediate file      | Created in Step 1, read in Step 2 |
+| `output/*_transcript.txt` | Clean readable transcript                | Created in Step 2                 |
+| `output/*_summary.txt`    | LLM summary                              | Created in Step 2                 |
+
+---
+
+## Daily Use — Once You're Set Up
+
+Once installed, this is all you need to transcribe and summarize any recording.
+You do not need to be inside the repo folder.
+
+### Poor audio quality?
+
+Background noise, echo, or room reflections can hurt transcription accuracy. See
+[docs/noise-reduction.md](docs/noise-reduction.md) for options ranging from a
+one-click cloud tool (Adobe Podcast Enhance) to manual Audacity workflows.
+
+---
+
+### Starting from a video file?
+
+If your recording is a `.mp4`, `.mov`, or other video format, extract the audio
+first with ffmpeg:
 
 ```bash
-source .venv/bin/activate
+ffmpeg -i your_recording.mp4 -vn audio.wav
+```
 
-whisperx /path/to/your/meeting.m4a \
+The `-vn` flag drops the video stream. WhisperX works with the resulting `.wav`
+directly.
+
+---
+
+### Step 1 — Transcribe (terminal, any directory)
+
+If you installed the `transcribe` script, this is all you need:
+
+```bash
+# Works in bash or zsh
+transcribe "/full/path/to/your/meeting.m4a"
+
+# Pin speaker count for better diarization (see Speaker count tuning below)
+transcribe "/full/path/to/your/meeting.m4a" --min_speakers 3 --max_speakers 3
+```
+
+Or call WhisperX directly:
+
+```bash
+cd ~/audio-transcription-pipeline
+source .venv/bin/activate
+.venv/bin/whisperx "/full/path/to/your/meeting.m4a" \
   --model large-v2 \
   --diarize \
-  --hf_token "YOUR_HF_TOKEN" \
+  --hf_token "$(grep HF_TOKEN ~/.Renviron | cut -d= -f2 | tr -d '\r')" \
   --device cpu \
   --compute_type int8 \
   --output_format json \
-  --output_dir ./output \
+  --output_dir ~/audio-transcription-pipeline/output \
   --language en
 ```
 
-Output: `output/meeting.json`
-
-**Optional flags:**
-
-- `--min_speakers 2 --max_speakers 4` — constrain speaker count if known
-- `--language fr` — specify language (default: auto-detect)
-- `--model medium` — use smaller model for speed (less accurate)
-
-### Step 2 — Generate summary
-
-**R (primary — recommended for R users):**
-
-```r
-source("transcribe.R")
-
-# Local Ollama (free, private, requires Ollama running)
-result <- run_pipeline("output/meeting.json")
-
-# Anthropic API (requires ANTHROPIC_API_KEY in ~/.Renviron)
-result <- run_pipeline("output/meeting.json", engine = "anthropic")
-
-# With meeting type preset
-result <- run_pipeline("output/meeting.json",
-                       engine       = "anthropic",
-                       meeting_type = "interview")
-```
-
-**Python (CLI — recommended for Python users):**
+**For Zoom recordings on macOS**, your files are in `~/Documents/Zoom/`. Zoom
+folder names always contain spaces — always wrap the path in quotes:
 
 ```bash
-# Local Ollama
-python transcribe.py output/meeting.json
-
-# Anthropic API
-python transcribe.py output/meeting.json --engine anthropic
-
-# With meeting type preset
-python transcribe.py output/meeting.json --engine anthropic --type interview
-
-# List available meeting types
-python transcribe.py --list-types
+transcribe "~/Documents/Zoom/2026-05-22 13.06.45 Meeting Name/audio.m4a"
 ```
 
-Outputs saved automatically to `output/`:
-
-- `meeting_transcript_20260502_175200.txt`
-- `meeting_summary_20260502_175200.txt`
+Output saved to: `~/audio-transcription-pipeline/output/audio.json`
 
 ---
 
-## R Pipeline Reference
+### Speaker count tuning (diarization quality)
 
-```r
-run_pipeline(
-  json_path,              # Path to WhisperX JSON output
-  engine       = "ollama",    # "ollama" or "anthropic"
-  meeting_type = "general",   # See Meeting Type Presets below
-  custom_prompt = NULL,       # Your own prompt (if meeting_type = "custom")
-  save         = TRUE,        # Save outputs to disk
-  output_dir   = "output",    # Output directory
-  ...                         # Passed to summarize_ollama() or
-                              # summarize_anthropic() — e.g., model = "..."
-)
+By default, pyannote auto-detects how many speakers are present. Auto-detection
+works well for 1–2 speakers but degrades with 3 or more speakers, or when
+speakers have similar voices or talk over each other.
+
+**When you know the speaker count, always pin it.** This is the single highest-
+impact change you can make to diarization quality:
+
+```bash
+# 3-person meeting — pin exactly
+transcribe meeting.m4a --min_speakers 3 --max_speakers 3
+
+# Interview — one interviewer, one subject
+transcribe interview.m4a --min_speakers 2 --max_speakers 2
+
+# Lecture with occasional student questions — set a range
+transcribe lecture.m4a --min_speakers 1 --max_speakers 4
 ```
 
-**Change the Ollama model:**
+These flags pass directly through the `transcribe` function to WhisperX — no
+wrapper changes needed.
 
-```r
-result <- run_pipeline("output/meeting.json",
-                       model = "llama3.1:8b-instruct-q8_0")
-```
-
-**Change the Anthropic model:**
-
-```r
-result <- run_pipeline("output/meeting.json",
-                       engine = "anthropic",
-                       model  = "claude-haiku-4-5")  # cheaper/faster
-```
-
-**Access results programmatically:**
-
-```r
-result$segments    # data frame: start, end, speaker, text
-result$transcript  # formatted string
-result$summary     # LLM summary string
-result$paths       # list of saved file paths
-```
+**Signs diarization went wrong:** a single speaker's turn split across two
+speaker labels, or two different speakers merged into one. Both improve
+significantly with pinned speaker counts.
 
 ---
 
-## Python Pipeline Reference
+### Proper nouns and institution-specific terms
 
-### Installation
-
-The Python script requires `httpx` for API calls. Install it into the existing
-venv:
-
-```bash
-source .venv/bin/activate
-uv pip install httpx
-```
-
-### CLI usage
+WhisperX may mishear acronyms, place names, and institution-specific terms — for
+example transcribing "TEA-Center" as "T-Center". Use `--hotwords` to hint the
+model:
 
 ```bash
-# Basic — local Ollama, general meeting type
-python transcribe.py output/meeting.json
-
-# Anthropic API
-python transcribe.py output/meeting.json --engine anthropic
-
-# Meeting type preset
-python transcribe.py output/meeting.json --type interview
-
-# Custom prompt
-python transcribe.py output/meeting.json --type custom \
-    --prompt "List every action item and who owns it."
-
-# Override model
-python transcribe.py output/meeting.json \
-    --model llama3.1:8b-instruct-q8_0
-
-# Skip saving to disk
-python transcribe.py output/meeting.json --no-save
-
-# List available meeting types
-python transcribe.py --list-types
+transcribe meeting.m4a --hotwords "TEA-Center, pyannote, WhisperX"
 ```
 
-### Interactive / script usage
-
-```python
-from transcribe import run_pipeline
-
-# Local Ollama, general meeting (default)
-result = run_pipeline("output/meeting.json")
-
-# Anthropic API, interview preset
-result = run_pipeline("output/interview.json",
-                      engine="anthropic",
-                      meeting_type="interview")
-
-# Custom prompt
-result = run_pipeline("output/meeting.json",
-                      meeting_type="custom",
-                      custom_prompt="List every number mentioned.")
-
-# Override model
-result = run_pipeline("output/meeting.json",
-                      model="llama3.1:8b-instruct-q8_0")
-```
-
-**Access results programmatically:**
-
-```python
-result["segments"]    # list of dicts: start, end, speaker, text
-result["transcript"]  # formatted string
-result["summary"]     # LLM summary string
-result["paths"]       # dict of saved file paths (if save=True)
-```
+Multiple terms are comma-separated. Hotwords improve recognition but don't
+guarantee correct output — always review proper nouns in the transcript.
 
 ---
 
-## Meeting Type Presets
+### Step 2 — Summarize (R)
 
-| Type        | Best for                             | Output includes                                    |
-| ----------- | ------------------------------------ | -------------------------------------------------- |
-| `general`   | Team meetings, calls                 | Overview, decisions, action items, open questions  |
-| `standup`   | Daily standups                       | Completed work, today's plan, blockers per speaker |
-| `interview` | Research interviews, user interviews | Themes, insights, notable quotes, follow-ups       |
-| `research`  | Academic discussions, lab meetings   | Research question, findings, methods, next steps   |
-| `lecture`   | Lectures, presentations, webinars    | Topics, key concepts with timestamps, study notes  |
-| `custom`    | Anything else                        | Whatever your prompt specifies                     |
-
-**Custom prompt example:**
+Open Positron or RStudio, set your working directory to the repo, then:
 
 ```r
+source("~/audio-transcription-pipeline/transcribe.R")
+
+# Choose your meeting type: general, standup, interview, research, lecture
 result <- run_pipeline(
-  "output/meeting.json",
-  meeting_type  = "custom",
-  custom_prompt = paste0(
-    "You are summarizing a grant planning meeting. ",
-    "Extract: funding opportunities discussed, ",
-    "deadlines mentioned, assigned responsibilities, ",
-    "and budget considerations.\n\nTranscript:\n"
-  )
+  "~/audio-transcription-pipeline/output/audio1234567.json",
+  engine       = "anthropic",   # or "ollama" for local/free
+  meeting_type = "lecture"      # match to your recording type
 )
+```
+
+Outputs saved automatically to `~/audio-transcription-pipeline/output/`:
+
+- `audio1234567_transcript_20260507_130000.txt`
+- `audio1234567_summary_20260507_130000.txt`
+
+---
+
+### Step 2 — Summarize (Python CLI)
+
+```bash
+cd ~/audio-transcription-pipeline
+source .venv/bin/activate
+
+python transcribe.py output/audio1234567.json \
+  --engine anthropic \
+  --type lecture
 ```
 
 ---
 
-## LLM Backend Options
+### Before you start — checklist
 
-### Ollama (Local — Free, Private)
+- [ ] Ollama is running in a separate terminal (`ollama serve`) if using local
+      summarization
+- [ ] `~/.Renviron` contains `HF_TOKEN` and optionally `ANTHROPIC_API_KEY`
+- [ ] The venv is activated before calling whisperx
 
-Runs entirely on your machine. No data leaves your computer. Requires
-[Ollama](https://ollama.com) to be installed and running.
+---
 
-```bash
-# Install Ollama
-# macOS: download from https://ollama.com
-# Linux / WSL2 Ubuntu:
-curl -fsSL https://ollama.com/install.sh | sh
+## Documentation
 
-# Pull a model
-ollama pull llama3.1:8b-instruct-q6_k   # recommended (6.6GB)
-ollama pull llama3.1:8b-instruct-q8_0   # higher quality (8.5GB)
+- [docs/installation.md](docs/installation.md) — Security, platform setup,
+  HuggingFace tokens, testing your install, troubleshooting
+- [docs/reference.md](docs/reference.md) — R and Python API reference, meeting
+  type presets, LLM backend options
+- [docs/noise-reduction.md](docs/noise-reduction.md) — Pre-processing options
+  for poor-quality audio
 
-# Start Ollama server (keep running in a separate terminal)
-ollama serve
+---
+
+## Project Structure
+
+```
+audio-transcription-pipeline/
+├── .gitignore           # Excludes credentials, audio files, JSON output
+├── README.md            # This file — daily use
+├── transcribe.R         # R pipeline (Step 2 — R users)
+├── transcribe.py        # Python pipeline (Step 2 — Python users)
+├── transcribe.sh        # Bash wrapper for WhisperX (Step 1)
+├── docs/
+│   ├── installation.md  # Setup instructions for all platforms
+│   ├── reference.md     # R/Python API reference and LLM options
+│   └── noise-reduction.md
+└── output/              # Transcripts and summaries saved here (gitignored)
+    └── .gitkeep
 ```
 
-**WSL2 users:** install Ollama inside the WSL2 Ubuntu environment using the
-command above — not the Windows installer. Your scripts connect to it at
-`http://localhost:11434` with no extra configuration. If that address is
-unreachable, start Ollama with `OLLAMA_HOST=0.0.0.0:11434 ollama serve` to make
-it listen on all interfaces.
+---
 
-In R: `engine = "ollama"` (default)
+## Acknowledgements
 
-### Anthropic API (Cloud)
+- [WhisperX](https://github.com/m-bain/whisperX) — Max Bain et al.
+- [pyannote.audio](https://github.com/pyannote/pyannote-audio) — Hervé Bredin et
+  al.
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — SYSTRAN
+- [Ollama](https://ollama.com) — local LLM serving
+- [Anthropic](https://anthropic.com) — Claude API
 
-Requires an [Anthropic account](https://console.anthropic.com) and API key. Data
-is sent to Anthropic's servers — do not use for sensitive/confidential
-recordings without reviewing their data policy.
+---
 
-**Pricing (May 2026, per million tokens):**
+## A note on authorship
 
-| Model               | Input | Output | Notes               |
-| ------------------- | ----- | ------ | ------------------- |
-| `claude-haiku-4-5`  | $1.00 | $5.00  | Fastest, cheapest   |
-| `claude-sonnet-4-6` | $3.00 | $15.00 | Recommended balance |
-| `claude-opus-4-6`   | $5.00 | $25.00 | Highest quality     |
+This project was written by
+[Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic) in
+collaboration with a non-programmer faculty-member at a Tribal College whose
+currently research interests are statistical hydrology and surface-water quality
+— who is not a software developer. The architecture, use case, and design
+decisions are human-originated; the code is AI-generated.
 
-**Typical cost per 1-hour meeting summary:** ~$0.035 (Sonnet 4.6)
+The intended user is a researcher or practitioner who works with recorded
+conversations — interviews, meetings, lectures — and wants a local, private
+transcription workflow without depending on a developer to set it up or maintain
+it. That context is relevant for anyone considering how to contribute or extend
+the work.
 
-```bash
-# Add to ~/.Renviron
-echo 'ANTHROPIC_API_KEY=sk-ant-yourkey' >> ~/.Renviron
-```
-
-In R: `engine = "anthropic"`
+This is noted in the interest of transparency about how the project was built,
+and because AI-assisted authorship is relevant context for anyone who wants to
+contribute, extend, or evaluate the work.
