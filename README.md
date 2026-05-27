@@ -100,6 +100,14 @@ Step 2 — Summarize (R or Python)
 Once installed, this is all you need to transcribe and summarize any recording.
 You do not need to be inside the repo folder.
 
+### Poor audio quality?
+
+Background noise, echo, or room reflections can hurt transcription accuracy.
+See [docs/noise-reduction.md](docs/noise-reduction.md) for options ranging from
+a one-click cloud tool (Adobe Podcast Enhance) to manual Audacity workflows.
+
+---
+
 ### Starting from a video file?
 
 If your recording is a `.mp4`, `.mov`, or other video format, extract the audio
