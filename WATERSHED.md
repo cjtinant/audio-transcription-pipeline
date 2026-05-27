@@ -23,3 +23,18 @@ update all four files and the README. If `large-v2` remains preferable, add a
 note to the README explaining the deliberate choice.
 
 **Flagged:** 2026-05-26
+
+## torchcodec warning on macOS with FFmpeg 8
+
+**Status:** parked — cosmetic, does not affect output
+
+torchcodec expects FFmpeg 4–7; Homebrew installs FFmpeg 8. WhisperX falls back
+to subprocess ffmpeg calls and transcription completes normally. The
+PYTHONWARNINGS suppression in transcribe.sh doesn't catch it because the warning
+category doesn't match exactly.
+
+To fix properly: either pin FFmpeg to version 7 (`brew install ffmpeg@7`) or
+find the correct warning filter string. Not worth doing until it causes an
+actual problem.
+
+**Flagged:** 2026-05-26
