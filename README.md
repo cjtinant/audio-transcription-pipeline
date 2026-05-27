@@ -648,7 +648,7 @@ a free account and license agreement).
 4. Copy the `hf_...` token — you only see it once
 5. Accept the license on both model pages (must be logged in):
    - [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0)
-   - [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1)
+   - [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1)
 6. Add the token to your credentials file:
 
 **macOS/Linux (R users):**
@@ -1130,10 +1130,10 @@ setup required.
 
 This project was written by
 [Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic) in
-collaboration with a faculty-member at a small Tribal College whose research
-interests are primarily statistical hydrology and surface-water quality — who is
-not a software developer. The architecture, use case, and design decisions are
-human-originated; the code is AI-generated.
+collaboration with a non-programmer faculty-member at a Tribal College whose
+currently research interests are statistical hydrology and surface-water quality
+— who is not a software developer. The architecture, use case, and design
+decisions are human-originated; the code is AI-generated.
 
 The intended user is a researcher or practitioner who works with recorded
 conversations — interviews, meetings, lectures — and wants a local, private
@@ -1142,4 +1142,5 @@ it. That context is relevant for anyone considering how to contribute or extend
 the work.
 
 This is noted in the interest of transparency about how the project was built,
-and because AI-assisted authorship is relevant context for evaluating the code.
+and because AI-assisted authorship is relevant context for anyone who wants to
+contribute, extend, or evaluate the work.
