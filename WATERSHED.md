@@ -17,10 +17,16 @@ transcribe.R).
 silent or low-speech segments — a common complaint in the WhisperX issue
 tracker. `large-v2` is more conservative and well-tested.
 
-**To resolve:** run both models on a representative sample recording and compare
-transcript quality before updating the docs. If `large-v3` is better or neutral,
-update all four files and the README. If `large-v2` remains preferable, add a
-note to the README explaining the deliberate choice.
+**To resolve:** run a 3-way comparison on the same recording:
+
+1. WhisperX `large-v2` (current default)
+2. WhisperX `large-v3`
+3. Zoom's built-in transcript (already captured 2026-05-26 as baseline)
+
+Compare: proper noun accuracy, speaker label quality, hallucinations in
+low-speech segments, and overall readability. If `large-v3` is better or
+neutral, update all four files and the README. If `large-v2` remains preferable,
+add a note to the README explaining the deliberate choice.
 
 **Flagged:** 2026-05-26
 
