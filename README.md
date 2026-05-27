@@ -292,19 +292,17 @@ audio-transcription-pipeline/
 
 ## A note on authorship
 
+In the interest of transparency about how the project was built, and flagging
+the AI-assisted authorship as relevant context for anyone who wants to
+contribute, extend, or evaluate the work:
+
 This project was written by
 [Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic) in
-collaboration with a non-programmer faculty-member at a Tribal College whose
-currently research interests are statistical hydrology and surface-water quality
-— who is not a software developer. The architecture, use case, and design
-decisions are human-originated; the code is AI-generated.
+collaboration with a faculty-member at a Tribal College whose current research
+interests are statistical hydrology and surface-water quality — and not a
+software developer. The architecture, use case, and design decisions are
+human-originated; the code is AI-generated.
 
 The intended user is a researcher or practitioner who works with recorded
 conversations — interviews, meetings, lectures — and wants a local, private
-transcription workflow without depending on a developer to set it up or maintain
-it. That context is relevant for anyone considering how to contribute or extend
-the work.
-
-This is noted in the interest of transparency about how the project was built,
-and because AI-assisted authorship is relevant context for anyone who wants to
-contribute, extend, or evaluate the work.
+transcription workflow.
