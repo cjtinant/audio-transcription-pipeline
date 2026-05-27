@@ -24,7 +24,7 @@
 export PYTHONWARNINGS="ignore::UserWarning:pyannote"
 
 # Activate the WhisperX virtual environment
-source ~/audio-transcription-pipeline/.venv/bin/activate
+source ~/PROJECTS/audio-transcription-pipeline/.venv/bin/activate
 
 # Load HF token from ~/.Renviron
 hf_token=$(grep HF_TOKEN ~/.Renviron | cut -d= -f2 | tr -d '\r')
@@ -37,7 +37,7 @@ fi
 
 # Run WhisperX — full path avoids PATH issues after venv activation.
 # All arguments passed to this script are forwarded to whisperx.
-exec ~/audio-transcription-pipeline/.venv/bin/whisperx "$@" \
+exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx "$@" \
     --model large-v2 \
     --diarize \
     --hf_token "$hf_token" \
