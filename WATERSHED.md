@@ -81,3 +81,9 @@ normally. May result in uncertain speaker labels on very short segments
 (silence, crosstalk).
 
 **Flagged:** 2026-05-26
+
+## Speaker types:
+
+Update speakers or post_process?
+
+**Flagged:** 2026-05-27
