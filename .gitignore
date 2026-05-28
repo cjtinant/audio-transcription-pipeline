@@ -43,3 +43,6 @@ output/*
 .cache/
 models/
 00_admin/
+
+# ── Scratch files ───────────────────────────────────────────────────────
+scratch.md
