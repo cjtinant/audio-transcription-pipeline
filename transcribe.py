@@ -72,6 +72,16 @@ MEETING_PROMPTS = {
         "3. Examples or case studies mentioned\n"
         "4. Summary suitable for study notes\n\n"
     ),
+    "grant_planning": (
+    "You are summarizing a grant planning meeting at a Tribal College. "
+    "Given the following transcript with speaker labels and timestamps, provide:\n"
+    "1. A 2-3 sentence overview of the grant or proposal under discussion\n"
+    "2. Funding opportunities or mechanisms mentioned\n"
+    "3. Key decisions made about approach, scope, or infrastructure\n"
+    "4. Risks and open questions identified\n"
+    "5. Action items with speaker attribution and any deadlines mentioned\n"
+    "6. Next steps and timeline\n\n"
+),
 }
 
 MEETING_TYPE_DESCRIPTIONS = {
