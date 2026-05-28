@@ -24,7 +24,8 @@ library(httr2)
 
 meeting_prompt <- function(meeting_type = c("general", "standup",
                                             "interview", "research",
-                                            "lecture", "custom"),
+                                            "lecture", "grant_planning",
+                                            "custom"),
                            custom_prompt = NULL) {
   meeting_type <- match.arg(meeting_type)
 
@@ -261,7 +262,8 @@ save_outputs <- function(transcript, summary, json_path,
 run_pipeline <- function(json_path,
                          engine       = c("ollama", "anthropic"),
                          meeting_type = c("general", "standup", "interview",
-                                          "research", "lecture", "custom"),
+                                          "research", "lecture",
+                                          "grant_planning", "custom"),
                          custom_prompt = NULL,
                          save         = TRUE,
                          output_dir   = "output",
