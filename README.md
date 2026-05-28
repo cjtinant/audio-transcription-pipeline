@@ -210,22 +210,38 @@ guarantee correct output — always review proper nouns in the transcript.
 Open Positron or RStudio, set your working directory to the repo, then:
 
 ```r
-source("~/audio-transcription-pipeline/transcribe.R")
+source("~/PROJECTS/audio-transcription-pipeline/transcribe.R")
 
 # Choose your meeting type: general, standup, interview, research, lecture
 result <- run_pipeline(
-  "~/audio-transcription-pipeline/output/audio1234567.json",
+  "~/PROJECTS/audio-transcription-pipeline/output/audio1234567.json",
   engine       = "anthropic",   # or "ollama" for local/free
   meeting_type = "lecture"      # match to your recording type
 )
 ```
 
-Outputs saved automatically to `~/audio-transcription-pipeline/output/`:
+Outputs saved automatically to
+`~/PROJECTS/audio-transcription-pipeline/output/`:
 
 - `audio1234567_transcript_20260507_130000.txt`
 - `audio1234567_summary_20260507_130000.txt`
 
 ---
+
+### Choosing a meeting type
+
+| Preset           | Best for                                       |
+| ---------------- | ---------------------------------------------- |
+| `general`        | Planning meetings, admin calls, anything mixed |
+| `research`       | Lab discussions, methods conversations         |
+| `interview`      | Qualitative data collection, 1-on-1 interviews |
+| `lecture`        | Recorded talks, presentations, webinars        |
+| `grant_planning` | Grant proposals, funding conversations         |
+| `standup`        | Daily standups (probably never for most users) |
+| `custom`         | Anything — you write the prompt                |
+
+When in doubt, use `general`. It catches decisions, action items, and open
+questions, which are useful across most meeting types.
 
 ### Step 2 — Summarize (Python CLI)
 
