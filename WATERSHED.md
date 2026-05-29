@@ -21,7 +21,7 @@ tracker. `large-v2` is more conservative and well-tested.
 
 1. WhisperX `large-v2` (current default)
 2. WhisperX `large-v3`
-3. Zoom's built-in transcript (already captured 2026-05-26 as baseline)
+3. Something known as a baseline -- how to get this??
 
 Compare: proper noun accuracy, speaker label quality, hallucinations in
 low-speech segments, and overall readability. If `large-v3` is better or
@@ -87,3 +87,17 @@ normally. May result in uncertain speaker labels on very short segments
 Update speakers or post_process?
 
 **Flagged:** 2026-05-27
+
+## torchcodec broken on PyTorch 2.8.0 (macOS)
+
+**Status:** Non-fatal — pyannote falls back to alternative audio loading.  
+**Symptom:** `LC_RPATH` errors for all FFmpeg versions (4–7) at pipeline
+startup.  
+**Root cause:** torchcodec incompatible with PyTorch 2.8.0; see version table
+at  
+https://github.com/pytorch/torchcodec?tab=readme-ov-file#installing-torchcodec  
+**Risk:** Low for now; could become blocking if fallback loader is removed in a
+future pyannote release.  
+**Resolution options:** Downgrade PyTorch to a compatible version, or pin
+torchcodec to a compatible release.  
+**Parked:** 2026-05-28ß
