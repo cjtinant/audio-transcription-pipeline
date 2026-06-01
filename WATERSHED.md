@@ -86,6 +86,11 @@ normally. May result in uncertain speaker labels on very short segments
 
 Update speakers or post_process?
 
+### In progress
+
+- Created a first draft of `review_transcript.py`
+- **Issue** ‘os\* imported but unused Ruff(F401) [Ln 22, Col 8]
+
 **Flagged:** 2026-05-27
 
 ## torchcodec broken on PyTorch 2.8.0 (macOS)
@@ -100,4 +105,43 @@ https://github.com/pytorch/torchcodec?tab=readme-ov-file#installing-torchcodec
 future pyannote release.  
 **Resolution options:** Downgrade PyTorch to a compatible version, or pin
 torchcodec to a compatible release.  
-**Parked:** 2026-05-28ß
+**Parked:** 2026-05-28
+
+## In Progress
+
+### Issues being worked on
+
+## Update with Claude
+
+- rename transcribe.R and transcribe.py to --> summarize-transcript.R and
+  summarize-transcript.py
+
+### Next Steps
+
+**STEP_01-transcribe**
+
+- Ask Claude why json instead of txt file?
+- Update output file name for transcribe.sh to
+  PROJ_ROOT/output/raw/TIMESTAMP-OF-RECORDING.json
+- Update transcribe.sh output to additionally produce a raw text file
+  PROJ_ROOT/output/raw/TIMESTAMP-OF-RECORDING.json
+
+**STEP_02-review-transcript**
+
+- Update input for transcript_review default to
+  audio-transcription-pipeline/output/processed/
+
+  audio1391089713.json
+
+- Update output file name for transcribe.R and transcribe.py to
+  TIMESTAMP-OF-RECORDING.json
+  PROJ_ROOT/output/processed/TIMESTAMP-OF-RECORDING.json
+
+### Next Steps
+
+- check
+  osd4crf_weston-edwards-tinant_planning_2026-05-19-esv2-50p-bg-10p-music-10p
+
+#
+
+**Parked:** 2026-05-28
