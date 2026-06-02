@@ -56,7 +56,7 @@ Step 1 — Transcribe (terminal)
        │  a structured file containing every segment: who said what, when
        ▼
 Step 2 — Summarize (R or Python)
-  source("transcribe.R")
+  source("summarize-transcript.R")
   result <- run_pipeline("output/meeting.json")
        │
        │  R reads the JSON, formats it, sends it to an LLM
@@ -84,14 +84,15 @@ Step 2 — Summarize (R or Python)
 
 **The files and what they do:**
 
-| File                      | Role                                     | When you touch it                 |
-| ------------------------- | ---------------------------------------- | --------------------------------- |
-| `transcribe.sh`           | Runs WhisperX on any audio file          | Step 1 — once per recording       |
-| `transcribe.R`            | Reads JSON, summarizes via R             | Step 2 — R users                  |
-| `transcribe.py`           | Reads JSON, summarizes via Python or CLI | Step 2 — Python users             |
-| `output/*.json`           | WhisperX output — intermediate file      | Created in Step 1, read in Step 2 |
-| `output/*_transcript.txt` | Clean readable transcript                | Created in Step 2                 |
-| `output/*_summary.txt`    | LLM summary                              | Created in Step 2                 |
+| File                                | Role                                         | When you touch it                    |
+| ----------------------------------- | -------------------------------------------- | ------------------------------------ |
+| `transcribe.sh`                     | Runs WhisperX on any audio file              | Step 1 — once per recording          |
+| `review_transcript.py`              | JSON → interactive HTML for reviewing output | Optional — between Step 1 and Step 2 |
+| `summarize-transcript.R`            | Reads JSON, summarizes via R                 | Step 2 — R users                     |
+| `summarize-transcript.py`           | Reads JSON, summarizes via Python or CLI     | Step 2 — Python users                |
+| `output/raw/*.json`                 | WhisperX output — intermediate file          | Created in Step 1, read in Step 2    |
+| `output/processed/*_transcript.txt` | Clean readable transcript                    | Created in Step 2                    |
+| `output/processed/*_summary.txt`    | LLM summary                                  | Created in Step 2                    |
 
 ---
 
@@ -210,7 +211,7 @@ guarantee correct output — always review proper nouns in the transcript.
 Open Positron or RStudio, set your working directory to the repo, then:
 
 ```r
-source("~/PROJECTS/audio-transcription-pipeline/transcribe.R")
+source("~/PROJECTS/audio-transcription-pipeline/summarize-transcript.R")
 
 # Choose your meeting type: general, standup, interview, research, lecture
 result <- run_pipeline(
@@ -249,7 +250,7 @@ questions, which are useful across most meeting types.
 cd ~/audio-transcription-pipeline
 source .venv/bin/activate
 
-python transcribe.py output/audio1234567.json \
+python summarize-transcript.py output/audio1234567.json \
   --engine anthropic \
   --type lecture
 ```
@@ -280,17 +281,20 @@ python transcribe.py output/audio1234567.json \
 
 ```
 audio-transcription-pipeline/
-├── .gitignore           # Excludes credentials, audio files, JSON output
-├── README.md            # This file — daily use
-├── transcribe.R         # R pipeline (Step 2 — R users)
-├── transcribe.py        # Python pipeline (Step 2 — Python users)
-├── transcribe.sh        # Bash wrapper for WhisperX (Step 1)
+├── .gitignore                  # Excludes credentials, audio files, JSON output
+├── README.md                   # This file — daily use
+├── WATERSHED.md                # Parked decisions and open questions
+├── transcribe.sh               # Bash wrapper for WhisperX (Step 1)
+├── review_transcript.py        # JSON → interactive HTML review tool (optional)
+├── summarize-transcript.R      # R pipeline (Step 2 — R users)
+├── summarize-transcript.py     # Python pipeline (Step 2 — Python users)
 ├── docs/
-│   ├── installation.md  # Setup instructions for all platforms
-│   ├── reference.md     # R/Python API reference and LLM options
+│   ├── installation.md         # Setup instructions for all platforms
+│   ├── reference.md            # R/Python API reference and LLM options
 │   └── noise-reduction.md
-└── output/              # Transcripts and summaries saved here (gitignored)
-    └── .gitkeep
+└── output/                     # Transcripts and summaries (gitignored)
+    ├── raw/                    # WhisperX JSON output
+    └── processed/              # Cleaned transcripts, summaries, HTML reviews
 ```
 
 ---
