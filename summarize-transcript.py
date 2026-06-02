@@ -140,6 +140,22 @@ def read_whisperx(json_path: str) -> list[dict]:
     return segments
 
 
+def read_txt_transcript(txt_path: str) -> str:
+    """
+    Read a human-cleaned plain-text transcript.
+
+    Args:
+        txt_path: Path to the cleaned .txt transcript file.
+
+    Returns:
+        Full transcript as a string, ready for LLM input.
+    """
+    path = Path(txt_path).expanduser()
+    if not path.exists():
+        raise FileNotFoundError(f"Text file not found: {path}")
+    return path.read_text(encoding="utf-8")
+
+
 # ── 3. Format segments for LLM input ──────────────────────────────────
 
 def format_transcript(segments: list[dict]) -> str:
@@ -258,8 +274,8 @@ def summarize_ollama(
 def save_outputs(
     transcript: str,
     summary: str,
-    json_path: str,
-    output_dir: str = "output",
+    input_path: str,
+    output_dir: str = "output/processed",
 ) -> dict[str, str]:
     """
     Save transcript and summary to disk with timestamped filenames.
@@ -267,7 +283,7 @@ def save_outputs(
     Args:
         transcript:  Formatted transcript string
         summary:     LLM summary string
-        json_path:   Original JSON path (used to derive output filenames)
+        input_path:  Input file path (used to derive output filenames)
         output_dir:  Directory to save outputs
 
     Returns:
@@ -276,7 +292,7 @@ def save_outputs(
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    base = Path(json_path).stem
+    base = Path(input_path).stem
     ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     transcript_path = out / f"{base}_transcript_{ts}.txt"
@@ -298,19 +314,20 @@ def save_outputs(
 # ── 6. Full pipeline ──────────────────────────────────────────────────
 
 def run_pipeline(
-    json_path: str,
+    input_path: str,
     engine: str = "ollama",
     meeting_type: str = "general",
     custom_prompt: str | None = None,
     save: bool = True,
-    output_dir: str = "output",
+    output_dir: str = "output/processed",
     model: str | None = None,
 ) -> dict:
     """
     Run the full transcription and summarization pipeline.
 
     Args:
-        json_path:     Path to WhisperX JSON output file
+        input_path:    Path to input file — cleaned .txt (recommended) or
+                       raw WhisperX .json (quick path, no human review)
         engine:        LLM backend — "ollama" (local/free) or "anthropic"
         meeting_type:  Prompt preset — "general", "standup", "interview",
                        "research", "lecture", or "custom"
@@ -323,30 +340,34 @@ def run_pipeline(
         Dict with keys: segments, transcript, summary, paths (if saved)
 
     Examples:
-        # Local Ollama, general meeting (default)
-        result = run_pipeline("output/meeting.json")
-
-        # Anthropic API, interview preset
-        result = run_pipeline("output/interview.json",
+        # Cleaned .txt — recommended path
+        result = run_pipeline("output/processed/meeting_clean.txt",
                               engine="anthropic",
-                              meeting_type="interview")
+                              meeting_type="general")
 
-        # Custom prompt, local Ollama
-        result = run_pipeline("output/meeting.json",
+        # Raw JSON — quick path, no human review
+        result = run_pipeline("output/raw/meeting.json",
+                              engine="anthropic",
+                              meeting_type="general")
+
+        # Custom prompt
+        result = run_pipeline("output/processed/meeting_clean.txt",
                               meeting_type="custom",
-                              custom_prompt="List every number mentioned.")
-
-        # Override model
-        result = run_pipeline("output/meeting.json",
-                              model="llama3.1:8b-instruct-q8_0")
+                              custom_prompt="List every action item and who owns it.")
     """
     if engine not in ("ollama", "anthropic"):
         raise ValueError("engine must be 'ollama' or 'anthropic'")
 
-    # Parse
-    print("── Parsing transcript ──────────────────────")
-    segments   = read_whisperx(json_path)
-    transcript = format_transcript(segments)
+    # Parse — .txt (cleaned) or .json (raw WhisperX)
+    suffix = Path(input_path).suffix.lower()
+    if suffix == ".txt":
+        print("── Reading cleaned transcript (.txt) ───────")
+        segments   = None
+        transcript = read_txt_transcript(input_path)
+    else:
+        print("── Parsing transcript (.json) ──────────────")
+        segments   = read_whisperx(input_path)
+        transcript = format_transcript(segments)
 
     print("── Transcript ──────────────────────────────")
     print(transcript, "\n")
@@ -368,7 +389,7 @@ def run_pipeline(
     # Save
     paths = None
     if save:
-        paths = save_outputs(transcript, summary, json_path, output_dir)
+        paths = save_outputs(transcript, summary, input_path, output_dir)
 
     return {
         "segments":   segments,
@@ -397,9 +418,9 @@ examples:
     )
 
     parser.add_argument(
-        "json_path",
+        "input_path",
         nargs="?",
-        help="Path to WhisperX JSON output file",
+        help="Path to input file: cleaned .txt (recommended) or raw WhisperX .json",
     )
     parser.add_argument(
         "--engine",
@@ -455,12 +476,12 @@ examples:
         print()
         sys.exit(0)
 
-    if not args.json_path:
+    if not args.input_path:
         parser.print_help()
         sys.exit(1)
 
     run_pipeline(
-        json_path     = args.json_path,
+        input_path    = args.input_path,
         engine        = args.engine,
         meeting_type  = args.meeting_type,
         custom_prompt = args.custom_prompt,

@@ -51,19 +51,23 @@ Step 1 — Transcribe (terminal)
        │  whisperx converts audio → text with speaker labels + timestamps
        │  pyannote identifies who is speaking at each moment
        ▼
-  output/meeting.json
+  output/raw/meeting.json
        │
-       │  a structured file containing every segment: who said what, when
-       ▼
+       ├─── quick path (no review) ──────────────────────────────────────┐
+       │                                                                  │
+       │  [recommended] review_transcript.py → browser                  │
+       │  label speakers, flag errors, export + clean                   │
+       ▼                                                                  │
+  output/processed/meeting_clean.txt                                     │
+       │                                                                  │
+       └──────────────────────────────────────────────────┬──────────────┘
+                                                          ▼
 Step 2 — Summarize (R or Python)
-  source("summarize-transcript.R")
-  result <- run_pipeline("output/meeting.json")
+  result <- run_pipeline("output/processed/meeting_clean.txt")
        │
-       │  R reads the JSON, formats it, sends it to an LLM
-       │  LLM returns a structured summary
+       │  reads transcript, sends to LLM, returns structured summary
        ▼
-  output/meeting_transcript_20260502.txt
-  output/meeting_summary_20260502.txt
+  output/processed/meeting_clean_summary_20260502.txt
 ```
 
 **Why two steps instead of one?**
@@ -217,16 +221,17 @@ summarizing. Open it to:
 - Export a labeled plain-text transcript
 
 ```bash
-python review_transcript.py output/raw/audio1234567.json
+python3 review_transcript.py output/raw/audio1234567.json
 
 # Save to a specific location
-python review_transcript.py output/raw/audio1234567.json \
+python3 review_transcript.py output/raw/audio1234567.json \
   --out output/processed/audio1234567_review.html
 ```
 
 The HTML file opens in your browser automatically. Speaker name changes stay in
-the browser — the JSON is not modified. This is a human review layer, not a
-preprocessing step: the summarizer still reads the original JSON.
+the browser — the JSON is not modified. Export the labeled text, then clean it
+manually (fix mishears, proper nouns, anything the model got wrong). The cleaned
+`.txt` is the recommended input to Step 2.
 
 ---
 
@@ -237,19 +242,26 @@ Open Positron or RStudio, set your working directory to the repo, then:
 ```r
 source("~/PROJECTS/audio-transcription-pipeline/summarize-transcript.R")
 
-# Choose your meeting type: general, standup, interview, research, lecture
+# Recommended: cleaned .txt from review step
 result <- run_pipeline(
-  "~/PROJECTS/audio-transcription-pipeline/output/audio1234567.json",
+  "~/PROJECTS/audio-transcription-pipeline/output/processed/meeting_clean.txt",
   engine       = "anthropic",   # or "ollama" for local/free
-  meeting_type = "lecture"      # match to your recording type
+  meeting_type = "general"      # match to your recording type
+)
+
+# Quick path: raw JSON, no human review
+result <- run_pipeline(
+  "~/PROJECTS/audio-transcription-pipeline/output/raw/meeting.json",
+  engine       = "anthropic",
+  meeting_type = "general"
 )
 ```
 
 Outputs saved automatically to
-`~/PROJECTS/audio-transcription-pipeline/output/`:
+`~/PROJECTS/audio-transcription-pipeline/output/processed/`:
 
-- `audio1234567_transcript_20260507_130000.txt`
-- `audio1234567_summary_20260507_130000.txt`
+- `meeting_clean_transcript_20260507_130000.txt`
+- `meeting_clean_summary_20260507_130000.txt`
 
 ---
 
@@ -271,12 +283,17 @@ questions, which are useful across most meeting types.
 ### Step 2 — Summarize (Python CLI)
 
 ```bash
-cd ~/audio-transcription-pipeline
-source .venv/bin/activate
+cd ~/PROJECTS/audio-transcription-pipeline
 
-python summarize-transcript.py output/audio1234567.json \
+# Recommended: cleaned .txt from review step
+.venv/bin/python3 summarize-transcript.py output/processed/meeting_clean.txt \
   --engine anthropic \
-  --type lecture
+  --type general
+
+# Quick path: raw JSON, no human review
+.venv/bin/python3 summarize-transcript.py output/raw/meeting.json \
+  --engine anthropic \
+  --type general
 ```
 
 ---
@@ -286,7 +303,8 @@ python summarize-transcript.py output/audio1234567.json \
 - [ ] Ollama is running in a separate terminal (`ollama serve`) if using local
       summarization
 - [ ] `~/.Renviron` contains `HF_TOKEN` and optionally `ANTHROPIC_API_KEY`
-- [ ] The venv is activated before calling whisperx
+- [ ] The venv is activated (or `.venv/bin/python3` used directly) before
+      calling whisperx or the Python summarizer
 
 ---
 
