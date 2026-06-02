@@ -66,6 +66,7 @@ uv venv --python 3.11 .venv
 source .venv/bin/activate
 uv pip install torch torchaudio
 uv pip install whisperx
+uv pip install httpx
 ```
 
 **Step 4 — Set up HuggingFace** (see [HuggingFace Setup](#huggingface-setup))
@@ -169,6 +170,7 @@ uv venv --python 3.11 .venv
 source .venv/bin/activate
 uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 uv pip install whisperx
+uv pip install httpx
 ```
 
 **Step 5 — Set up HuggingFace** (see [HuggingFace Setup](#huggingface-setup))
@@ -208,6 +210,7 @@ uv venv --python 3.11 .venv
 source .venv/bin/activate
 uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 uv pip install whisperx
+uv pip install httpx
 
 # Install R packages
 R -e 'install.packages(c("jsonlite", "httr2"), repos="https://cloud.r-project.org")'
@@ -245,6 +248,7 @@ source .venv/bin/activate
 # Install PyTorch and WhisperX
 uv pip install torch torchaudio
 uv pip install whisperx
+uv pip install httpx
 
 # Verify ARM architecture
 python3 -c "import torch; print(torch.__version__)"
@@ -295,6 +299,7 @@ uv venv --python 3.11 .venv
 source .venv/bin/activate
 uv pip install torch torchaudio
 uv pip install whisperx
+uv pip install httpx
 ```
 
 ---
@@ -332,6 +337,7 @@ source .venv/bin/activate
 # PyTorch CPU (default for WSL2 without NVIDIA GPU)
 uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 uv pip install whisperx
+uv pip install httpx
 ```
 
 **Audio files on Windows:** Your Windows files are accessible at
@@ -383,6 +389,7 @@ source .venv/bin/activate
 # CPU only
 uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 uv pip install whisperx
+uv pip install httpx
 
 # NVIDIA GPU (CUDA 12.4)
 # uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
@@ -538,6 +545,17 @@ your HF token is wrong.
 
 **`ANTHROPIC_API_KEY not set`** Restart R after adding the key to `~/.Renviron`
 — R only reads it at startup.
+
+**`ModuleNotFoundError: No module named 'httpx'` or `Cannot find module httpx`**
+`httpx` is missing from the venv. This venv is managed by `uv` — `pip install`
+and `python3 -m pip install` will not work here. Run:
+
+```bash
+cd ~/PROJECTS/audio-transcription-pipeline
+uv pip install httpx
+```
+
+Restart your terminal or IDE after installing.
 
 **`could not find function "run_pipeline"`** Source the script first:
 `source("transcribe.R")`
