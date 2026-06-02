@@ -220,19 +220,22 @@ save_outputs <- function(transcript, summary, input_path,
                          output_dir = "output/processed") {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-  base     <- tools::file_path_sans_ext(basename(input_path))
-  ts       <- format(Sys.time(), "%Y%m%d_%H%M%S")
-
-  # Save transcript
-  transcript_path <- file.path(output_dir, paste0(base, "_transcript_", ts, ".txt"))
-  writeLines(transcript, transcript_path)
-
-  # Save summary
-  summary_path <- file.path(output_dir, paste0(base, "_summary_", ts, ".txt"))
-  writeLines(summary, summary_path)
+  base <- tools::file_path_sans_ext(basename(input_path))
+  ts   <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
   cat("── Saved ───────────────────────────────────\n")
-  cat("Transcript:", transcript_path, "\n")
+
+  # Skip transcript copy when input is already a cleaned .txt
+  transcript_path <- NULL
+  if (tools::file_ext(input_path) != "txt") {
+    transcript_path <- file.path(output_dir, paste0(base, "_transcript_", ts, ".txt"))
+    writeLines(transcript, transcript_path)
+    cat("Transcript:", transcript_path, "\n")
+  }
+
+  # Always save summary
+  summary_path <- file.path(output_dir, paste0(base, "_summary_", ts, ".txt"))
+  writeLines(summary, summary_path)
   cat("Summary:   ", summary_path, "\n\n")
 
   invisible(list(transcript_path = transcript_path,

@@ -278,7 +278,8 @@ def save_outputs(
     output_dir: str = "output/processed",
 ) -> dict[str, str]:
     """
-    Save transcript and summary to disk with timestamped filenames.
+    Save summary to disk. Transcript copy is skipped when input is already
+    a cleaned .txt — the input file is the transcript.
 
     Args:
         transcript:  Formatted transcript string
@@ -287,7 +288,7 @@ def save_outputs(
         output_dir:  Directory to save outputs
 
     Returns:
-        Dict with keys: transcript_path, summary_path
+        Dict with keys: transcript_path (None if input was .txt), summary_path
     """
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -295,18 +296,22 @@ def save_outputs(
     base = Path(input_path).stem
     ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    transcript_path = out / f"{base}_transcript_{ts}.txt"
-    summary_path    = out / f"{base}_summary_{ts}.txt"
-
-    transcript_path.write_text(transcript, encoding="utf-8")
-    summary_path.write_text(summary, encoding="utf-8")
-
     print("── Saved ───────────────────────────────────")
-    print(f"Transcript: {transcript_path}")
+
+    # Skip transcript copy when input is already a cleaned .txt
+    transcript_path = None
+    if Path(input_path).suffix.lower() != ".txt":
+        transcript_path = out / f"{base}_transcript_{ts}.txt"
+        transcript_path.write_text(transcript, encoding="utf-8")
+        print(f"Transcript: {transcript_path}")
+
+    # Always save summary
+    summary_path = out / f"{base}_summary_{ts}.txt"
+    summary_path.write_text(summary, encoding="utf-8")
     print(f"Summary:    {summary_path}\n")
 
     return {
-        "transcript_path": str(transcript_path),
+        "transcript_path": str(transcript_path) if transcript_path else None,
         "summary_path":    str(summary_path),
     }
 
@@ -452,8 +457,8 @@ examples:
     )
     parser.add_argument(
         "--output-dir",
-        default="output",
-        help="Directory for saved outputs (default: output)",
+        default="output/processed",
+        help="Directory for saved outputs (default: output/processed)",
     )
     parser.add_argument(
         "--no-save",

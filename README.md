@@ -323,20 +323,20 @@ cd ~/PROJECTS/audio-transcription-pipeline
 
 ```
 audio-transcription-pipeline/
-├── .gitignore                  # Excludes credentials, audio files, JSON output
-├── README.md                   # This file — daily use
-├── WATERSHED.md                # Parked decisions and open questions
-├── transcribe.sh               # Bash wrapper for WhisperX (Step 1)
-├── review_transcript.py        # JSON → interactive HTML review tool (optional)
-├── summarize-transcript.R      # R pipeline (Step 2 — R users)
-├── summarize-transcript.py     # Python pipeline (Step 2 — Python users)
 ├── docs/
 │   ├── installation.md         # Setup instructions for all platforms
-│   ├── reference.md            # R/Python API reference and LLM options
-│   └── noise-reduction.md
-└── output/                     # Transcripts and summaries (gitignored)
-    ├── raw/                    # WhisperX JSON output
-    └── processed/              # Cleaned transcripts, summaries, HTML reviews
+│   ├── noise-reduction.md      # Pre-processing options for poor audio
+│   └── reference.md            # R/Python API reference and LLM options
+├── output/                     # Transcripts and summaries (gitignored)
+│   ├── processed/              # Cleaned transcripts, summaries, HTML reviews
+│   └── raw/                    # WhisperX JSON output
+├── .gitignore                  # Excludes credentials, audio files, JSON output
+├── README.md                   # This file — daily use
+├── review_transcript.py        # JSON → interactive HTML review tool (optional)
+├── summarize-transcript.py     # Python pipeline (Step 2 — Python users)
+├── summarize-transcript.R      # R pipeline (Step 2 — R users)
+├── transcribe.sh               # Bash wrapper for WhisperX (Step 1)
+└── WATERSHED.md                # Parked decisions and open questions
 ```
 
 ---
@@ -360,10 +360,8 @@ contribute, extend, or evaluate the work:
 
 This project was written by
 [Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic) in
-collaboration with a faculty-member at a Tribal College whose current research
-interests are statistical hydrology and surface-water quality — and not a
-software developer. The architecture, use case, and design decisions are
-human-originated; the code is AI-generated.
+collaboration with a non-software developer. The architecture, use case, and
+design decisions are human-originated; the code is AI-generated.
 
 The intended user is a researcher or practitioner who works with recorded
 conversations — interviews, meetings, lectures — and wants a local, private

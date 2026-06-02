@@ -313,8 +313,17 @@ def main():
         print(f"Error: file not found: {json_path}", file=sys.stderr)
         sys.exit(1)
 
-    out_path = Path(args.out).expanduser().resolve() if args.out else \
-        json_path.with_suffix(".html")
+    if args.out:
+        out_path = Path(args.out).expanduser().resolve()
+    else:
+        # Default: output/processed/<stem>_review.html
+        # If input is in a directory named 'raw', use its sibling 'processed/'
+        if json_path.parent.name == "raw":
+            out_dir = json_path.parent.parent / "processed"
+        else:
+            out_dir = json_path.parent
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f"{json_path.stem}_review.html"
 
     print(f"Reading:  {json_path}")
     segments = load_segments(json_path)
