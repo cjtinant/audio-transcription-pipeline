@@ -115,6 +115,18 @@ read_whisperx <- function(json_path) {
 }
 
 
+# ── 2b. Read a cleaned plain-text transcript ──────────────────────────
+
+#' Read a human-cleaned plain-text transcript.
+#'
+#' @param txt_path Path to the cleaned .txt transcript file.
+#' @return A character string ready for LLM input.
+
+read_txt_transcript <- function(txt_path) {
+  paste(readLines(path.expand(txt_path), warn = FALSE), collapse = "\n")
+}
+
+
 # ── 3. Format segments for LLM input ──────────────────────────────────
 
 #' Format a segments data frame into a readable transcript string.
@@ -201,14 +213,14 @@ summarize_ollama <- function(transcript,
 #'
 #' @param transcript  Formatted transcript string
 #' @param summary     Summary string from LLM
-#' @param json_path   Original JSON path (used to derive output filenames)
+#' @param input_path  Input file path (used to derive output filenames)
 #' @param output_dir  Directory to save outputs (default: output/)
 
-save_outputs <- function(transcript, summary, json_path,
-                         output_dir = "output") {
+save_outputs <- function(transcript, summary, input_path,
+                         output_dir = "output/processed") {
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-  base     <- tools::file_path_sans_ext(basename(json_path))
+  base     <- tools::file_path_sans_ext(basename(input_path))
   ts       <- format(Sys.time(), "%Y%m%d_%H%M%S")
 
   # Save transcript
@@ -232,7 +244,8 @@ save_outputs <- function(transcript, summary, json_path,
 
 #' Run the full transcription and summarization pipeline.
 #'
-#' @param json_path    Path to WhisperX JSON output file
+#' @param input_path  Path to input file: cleaned .txt (recommended) or
+#'                    raw WhisperX .json (quick path, no human review)
 #' @param engine       LLM backend: "ollama" (local/free) or "anthropic" (API)
 #' @param meeting_type Prompt preset: "general", "standup", "interview",
 #'                     "research", "lecture", or "custom"
@@ -246,35 +259,48 @@ save_outputs <- function(transcript, summary, json_path,
 #'         and (if save = TRUE) output file paths
 #'
 #' @examples
-#' # Local Ollama, general meeting
-#' result <- run_pipeline("output/meeting.json")
+#' # Cleaned .txt — recommended path
+#' result <- run_pipeline(
+#'   "output/processed/meeting_clean.txt",
+#'   engine = "anthropic",
+#'   meeting_type = "general"
+#' )
 #'
-#' # Anthropic API, interview preset
-#' result <- run_pipeline("output/interview.json",
-#'                        engine = "anthropic",
-#'                        meeting_type = "interview")
+#' # Raw JSON — quick path, no human review
+#' result <- run_pipeline(
+#'   "output/raw/meeting.json",
+#'   engine = "anthropic",
+#'   meeting_type = "general"
+#' )
 #'
 #' # Custom prompt, local Ollama
-#' result <- run_pipeline("output/meeting.json",
+#' result <- run_pipeline("output/processed/meeting_clean.txt",
 #'                        meeting_type = "custom",
 #'                        custom_prompt = "Summarize this in haiku form:\n\n")
 
-run_pipeline <- function(json_path,
+run_pipeline <- function(input_path,
                          engine       = c("ollama", "anthropic"),
                          meeting_type = c("general", "standup", "interview",
                                           "research", "lecture",
                                           "grant_planning", "custom"),
                          custom_prompt = NULL,
                          save         = TRUE,
-                         output_dir   = "output",
+                         output_dir   = "output/processed",
                          ...) {
   engine       <- match.arg(engine)
   meeting_type <- match.arg(meeting_type)
 
-  # Parse
-  cat("── Parsing transcript ──────────────────────\n")
-  segments   <- read_whisperx(json_path)
-  transcript <- format_transcript(segments)
+  # Parse — .txt (cleaned) or .json (raw WhisperX)
+  ext <- tools::file_ext(input_path)
+  if (ext == "txt") {
+    cat("── Reading cleaned transcript (.txt) ───────\n")
+    segments   <- NULL
+    transcript <- read_txt_transcript(input_path)
+  } else {
+    cat("── Parsing transcript (.json) ──────────────\n")
+    segments   <- read_whisperx(input_path)
+    transcript <- format_transcript(segments)
+  }
 
   cat("── Transcript ──────────────────────────────\n")
   cat(transcript, "\n\n")
@@ -293,7 +319,7 @@ run_pipeline <- function(json_path,
   # Save
   paths <- NULL
   if (save) {
-    paths <- save_outputs(transcript, summary, json_path, output_dir)
+    paths <- save_outputs(transcript, summary, input_path, output_dir)
   }
 
   invisible(list(
