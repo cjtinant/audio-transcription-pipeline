@@ -206,6 +206,30 @@ guarantee correct output — always review proper nouns in the transcript.
 
 ---
 
+### Review the transcript (optional)
+
+After Step 1, you can convert the JSON to a browser-based review tool before
+summarizing. Open it to:
+
+- Assign real names to speaker labels (SPEAKER_00, SPEAKER_01, …)
+- Flag low-confidence words at an adjustable threshold
+- Search for key terms or proper nouns
+- Export a labeled plain-text transcript
+
+```bash
+python review_transcript.py output/raw/audio1234567.json
+
+# Save to a specific location
+python review_transcript.py output/raw/audio1234567.json \
+  --out output/processed/audio1234567_review.html
+```
+
+The HTML file opens in your browser automatically. Speaker name changes stay in
+the browser — the JSON is not modified. This is a human review layer, not a
+preprocessing step: the summarizer still reads the original JSON.
+
+---
+
 ### Step 2 — Summarize (R)
 
 Open Positron or RStudio, set your working directory to the repo, then:
