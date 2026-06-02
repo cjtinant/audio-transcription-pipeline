@@ -404,7 +404,158 @@ def run_pipeline(
     }
 
 
-# ── 7. CLI entry point ────────────────────────────────────────────────
+# ── 7. Merge two summaries ────────────────────────────────────────────
+
+def merge_summaries(
+    summary1: str,
+    summary2: str,
+    engine: str,
+    model: str | None = None,
+    api_key: str | None = None,
+    host: str = "http://127.0.0.1:11434",
+) -> str:
+    """
+    Merge two independently generated summaries using an LLM.
+
+    Args:
+        summary1:  First summary string
+        summary2:  Second summary string
+        engine:    LLM backend — "ollama" or "anthropic"
+        model:     Override model name
+        api_key:   Anthropic API key (default: ANTHROPIC_API_KEY env var)
+        host:      Ollama server URL
+
+    Returns:
+        Merged summary as a string
+    """
+    try:
+        import httpx
+    except ImportError:
+        raise ImportError("Run: uv pip install httpx")
+
+    full_prompt = (
+        "You are merging two independently generated summaries of the same meeting. "
+        "Produce one comprehensive summary that includes all unique information from both. "
+        "Do not duplicate content. Where the summaries differ on the same point, prefer "
+        "the more specific or detailed version. Preserve all section headings.\n\n"
+        f"Summary A:\n{summary1}\n\nSummary B:\n{summary2}"
+    )
+
+    if engine == "anthropic":
+        api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            raise EnvironmentError("ANTHROPIC_API_KEY not set.")
+        response = httpx.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key":         api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type":      "application/json",
+            },
+            json={
+                "model":      model or "claude-sonnet-4-6",
+                "max_tokens": 2048,
+                "messages":   [{"role": "user", "content": full_prompt}],
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
+        return response.json()["content"][0]["text"]
+    else:
+        try:
+            response = httpx.post(
+                f"{host}/api/generate",
+                json={
+                    "model":  model or "llama3.1:8b-instruct-q6_k",
+                    "prompt": full_prompt,
+                    "stream": False,
+                },
+                timeout=120,
+            )
+            response.raise_for_status()
+        except httpx.ConnectError:
+            raise ConnectionError("Cannot connect to Ollama. Start it with: ollama serve")
+        return response.json()["response"]
+
+
+# ── 8. Merged pipeline ────────────────────────────────────────────────
+
+def run_pipeline_merged(
+    input_path: str,
+    engine: str = "ollama",
+    meeting_type: str = "general",
+    custom_prompt: str | None = None,
+    save: bool = True,
+    output_dir: str = "output/processed",
+    model: str | None = None,
+) -> dict:
+    """
+    Run the pipeline twice and merge the results for a more complete summary.
+
+    LLM outputs are non-deterministic: two runs of the same prompt will
+    capture different details. This function runs the summarizer twice,
+    then uses the LLM to merge both outputs into one comprehensive summary.
+
+    Args:
+        input_path:    Path to cleaned .txt (recommended) or raw .json
+        engine:        LLM backend — "ollama" or "anthropic"
+        meeting_type:  Prompt preset
+        custom_prompt: Your own prompt (if meeting_type="custom")
+        save:          Whether to save merged summary to disk
+        output_dir:    Directory for saved outputs
+        model:         Override model name
+
+    Returns:
+        Dict with keys: transcript, summary1, summary2, summary_merged, paths
+    """
+    if engine not in ("ollama", "anthropic"):
+        raise ValueError("engine must be 'ollama' or 'anthropic'")
+
+    # Parse
+    suffix = Path(input_path).suffix.lower()
+    if suffix == ".txt":
+        print("── Reading cleaned transcript (.txt) ───────")
+        segments   = None
+        transcript = read_txt_transcript(input_path)
+    else:
+        print("── Parsing transcript (.json) ──────────────")
+        segments   = read_whisperx(input_path)
+        transcript = format_transcript(segments)
+
+    prompt = get_prompt(meeting_type, custom_prompt)
+    kwargs = {"model": model} if model else {}
+
+    print("── Run 1 ───────────────────────────────────")
+    if engine == "anthropic":
+        summary1 = summarize_anthropic(transcript, prompt, **kwargs)
+    else:
+        summary1 = summarize_ollama(transcript, prompt, **kwargs)
+
+    print("── Run 2 ───────────────────────────────────")
+    if engine == "anthropic":
+        summary2 = summarize_anthropic(transcript, prompt, **kwargs)
+    else:
+        summary2 = summarize_ollama(transcript, prompt, **kwargs)
+
+    print("── Merging ─────────────────────────────────")
+    summary_merged = merge_summaries(summary1, summary2, engine)
+    print(summary_merged, "\n")
+
+    paths = None
+    if save:
+        paths = save_outputs(transcript, summary_merged, input_path, output_dir)
+
+    return {
+        "segments":       segments,
+        "transcript":     transcript,
+        "summary1":       summary1,
+        "summary2":       summary2,
+        "summary_merged": summary_merged,
+        "paths":          paths,
+    }
+
+
+# ── 9. CLI entry point ────────────────────────────────────────────────
 
 def main():
     parser = argparse.ArgumentParser(
@@ -461,6 +612,11 @@ examples:
         help="Directory for saved outputs (default: output/processed)",
     )
     parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="Run summarizer twice and merge results for a more complete summary",
+    )
+    parser.add_argument(
         "--no-save",
         action="store_true",
         help="Do not save transcript and summary to disk",
@@ -485,7 +641,8 @@ examples:
         parser.print_help()
         sys.exit(1)
 
-    run_pipeline(
+    fn = run_pipeline_merged if args.merge else run_pipeline
+    fn(
         input_path    = args.input_path,
         engine        = args.engine,
         meeting_type  = args.meeting_type,

@@ -242,7 +242,14 @@ Open Positron or RStudio, set your working directory to the repo, then:
 ```r
 source("~/PROJECTS/audio-transcription-pipeline/summarize-transcript.R")
 
-# Recommended: cleaned .txt from review step
+# Merged (recommended): runs twice and merges for a more complete summary
+result <- run_pipeline_merged(
+  "~/PROJECTS/audio-transcription-pipeline/output/processed/meeting_clean.txt",
+  engine       = "anthropic",
+  meeting_type = "general"
+)
+
+# Single run: cleaned .txt from review step
 result <- run_pipeline(
   "~/PROJECTS/audio-transcription-pipeline/output/processed/meeting_clean.txt",
   engine       = "anthropic",   # or "ollama" for local/free
@@ -285,7 +292,13 @@ questions, which are useful across most meeting types.
 ```bash
 cd ~/PROJECTS/audio-transcription-pipeline
 
-# Recommended: cleaned .txt from review step
+# Merged (recommended): runs twice and merges for a more complete summary
+.venv/bin/python3 summarize-transcript.py output/processed/meeting_clean.txt \
+  --engine anthropic \
+  --type general \
+  --merge
+
+# Single run: cleaned .txt from review step
 .venv/bin/python3 summarize-transcript.py output/processed/meeting_clean.txt \
   --engine anthropic \
   --type general

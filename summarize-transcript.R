@@ -332,3 +332,136 @@ run_pipeline <- function(input_path,
     paths      = paths
   ))
 }
+
+
+# ── 7. Merge two summaries ─────────────────────────────────────────────
+
+#' Merge two independently generated summaries using an LLM.
+#'
+#' @param summary1  First summary string
+#' @param summary2  Second summary string
+#' @param engine    LLM backend: "ollama" or "anthropic"
+#' @param model     Override model (default: same as summarize_* functions)
+#' @param api_key   Anthropic API key (default: ANTHROPIC_API_KEY env var)
+#' @param host      Ollama server URL
+#' @return Merged summary as a character string
+
+merge_summaries <- function(summary1, summary2, engine,
+                             model   = NULL,
+                             api_key = Sys.getenv("ANTHROPIC_API_KEY"),
+                             host    = "http://127.0.0.1:11434") {
+
+  full_prompt <- paste0(
+    "You are merging two independently generated summaries of the same meeting. ",
+    "Produce one comprehensive summary that includes all unique information from both. ",
+    "Do not duplicate content. Where the summaries differ on the same point, prefer ",
+    "the more specific or detailed version. Preserve all section headings.\n\n",
+    "Summary A:\n", summary1, "\n\n",
+    "Summary B:\n", summary2
+  )
+
+  if (engine == "anthropic") {
+    if (is.null(model)) model <- "claude-sonnet-4-6"
+    resp <- request("https://api.anthropic.com/v1/messages") |>
+      req_headers(
+        "x-api-key"         = api_key,
+        "anthropic-version" = "2023-06-01",
+        "content-type"      = "application/json"
+      ) |>
+      req_body_json(list(
+        model      = model,
+        max_tokens = 2048L,
+        messages   = list(list(role = "user", content = full_prompt))
+      )) |>
+      req_perform()
+    resp |> resp_body_json() |> _$content[[1]]$text
+
+  } else {
+    if (is.null(model)) model <- "llama3.1:8b-instruct-q6_k"
+    resp <- request(paste0(host, "/api/generate")) |>
+      req_body_json(list(
+        model  = model,
+        prompt = full_prompt,
+        stream = FALSE
+      )) |>
+      req_perform()
+    resp |> resp_body_json() |> _$response
+  }
+}
+
+
+# ── 8. Merged pipeline ────────────────────────────────────────────────
+
+#' Run the pipeline twice and merge the results for a more complete summary.
+#'
+#' LLM outputs are non-deterministic: two runs of the same prompt will
+#' capture different details. This function runs the summarizer twice,
+#' then uses the LLM to merge both outputs into one comprehensive summary.
+#'
+#' @param input_path   Path to cleaned .txt (recommended) or raw .json
+#' @param engine       LLM backend: "ollama" or "anthropic"
+#' @param meeting_type Prompt preset
+#' @param custom_prompt Your own prompt string (if meeting_type = "custom")
+#' @param save         Whether to save merged summary to disk
+#' @param output_dir   Directory for saved outputs
+#' @param ...          Additional args passed to summarize_* functions
+#'
+#' @return Invisibly: list with transcript, summary1, summary2,
+#'         summary_merged, and paths
+
+run_pipeline_merged <- function(input_path,
+                                 engine        = c("ollama", "anthropic"),
+                                 meeting_type  = c("general", "standup", "interview",
+                                                   "research", "lecture",
+                                                   "grant_planning", "custom"),
+                                 custom_prompt = NULL,
+                                 save          = TRUE,
+                                 output_dir    = "output/processed",
+                                 ...) {
+  engine       <- match.arg(engine)
+  meeting_type <- match.arg(meeting_type)
+
+  # Parse
+  ext <- tools::file_ext(input_path)
+  if (ext == "txt") {
+    cat("── Reading cleaned transcript (.txt) ───────\n")
+    segments   <- NULL
+    transcript <- read_txt_transcript(input_path)
+  } else {
+    cat("── Parsing transcript (.json) ──────────────\n")
+    segments   <- read_whisperx(input_path)
+    transcript <- format_transcript(segments)
+  }
+
+  prompt <- meeting_prompt(meeting_type, custom_prompt)
+
+  cat("── Run 1 ───────────────────────────────────\n")
+  summary1 <- switch(engine,
+    ollama    = summarize_ollama(transcript, prompt, ...),
+    anthropic = summarize_anthropic(transcript, prompt, ...)
+  )
+
+  cat("── Run 2 ───────────────────────────────────\n")
+  summary2 <- switch(engine,
+    ollama    = summarize_ollama(transcript, prompt, ...),
+    anthropic = summarize_anthropic(transcript, prompt, ...)
+  )
+
+  cat("── Merging ─────────────────────────────────\n")
+  summary_merged <- merge_summaries(summary1, summary2, engine)
+  cat(summary_merged, "\n\n")
+
+  paths <- NULL
+  if (save) {
+    paths <- save_outputs(transcript, summary_merged, input_path, output_dir)
+  }
+
+  invisible(list(
+    segments       = segments,
+    transcript     = transcript,
+    summary1       = summary1,
+    summary2       = summary2,
+    summary_merged = summary_merged,
+    paths          = paths
+  ))
+}
