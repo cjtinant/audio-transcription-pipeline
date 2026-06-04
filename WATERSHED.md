@@ -145,3 +145,5 @@ torchcodec to a compatible release.
 #
 
 **Parked:** 2026-05-28
+
+The venv is only needed for summarize-transcript.py (needs httpx) and whisperx.
