@@ -139,6 +139,23 @@ directly.
 
 ---
 
+### Naming convention
+
+Rename the recording before transcribing:
+
+- Folder: `yyyy-mm-dd_subject-name`
+- Audio file: `yyyy-mm-dd_subject-name_audio.m4a`
+
+_Example:_ `2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a`
+
+This isn't just tidiness. WhisperX names its output by swapping the extension
+on the input filename, and the summarizer scripts carry that same basename
+forward. Rename once, and the raw JSON, the cleaned transcript, and the
+summary all inherit a consistent, dated name automatically — no separate
+renaming step anywhere downstream.
+
+---
+
 ### Step 1 — Transcribe (terminal, any directory)
 
 If you installed the `transcribe` script, this is all you need:
@@ -168,14 +185,17 @@ source .venv/bin/activate
 ```
 
 **For Zoom recordings on macOS**, the default location for Zoom files is in
-`~/Documents/Zoom/`. Zoom folder names always contain spaces — always wrap the
-path in quotes:
+`~/Documents/Zoom/`. Copy the path in Finder (right-click the file → Copy
+"audio.m4a" as Pathname), then rename the folder and file to the convention
+above before transcribing. Zoom folder names always contain spaces — always
+wrap the path in quotes:
 
 ```bash
-transcribe "~/Documents/Zoom/2026-05-22 13.06.45 Meeting Name/audio.m4a"
+transcribe "~/Documents/Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
 ```
 
-Output saved to: `~/audio-transcription-pipeline/output/audio.json`
+Output saved to:
+`~/audio-transcription-pipeline/output/raw/2026-07-07_soil-moisture_audio.json`
 
 ---
 
