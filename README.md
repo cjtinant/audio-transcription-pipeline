@@ -86,6 +86,18 @@ Step 2 — Summarize (R or Python)
   Python users can share the same JSON output and run their own summarization
   step independently.
 
+**Why JSON as the intermediate format?**
+
+WhisperX can output plain text, SRT, or VTT instead — but this pipeline always
+uses `--output_format json`. Flat formats collapse the transcript down to words
+or captions and throw away the structure later steps depend on: JSON is the only
+format that keeps word-level timestamps, per-segment speaker labels (from
+diarization), and confidence scores together. `review_transcript.py` needs that
+structure to build the speaker-colored view and confidence sliders, and the
+summarizer's quick path reads it directly. The human-cleaned `.txt` is a
+derived, simplified view for the summarizer — JSON stays the source of truth in
+`output/raw/`.
+
 **The files and what they do:**
 
 | File                                | Role                                         | When you touch it                    |
@@ -155,8 +167,9 @@ source .venv/bin/activate
   --language en
 ```
 
-**For Zoom recordings on macOS**, your files are in `~/Documents/Zoom/`. Zoom
-folder names always contain spaces — always wrap the path in quotes:
+**For Zoom recordings on macOS**, the default location for Zoom files is in
+`~/Documents/Zoom/`. Zoom folder names always contain spaces — always wrap the
+path in quotes:
 
 ```bash
 transcribe "~/Documents/Zoom/2026-05-22 13.06.45 Meeting Name/audio.m4a"

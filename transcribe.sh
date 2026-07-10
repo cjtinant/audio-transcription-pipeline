@@ -44,5 +44,5 @@ exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx "$@" \
     --device cpu \
     --compute_type int8 \
     --output_format json \
-    --output_dir ~/PROJECTS/audio-transcription-pipeline/output \
+    --output_dir ~/PROJECTS/audio-transcription-pipeline/output/raw \
     --language en

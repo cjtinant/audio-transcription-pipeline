@@ -1,11 +1,107 @@
 # Watershed
 
-Unresolved decisions and open questions. Move items to a commit or close them
-when resolved.
+Next steps, open questions, and unresolved decisions. Move items to a commit or
+close them when resolved.
 
 ---
 
-## `--model large-v2` vs `--model large-v3`
+## Unresolved Issues
+
+### Friction in Daily Use
+
+1. **Non-standard Naming of Scripts**
+
+**Current:** .venv~/PROJECTS/audio-transcription-pipeline (main) % ls  
+00_admin quickstart.md scratch.md transcribe.sh docs README.md
+summarize-transcript.py WATERSHED.md output review_transcript.py
+summarize-transcript.R
+
+**To Resolve:** Create a naming convention (see below)
+
+2. **Audio File Renaming:** There is too much friction in the current process
+
+**To Resolve:**
+
+1. Identify a standard naming convention and implement automation,
+2. Create a default for my primary use case -- Zoom audio recordings
+
+# Quick Start
+
+## Steps
+
+1. **Transcribe**
+
+### Step 1 — Transcribe
+
+<!--
+Issue: There is friction typing long names into bash
+-->
+
+1. **Copy the path** to the m4a file you want to transcribe using
+   `copy pathname` in Finder.
+
+<!--
+Issue: Default naming convention in Zoom is bad.
+Zoom folder names always contain spaces — always wrap the path in quotes:
+**Consider automating rename moving forward**
+-->
+
+2. **Rename** folder to: `yyyy-mm-dd_subject-name` and m4a audio file to
+   `yyyy-mm-dd_subject-name_audio.m4a`
+
+3. Run the `transcribe` script in `bash`
+
+<!--
+Default Zoom folder is in `~/Documents/Zoom/`. This causes issues with
+ICloud for me, because I don't always have an internet connection.
+So, I moved the Zoom folder to C:
+-->
+
+_Example:_ transcribe
+"/Users/cjtinant/Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
+--min_speakers 3 --max_speakers 3
+
+<!--
+note: updated output in the script to
+`~/audio-transcription-pipeline/output/raw/*_audio.json`
+-->
+
+PROJ_ROOT/output/raw/TIMESTAMP-OF-RECORDING.json
+
+- Update nam transcribe.sh output to additionally produce a raw text file
+  PROJ_ROOT/output/raw/TIMESTAMP-OF-RECORDING.json
+
+**STEP_02-review-transcript**
+
+- Update input for transcript_review default to
+  audio-transcription-pipeline/output/processed/
+
+  audio1391089713.json
+
+- Update output file name for transcribe.R and transcribe.py to
+  TIMESTAMP-OF-RECORDING.json
+  PROJ_ROOT/output/processed/TIMESTAMP-OF-RECORDING.json
+
+## Parked:
+
+### Spell-check pass on transcript JSON
+
+Add a spell-check flag to `review_transcript.py`, alongside existing
+confidence-threshold flagging.
+
+- Walk the `words` array per token (not full sentence text) so punctuation
+  doesn't interfere.
+- Needs a custom word list layered on the base dictionary — institution/ proper
+  nouns (TEA-Center, pyannote, WhisperX, Lakota terms) will otherwise
+  false-positive constantly.
+- Flags are a signal, not a fix — still requires human review to resolve.
+- Candidate tools: R `hunspell` (fits existing R stack) or Python
+  `pyspellchecker` / `hunspell` bindings.
+
+Open question: build as a second flag type in the existing review tool, or a
+separate pass?
+
+### `--model large-v2` vs `--model large-v3`
 
 **Status:** parked — needs testing before changing docs
 
@@ -32,7 +128,7 @@ add a note to the README explaining the deliberate choice.
 
 ---
 
-## pyannote model: `speaker-diarization-3.1` vs `speaker-diarization-community-1`
+### pyannote model: `speaker-diarization-3.1` vs `speaker-diarization-community-1`
 
 **Status:** parked — docs say 3.1, WhisperX actually uses community-1
 
@@ -53,7 +149,7 @@ a fresh HuggingFace token that has only accepted one or the other. Update
 
 ---
 
-## torchcodec warning on macOS with FFmpeg 8
+### torchcodec warning on macOS with FFmpeg 8
 
 **Status:** parked — cosmetic, does not affect output
 
@@ -70,7 +166,7 @@ actual problem.
 
 ---
 
-## Diarization std() warning with pinned speaker count
+### Diarization std() warning with pinned speaker count
 
 **Status:** parked — cosmetic, does not affect usable output
 
@@ -85,6 +181,10 @@ normally. May result in uncertain speaker labels on very short segments
 ## Speaker types:
 
 Update speakers or post_process?
+
+**Status:** Resolved — handled in `summarize-transcript.py`.
+
+**Closed:** 2026-07-10
 
 ### In progress
 
@@ -106,44 +206,3 @@ future pyannote release.
 **Resolution options:** Downgrade PyTorch to a compatible version, or pin
 torchcodec to a compatible release.  
 **Parked:** 2026-05-28
-
-## In Progress
-
-### Issues being worked on
-
-## Update with Claude
-
-- rename transcribe.R and transcribe.py to --> summarize-transcript.R and
-  summarize-transcript.py
-
-### Next Steps
-
-**STEP_01-transcribe**
-
-- Ask Claude why json instead of txt file?
-- Update output file name for transcribe.sh to
-  PROJ_ROOT/output/raw/TIMESTAMP-OF-RECORDING.json
-- Update transcribe.sh output to additionally produce a raw text file
-  PROJ_ROOT/output/raw/TIMESTAMP-OF-RECORDING.json
-
-**STEP_02-review-transcript**
-
-- Update input for transcript_review default to
-  audio-transcription-pipeline/output/processed/
-
-  audio1391089713.json
-
-- Update output file name for transcribe.R and transcribe.py to
-  TIMESTAMP-OF-RECORDING.json
-  PROJ_ROOT/output/processed/TIMESTAMP-OF-RECORDING.json
-
-### Next Steps
-
-- check
-  osd4crf_weston-edwards-tinant_planning_2026-05-19-esv2-50p-bg-10p-music-10p
-
-#
-
-**Parked:** 2026-05-28
-
-The venv is only needed for summarize-transcript.py (needs httpx) and whisperx.
