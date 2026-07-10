@@ -5,83 +5,6 @@ close them when resolved.
 
 ---
 
-## Unresolved Issues
-
-### Friction in Daily Use
-
-1. **Non-standard Naming of Scripts**
-
-**Current:** .venv~/PROJECTS/audio-transcription-pipeline (main) % ls  
-00_admin quickstart.md scratch.md transcribe.sh docs README.md
-summarize-transcript.py WATERSHED.md output review_transcript.py
-summarize-transcript.R
-
-**To Resolve:** Create a naming convention (see below)
-
-2. **Audio File Renaming:** There is too much friction in the current process
-
-**To Resolve:**
-
-1. Identify a standard naming convention and implement automation,
-2. Create a default for my primary use case -- Zoom audio recordings
-
-# Quick Start
-
-## Steps
-
-1. **Transcribe**
-
-### Step 1 — Transcribe
-
-<!--
-Issue: There is friction typing long names into bash
--->
-
-1. **Copy the path** to the m4a file you want to transcribe using
-   `copy pathname` in Finder.
-
-<!--
-Issue: Default naming convention in Zoom is bad.
-Zoom folder names always contain spaces — always wrap the path in quotes:
-**Consider automating rename moving forward**
--->
-
-2. **Rename** folder to: `yyyy-mm-dd_subject-name` and m4a audio file to
-   `yyyy-mm-dd_subject-name_audio.m4a`
-
-3. Run the `transcribe` script in `bash`
-
-<!--
-Default Zoom folder is in `~/Documents/Zoom/`. This causes issues with
-ICloud for me, because I don't always have an internet connection.
-So, I moved the Zoom folder to C:
--->
-
-_Example:_ transcribe
-"/Users/cjtinant/Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
---min_speakers 3 --max_speakers 3
-
-<!--
-note: updated output in the script to
-`~/audio-transcription-pipeline/output/raw/*_audio.json`
--->
-
-PROJ_ROOT/output/raw/TIMESTAMP-OF-RECORDING.json
-
-- Update nam transcribe.sh output to additionally produce a raw text file
-  PROJ_ROOT/output/raw/TIMESTAMP-OF-RECORDING.json
-
-**STEP_02-review-transcript**
-
-- Update input for transcript_review default to
-  audio-transcription-pipeline/output/processed/
-
-  audio1391089713.json
-
-- Update output file name for transcribe.R and transcribe.py to
-  TIMESTAMP-OF-RECORDING.json
-  PROJ_ROOT/output/processed/TIMESTAMP-OF-RECORDING.json
-
 ## Parked:
 
 ### Spell-check pass on transcript JSON
@@ -149,20 +72,29 @@ a fresh HuggingFace token that has only accepted one or the other. Update
 
 ---
 
-### torchcodec warning on macOS with FFmpeg 8
+### torchcodec warnings on macOS (FFmpeg 8 / PyTorch 2.8.0)
 
-**Status:** parked — cosmetic, does not affect output
+**Status:** parked — cosmetic, non-fatal, does not affect output
 
-torchcodec expects FFmpeg 4–7; Homebrew installs FFmpeg 8. WhisperX falls back
-to subprocess ffmpeg calls and transcription completes normally. The
-PYTHONWARNINGS suppression in transcribe.sh doesn't catch it because the warning
-category doesn't match exactly.
+Two related symptoms from torchcodec's fallback path:
 
-To fix properly: either pin FFmpeg to version 7 (`brew install ffmpeg@7`) or
-find the correct warning filter string. Not worth doing until it causes an
-actual problem.
+- FFmpeg 8 (Homebrew default) isn't in torchcodec's supported 4–7 range.
+  WhisperX falls back to subprocess ffmpeg calls; transcription completes
+  normally. The PYTHONWARNINGS suppression in transcribe.sh doesn't catch it
+  because the warning category doesn't match exactly.
+- torchcodec is also incompatible with PyTorch 2.8.0, producing `LC_RPATH`
+  errors at startup for all FFmpeg versions (4–7). pyannote falls back to an
+  alternative audio loader. See the version table at
+  https://github.com/pytorch/torchcodec?tab=readme-ov-file#installing-torchcodec
 
-**Flagged:** 2026-05-26
+**Risk:** Low for now — could become blocking if the fallback loader is
+removed in a future pyannote release.
+
+**Resolution options:** Pin FFmpeg to version 7 (`brew install ffmpeg@7`),
+downgrade PyTorch to a compatible version, or pin torchcodec to a compatible
+release. Not worth doing until it causes an actual problem.
+
+**Flagged:** 2026-05-26 (FFmpeg 8); 2026-05-28 (PyTorch 2.8.0)
 
 ---
 
@@ -177,35 +109,6 @@ normally. May result in uncertain speaker labels on very short segments
 (silence, crosstalk).
 
 **Flagged:** 2026-05-26
-
-## Speaker types:
-
-Update speakers or post_process?
-
-**Status:** Resolved — handled in `summarize-transcript.py`.
-
-**Closed:** 2026-07-10
-
-### In progress
-
-- Created a first draft of `review_transcript.py`
-- **Issue** ‘os\* imported but unused Ruff(F401) [Ln 22, Col 8]
-
-**Flagged:** 2026-05-27
-
-## torchcodec broken on PyTorch 2.8.0 (macOS)
-
-**Status:** Non-fatal — pyannote falls back to alternative audio loading.  
-**Symptom:** `LC_RPATH` errors for all FFmpeg versions (4–7) at pipeline
-startup.  
-**Root cause:** torchcodec incompatible with PyTorch 2.8.0; see version table
-at  
-https://github.com/pytorch/torchcodec?tab=readme-ov-file#installing-torchcodec  
-**Risk:** Low for now; could become blocking if fallback loader is removed in a
-future pyannote release.  
-**Resolution options:** Downgrade PyTorch to a compatible version, or pin
-torchcodec to a compatible release.  
-**Parked:** 2026-05-28
 
 ---
 
@@ -247,3 +150,24 @@ mistaken for the current state.
 - `ffmpeg: No such file or directory` (path truncated at a space) — Zoom
   folder names contain spaces and the path wasn't quoted. Fixed by always
   wrapping paths in double quotes.
+
+**2026-05-27 — Ruff F401 fixed:** Unused `import os` in `review_transcript.py`
+removed (no `os.*` calls anywhere in the file).
+
+**2026-07-10 — Speaker types question closed:** "Update speakers or
+post_process?" resolved — handled in `summarize-transcript.py`.
+
+**2026-07-10 — Naming convention formalized:** Adopted
+`yyyy-mm-dd_subject-name` (folder and audio file) as the standing convention.
+Documented in README with the actual Zoom Copy-Pathname-then-rename workflow.
+Because WhisperX and the summarizer scripts both carry the input basename
+forward, this single rename is sufficient to get consistent dated names on
+the raw JSON, cleaned transcript, and summary — no separate output-naming
+logic was needed. Dropped two now-superseded asks from the old Quick Start
+notes: producing an extra raw `.txt` from transcribe.sh (conflicts with
+JSON-as-source-of-truth design) and pointing `review_transcript.py`'s default
+input at `output/processed/` (it correctly takes `output/raw/*.json`).
+
+**2026-07-10 — torchcodec entries merged:** The FFmpeg 8 warning and the
+PyTorch 2.8.0 `LC_RPATH` breakage were two separate parked entries describing
+related fallback behavior; merged into one under Parked.
