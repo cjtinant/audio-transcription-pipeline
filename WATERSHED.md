@@ -206,3 +206,44 @@ future pyannote release.
 **Resolution options:** Downgrade PyTorch to a compatible version, or pin
 torchcodec to a compatible release.  
 **Parked:** 2026-05-28
+
+---
+
+## Resolved / History
+
+Consolidated from `docs/2026-05-26_session-notes.md` (pre-public-release
+cleanup pass).
+
+**2026-05-26 — Fish → bash:** Replaced `transcribe.fish` with `transcribe.sh`.
+Fish is a personal shell choice; bash/zsh is transferable to other users.
+
+**2026-05-26 — README split:** README had grown to ~1,100 lines and got in
+the way during actual transcription work. Split into `README.md` (daily
+use), `docs/installation.md` (setup/troubleshooting), and `docs/reference.md`
+(R/Python API, meeting types, LLM backends).
+
+**2026-05-26 — docs/noise-reduction.md added:** Generalized from a personal
+inbox note; linked from README.
+
+**2026-05-26 — Project instructions established:** Session continuity
+convention, WATERSHED.md convention, `docs/` convention, Perplexity
+verification step, commit body guidance.
+
+**2026-05-26 — pyannote model, superseded:** Docs were corrected to
+`speaker-diarization-3.1` based on Perplexity verification against WhisperX's
+GitHub README at the time. Runtime behavior later showed WhisperX actually
+defaults to `speaker-diarization-community-1` — see the still-open parked
+item above for current status. Noted here so this history entry isn't
+mistaken for the current state.
+
+**Bugs resolved (2026-05-26):**
+
+- `transcribe: command not found` — `~/bin` wasn't on PATH. Fixed by adding
+  `export PATH="$HOME/bin:$PATH"` to `~/.zshrc`.
+- `bad interpreter: No such file or directory` — venv was built at the old
+  `~/audio-transcription-pipeline/` path before the repo moved to
+  `~/PROJECTS/`. Shebangs are hardcoded at build time; fixed by rebuilding
+  the venv with `uv venv` at the new location.
+- `ffmpeg: No such file or directory` (path truncated at a space) — Zoom
+  folder names contain spaces and the path wasn't quoted. Fixed by always
+  wrapping paths in double quotes.
