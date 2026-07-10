@@ -370,9 +370,11 @@ cd ~/PROJECTS/audio-transcription-pipeline
 ```
 audio-transcription-pipeline/
 ├── docs/
-│   ├── installation.md         # Setup instructions for all platforms
-│   ├── noise-reduction.md      # Pre-processing options for poor audio
-│   └── reference.md            # R/Python API reference and LLM options
+│   ├── installation.md               # Setup instructions for all platforms
+│   ├── noise-reduction.md            # Pre-processing options for poor audio
+│   ├── reference.md                  # R/Python API reference and LLM options
+│   ├── cowork-folder-access.md       # Connecting a local folder in Cowork
+│   └── YYYY-MM-DD_session-notes.md   # Dated log per working session
 ├── output/                     # Transcripts and summaries (gitignored)
 │   ├── processed/              # Cleaned transcripts, summaries, HTML reviews
 │   └── raw/                    # WhisperX JSON output
@@ -382,8 +384,11 @@ audio-transcription-pipeline/
 ├── summarize-transcript.py     # Python pipeline (Step 2 — Python users)
 ├── summarize-transcript.R      # R pipeline (Step 2 — R users)
 ├── transcribe.sh               # Bash wrapper for WhisperX (Step 1)
-└── WATERSHED.md                # Parked decisions and open questions
+└── WATERSHED.md                # Parked decisions, resolved history, open questions
 ```
+
+`00_admin/`, `scratch.md`, and personal draft files are intentionally excluded
+here — they're gitignored and stay local, not part of the tracked structure.
 
 ---
 
