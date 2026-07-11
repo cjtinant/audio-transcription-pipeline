@@ -4,9 +4,9 @@
 #
 # Usage:
 #   source("transcribe.R")
-#   result <- run_pipeline("output/my_meeting.json")
-#   result <- run_pipeline("output/my_meeting.json", engine = "anthropic")
-#   result <- run_pipeline("output/my_meeting.json", meeting_type = "interview")
+#   result <- run_pipeline("~/PROJECTS/audio-transcription-output/my_meeting.json")
+#   result <- run_pipeline("~/PROJECTS/audio-transcription-output/my_meeting.json", engine = "anthropic")
+#   result <- run_pipeline("~/PROJECTS/audio-transcription-output/my_meeting.json", meeting_type = "interview")
 # ─────────────────────────────────────────────────────────────────────
 
 library(jsonlite)
@@ -214,10 +214,12 @@ summarize_ollama <- function(transcript,
 #' @param transcript  Formatted transcript string
 #' @param summary     Summary string from LLM
 #' @param input_path  Input file path (used to derive output filenames)
-#' @param output_dir  Directory to save outputs (default: output/)
+#' @param output_dir  Directory to save outputs (private archive, flat —
+#'   not the pipeline repo's own folder)
 
 save_outputs <- function(transcript, summary, input_path,
-                         output_dir = "output/processed") {
+                         output_dir = "~/PROJECTS/audio-transcription-output") {
+  output_dir <- path.expand(output_dir)
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
   base <- tools::file_path_sans_ext(basename(input_path))
@@ -264,20 +266,20 @@ save_outputs <- function(transcript, summary, input_path,
 #' @examples
 #' # Cleaned .txt — recommended path
 #' result <- run_pipeline(
-#'   "output/processed/meeting_clean.txt",
+#'   "~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt",
 #'   engine = "anthropic",
 #'   meeting_type = "general"
 #' )
 #'
 #' # Raw JSON — quick path, no human review
 #' result <- run_pipeline(
-#'   "output/raw/meeting.json",
+#'   "~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json",
 #'   engine = "anthropic",
 #'   meeting_type = "general"
 #' )
 #'
 #' # Custom prompt, local Ollama
-#' result <- run_pipeline("output/processed/meeting_clean.txt",
+#' result <- run_pipeline("~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt",
 #'                        meeting_type = "custom",
 #'                        custom_prompt = "Summarize this in haiku form:\n\n")
 
@@ -288,7 +290,7 @@ run_pipeline <- function(input_path,
                                           "grant_planning", "custom"),
                          custom_prompt = NULL,
                          save         = TRUE,
-                         output_dir   = "output/processed",
+                         output_dir   = "~/PROJECTS/audio-transcription-output",
                          ...) {
   engine       <- match.arg(engine)
   meeting_type <- match.arg(meeting_type)
@@ -416,7 +418,7 @@ run_pipeline_merged <- function(input_path,
                                                    "grant_planning", "custom"),
                                  custom_prompt = NULL,
                                  save          = TRUE,
-                                 output_dir    = "output/processed",
+                                 output_dir    = "~/PROJECTS/audio-transcription-output",
                                  ...) {
   engine       <- match.arg(engine)
   meeting_type <- match.arg(meeting_type)

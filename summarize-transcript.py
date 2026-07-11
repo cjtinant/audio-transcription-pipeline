@@ -6,19 +6,19 @@ Full pipeline: WhisperX JSON → formatted transcript → LLM summary
 
 Interactive usage (Python REPL or script):
     from transcribe import run_pipeline
-    result = run_pipeline("output/meeting.json")
-    result = run_pipeline("output/meeting.json",
+    result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
+    result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
                           engine="anthropic",
                           meeting_type="interview")
 
 CLI usage:
-    python transcribe.py output/meeting.json
-    python transcribe.py output/meeting.json --engine anthropic
-    python transcribe.py output/meeting.json --type interview
-    python transcribe.py output/meeting.json --type custom \
+    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json
+    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic
+    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
+    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
         --prompt "Summarize this grant meeting, focusing on deadlines."
-    python transcribe.py output/meeting.json --no-save
-    python transcribe.py output/meeting.json --list-types
+    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
+    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --list-types
 ─────────────────────────────────────────────────────────────────────
 """
 
@@ -275,7 +275,7 @@ def save_outputs(
     transcript: str,
     summary: str,
     input_path: str,
-    output_dir: str = "output/processed",
+    output_dir: str = "~/PROJECTS/audio-transcription-output",
 ) -> dict[str, str]:
     """
     Save summary to disk. Transcript copy is skipped when input is already
@@ -285,12 +285,13 @@ def save_outputs(
         transcript:  Formatted transcript string
         summary:     LLM summary string
         input_path:  Input file path (used to derive output filenames)
-        output_dir:  Directory to save outputs
+        output_dir:  Directory to save outputs (private archive, flat —
+                     not the pipeline repo's own folder)
 
     Returns:
         Dict with keys: transcript_path (None if input was .txt), summary_path
     """
-    out = Path(output_dir)
+    out = Path(output_dir).expanduser()
     out.mkdir(parents=True, exist_ok=True)
 
     base = Path(input_path).stem
@@ -324,7 +325,7 @@ def run_pipeline(
     meeting_type: str = "general",
     custom_prompt: str | None = None,
     save: bool = True,
-    output_dir: str = "output/processed",
+    output_dir: str = "~/PROJECTS/audio-transcription-output",
     model: str | None = None,
 ) -> dict:
     """
@@ -338,7 +339,7 @@ def run_pipeline(
                        "research", "lecture", or "custom"
         custom_prompt: Your own prompt string (if meeting_type="custom")
         save:          Whether to save transcript and summary to disk
-        output_dir:    Directory for saved outputs
+        output_dir:    Directory for saved outputs (private archive, flat)
         model:         Override the default LLM model name
 
     Returns:
@@ -346,17 +347,17 @@ def run_pipeline(
 
     Examples:
         # Cleaned .txt — recommended path
-        result = run_pipeline("output/processed/meeting_clean.txt",
+        result = run_pipeline("~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt",
                               engine="anthropic",
                               meeting_type="general")
 
         # Raw JSON — quick path, no human review
-        result = run_pipeline("output/raw/meeting.json",
+        result = run_pipeline("~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json",
                               engine="anthropic",
                               meeting_type="general")
 
         # Custom prompt
-        result = run_pipeline("output/processed/meeting_clean.txt",
+        result = run_pipeline("~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt",
                               meeting_type="custom",
                               custom_prompt="List every action item and who owns it.")
     """
@@ -486,7 +487,7 @@ def run_pipeline_merged(
     meeting_type: str = "general",
     custom_prompt: str | None = None,
     save: bool = True,
-    output_dir: str = "output/processed",
+    output_dir: str = "~/PROJECTS/audio-transcription-output",
     model: str | None = None,
 ) -> dict:
     """
@@ -563,12 +564,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 examples:
-  python transcribe.py output/meeting.json
-  python transcribe.py output/meeting.json --engine anthropic
-  python transcribe.py output/meeting.json --type interview
-  python transcribe.py output/meeting.json --type custom \\
+  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json
+  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic
+  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
+  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \\
       --prompt "List every action item and who owns it."
-  python transcribe.py output/meeting.json --model llama3.1:8b-instruct-q8_0
+  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --model llama3.1:8b-instruct-q8_0
   python transcribe.py --list-types
         """,
     )
@@ -608,8 +609,8 @@ examples:
     )
     parser.add_argument(
         "--output-dir",
-        default="output/processed",
-        help="Directory for saved outputs (default: output/processed)",
+        default="~/PROJECTS/audio-transcription-output",
+        help="Directory for saved outputs (default: ~/PROJECTS/audio-transcription-output)",
     )
     parser.add_argument(
         "--merge",
