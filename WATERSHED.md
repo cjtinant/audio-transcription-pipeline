@@ -26,7 +26,7 @@ separate pass?
 
 ### `--model large-v2` vs `--model large-v3`
 
-**Status:** parked — needs testing before changing docs
+**Status:** in progress — test file identified, scope narrowed to two-way
 
 WhisperX's current README uses `large-v3` as the example model. This repo
 documents `large-v2` throughout (README, transcribe.sh, transcribe.py,
@@ -36,18 +36,28 @@ transcribe.R).
 silent or low-speech segments — a common complaint in the WhisperX issue
 tracker. `large-v2` is more conservative and well-tested.
 
-**To resolve:** run a 3-way comparison on the same recording:
+**Scope, revised 2026-07-11:** originally planned as a 3-way comparison
+including an unresolved "baseline" leg. Running two-way for now
+(`large-v2` vs `large-v3` on the same recording); a baseline comparison
+point deferred to later — collect a flat `.txt`/`.vtt` transcript from
+Zoom's own built-in transcription on a future meeting, once one's
+available to compare against.
 
-1. WhisperX `large-v2` (current default)
-2. WhisperX `large-v3`
-3. Something known as a baseline -- how to get this??
+**Test file:** `~/PROJECTS/audio-transcription-output/2026-06-09_audio_tho-meet.m4a`
+— an untranscribed recording already sitting in the archive.
+
+**Operational note:** the archive is flat, keyed by filename — WhisperX
+names output by swapping the extension on the input filename, so running
+the same audio through two models produces identically-named output.
+Each run's JSON gets renamed immediately after (`_large-v2` / `_large-v3`
+suffix) to avoid the second run silently overwriting the first.
 
 Compare: proper noun accuracy, speaker label quality, hallucinations in
 low-speech segments, and overall readability. If `large-v3` is better or
 neutral, update all four files and the README. If `large-v2` remains preferable,
 add a note to the README explaining the deliberate choice.
 
-**Flagged:** 2026-05-26
+**Flagged:** 2026-05-26. **Updated:** 2026-07-11
 
 ---
 
