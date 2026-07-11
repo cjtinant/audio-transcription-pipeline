@@ -51,24 +51,27 @@ Step 1 — Transcribe (terminal)
        │  whisperx converts audio → text with speaker labels + timestamps
        │  pyannote identifies who is speaking at each moment
        ▼
-  output/raw/meeting.json
+  ~/PROJECTS/audio-transcription-output/meeting.json
        │
        ├─── quick path (no review) ──────────────────────────────────────┐
        │                                                                  │
        │  [recommended] review_transcript.py → browser                  │
        │  label speakers, flag errors, export + clean                   │
        ▼                                                                  │
-  output/processed/meeting_clean.txt                                     │
+  ~/PROJECTS/audio-transcription-output/meeting_clean.txt                 │
        │                                                                  │
        └──────────────────────────────────────────────────┬──────────────┘
                                                           ▼
 Step 2 — Summarize (R or Python)
-  result <- run_pipeline("output/processed/meeting_clean.txt")
+  result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting_clean.txt")
        │
        │  reads transcript, sends to LLM, returns structured summary
        ▼
-  output/processed/meeting_clean_summary_20260502.txt
+  ~/PROJECTS/audio-transcription-output/meeting_clean_summary_20260502.txt
 ```
+
+All output lands in one flat, private, local-git-backed folder outside this
+repo — see [Where output goes](#where-output-goes) below.
 
 **Why two steps instead of one?**
 
@@ -95,20 +98,51 @@ format that keeps word-level timestamps, per-segment speaker labels (from
 diarization), and confidence scores together. `review_transcript.py` needs that
 structure to build the speaker-colored view and confidence sliders, and the
 summarizer's quick path reads it directly. The human-cleaned `.txt` is a
-derived, simplified view for the summarizer — JSON stays the source of truth in
-`output/raw/`.
+derived, simplified view for the summarizer — JSON stays the source of truth,
+permanently, in the private output archive (see below).
 
 **The files and what they do:**
 
-| File                                | Role                                         | When you touch it                    |
-| ----------------------------------- | -------------------------------------------- | ------------------------------------ |
-| `transcribe.sh`                     | Runs WhisperX on any audio file              | Step 1 — once per recording          |
-| `review_transcript.py`              | JSON → interactive HTML for reviewing output | Optional — between Step 1 and Step 2 |
-| `summarize-transcript.R`            | Reads JSON, summarizes via R                 | Step 2 — R users                     |
-| `summarize-transcript.py`           | Reads JSON, summarizes via Python or CLI     | Step 2 — Python users                |
-| `output/raw/*.json`                 | WhisperX output — intermediate file          | Created in Step 1, read in Step 2    |
-| `output/processed/*_transcript.txt` | Clean readable transcript                    | Created in Step 2                    |
-| `output/processed/*_summary.txt`    | LLM summary                                  | Created in Step 2                    |
+| File                                                        | Role                                          | When you touch it                    |
+| ------------------------------------------------------------ | --------------------------------------------- | ------------------------------------ |
+| `transcribe.sh`                                             | Runs WhisperX on any audio file               | Step 1 — once per recording          |
+| `review_transcript.py`                                      | JSON → interactive HTML for reviewing output  | Optional — between Step 1 and Step 2 |
+| `summarize-transcript.R`                                    | Reads JSON, summarizes via R                  | Step 2 — R users                     |
+| `summarize-transcript.py`                                   | Reads JSON, summarizes via Python or CLI      | Step 2 — Python users                |
+| `~/PROJECTS/audio-transcription-output/*.json`              | WhisperX output — permanent original record   | Created in Step 1, read in Step 2    |
+| `~/PROJECTS/audio-transcription-output/*_transcript_*.txt`  | Clean readable transcript                     | Created in Step 2                    |
+| `~/PROJECTS/audio-transcription-output/*_summary_*.txt`     | LLM summary                                   | Created in Step 2                    |
+| `~/PROJECTS/audio-transcription-output/*_review.html`       | Interactive reviewed transcript               | Created by `review_transcript.py`    |
+
+### Where output goes
+
+Every artifact from every recording — raw JSON, cleaned transcript, summary,
+reviewed HTML — is written directly to a single folder outside this repo:
+`~/PROJECTS/audio-transcription-output/`. Nothing lands inside this repo's
+own directory at any point.
+
+That folder is:
+
+- **Flat.** No `raw/`/`processed/` subfolders. The `yyyy-mm-dd_subject-name`
+  naming convention (below) already makes files findable by subject via sort
+  or search — a folder hierarchy would just duplicate that.
+- **Local git, no remote.** Gives version history — recover a file after a
+  bad edit, an accidental deletion, or a script bug — without the data ever
+  leaving your machine. It is not a substitute for disk-level backup (Time
+  Machine, an external drive, etc.); local git history doesn't survive a dead
+  drive.
+- **Permanent.** No script in this pipeline ever deletes or moves files out
+  of this folder. It is the private original record.
+- **Private by design.** This repo is public; keeping every output artifact
+  in a sibling folder entirely outside it means research transcripts can
+  never end up in this repo's git history, even by accident.
+
+If you need to share something derived from a recording — meeting notes,
+a redacted summary — that's a deliberate, manual step you do yourself:
+edit a copy down to what's safe to share, then move only that copy into
+wherever it actually needs to go. The original stays in the archive.
+
+See `docs/installation.md` for one-time setup of this folder.
 
 ---
 
@@ -180,7 +214,7 @@ source .venv/bin/activate
   --device cpu \
   --compute_type int8 \
   --output_format json \
-  --output_dir ~/audio-transcription-pipeline/output \
+  --output_dir ~/PROJECTS/audio-transcription-output \
   --language en
 ```
 
@@ -197,7 +231,7 @@ transcribe "~/Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
 ```
 
 Output saved to:
-`~/audio-transcription-pipeline/output/raw/2026-07-07_soil-moisture_audio.json`
+`~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json`
 
 ---
 
@@ -256,11 +290,11 @@ summarizing. Open it to:
 - Export a labeled plain-text transcript
 
 ```bash
-python3 review_transcript.py output/raw/audio1234567.json
+python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json
 
-# Save to a specific location
-python3 review_transcript.py output/raw/audio1234567.json \
-  --out output/processed/audio1234567_review.html
+# --out only needed to override the default (same folder as the input)
+python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
+  --out ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio_review.html
 ```
 
 The HTML file opens in your browser automatically. Speaker name changes stay in
@@ -279,31 +313,31 @@ source("~/PROJECTS/audio-transcription-pipeline/summarize-transcript.R")
 
 # Merged (recommended): runs twice and merges for a more complete summary
 result <- run_pipeline_merged(
-  "~/PROJECTS/audio-transcription-pipeline/output/processed/meeting_clean.txt",
+  "~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt",
   engine       = "anthropic",
   meeting_type = "general"
 )
 
 # Single run: cleaned .txt from review step
 result <- run_pipeline(
-  "~/PROJECTS/audio-transcription-pipeline/output/processed/meeting_clean.txt",
+  "~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt",
   engine       = "anthropic",   # or "ollama" for local/free
   meeting_type = "general"      # match to your recording type
 )
 
 # Quick path: raw JSON, no human review
 result <- run_pipeline(
-  "~/PROJECTS/audio-transcription-pipeline/output/raw/meeting.json",
+  "~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json",
   engine       = "anthropic",
   meeting_type = "general"
 )
 ```
 
-Outputs saved automatically to
-`~/PROJECTS/audio-transcription-pipeline/output/processed/`:
+Outputs saved automatically to `~/PROJECTS/audio-transcription-output/`
+(default `output_dir` — no need to pass it explicitly):
 
-- `meeting_clean_transcript_20260507_130000.txt`
-- `meeting_clean_summary_20260507_130000.txt`
+- `2026-07-07_soil-moisture_audio_transcript_20260707_130000.txt`
+- `2026-07-07_soil-moisture_audio_summary_20260707_130000.txt`
 
 ---
 
@@ -328,21 +362,27 @@ questions, which are useful across most meeting types.
 cd ~/PROJECTS/audio-transcription-pipeline
 
 # Merged (recommended): runs twice and merges for a more complete summary
-.venv/bin/python3 summarize-transcript.py output/processed/meeting_clean.txt \
+.venv/bin/python3 summarize-transcript.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt \
   --engine anthropic \
   --type general \
   --merge
 
 # Single run: cleaned .txt from review step
-.venv/bin/python3 summarize-transcript.py output/processed/meeting_clean.txt \
+.venv/bin/python3 summarize-transcript.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt \
   --engine anthropic \
   --type general
 
 # Quick path: raw JSON, no human review
-.venv/bin/python3 summarize-transcript.py output/raw/meeting.json \
+.venv/bin/python3 summarize-transcript.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
   --engine anthropic \
   --type general
 ```
+
+Output is written to `~/PROJECTS/audio-transcription-output/` by default
+(the `--output-dir` flag exists only to override this).
 
 ---
 
@@ -377,10 +417,7 @@ audio-transcription-pipeline/
 │   ├── reference.md                  # R/Python API reference and LLM options
 │   ├── cowork-folder-access.md       # Connecting a local folder in Cowork
 │   └── YYYY-MM-DD_session-notes.md   # Dated log per working session
-├── output/                     # Transcripts and summaries (gitignored)
-│   ├── processed/              # Cleaned transcripts, summaries, HTML reviews
-│   └── raw/                    # WhisperX JSON output
-├── .gitignore                  # Excludes credentials, audio files, JSON output
+├── .gitignore                  # Excludes credentials and audio files
 ├── .prettierrc                 # Markdown formatting (80-col prose wrap)
 ├── README.md                   # This file — daily use
 ├── review_transcript.py        # JSON → interactive HTML review tool (optional)
@@ -392,6 +429,10 @@ audio-transcription-pipeline/
 
 `00_admin/`, `scratch.md`, and personal draft files are intentionally excluded
 here — they're gitignored and stay local, not part of the tracked structure.
+
+There is no `output/` folder in this repo. All transcription output lives in
+a separate, private, local-git folder — see
+[Where output goes](#where-output-goes) above.
 
 ---
 
