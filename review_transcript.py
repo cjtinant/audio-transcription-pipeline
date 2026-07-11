@@ -315,12 +315,10 @@ def main():
     if args.out:
         out_path = Path(args.out).expanduser().resolve()
     else:
-        # Default: output/processed/<stem>_review.html
-        # If input is in a directory named 'raw', use its sibling 'processed/'
-        if json_path.parent.name == "raw":
-            out_dir = json_path.parent.parent / "processed"
-        else:
-            out_dir = json_path.parent
+        # Default: same directory as the input JSON, same stem + _review.html.
+        # Output lives in a single flat archive folder (no raw/processed
+        # split), so no special-casing is needed here.
+        out_dir = json_path.parent
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / f"{json_path.stem}_review.html"
 
