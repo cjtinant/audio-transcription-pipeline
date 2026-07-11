@@ -29,10 +29,19 @@ scripts write directly to a new sibling folder, `~/PROJECTS/audio-transcription-
   (see naming convention decision above) already makes files findable by
   subject via sort or search — a folder hierarchy would just duplicate what
   the filename already does.
-- **Local git, no remote.** Gives version history and protection against
-  accidental edits/deletion. This is not a substitute for disk-level backup
-  (Time Machine, external drive, etc.) — local git history doesn't survive a
-  dead drive.
+- **Local git, no remote.** This is the piece that resolves a tension that's
+  been running through this whole design: protection and privacy usually
+  pull in opposite directions — most ways of getting recoverability
+  (backups, sync tools, remote repos) also mean the data leaves the machine.
+  A local-only git repo gives real recoverability (full version history —
+  `git log` / `git checkout` can recover a file from before a bad edit,
+  accidental deletion, or a script bug that corrupts output) without
+  transmitting anything anywhere. Nothing ever leaves this machine, at any
+  point, and that still holds even though the archive is protected. It's not
+  a substitute for disk-level backup (Time Machine, external drive, etc.) —
+  local git history doesn't survive a dead drive — but it solves the
+  narrower, more common problem: recovering from your own mistakes or the
+  pipeline's, not recovering from hardware loss.
 - **Permanent, not transient.** Every artifact for every recording (raw
   JSON, cleaned transcript, summary, reviewed HTML) lands here and stays —
   no script ever deletes or moves files out of this folder.
