@@ -137,7 +137,7 @@ curl -L "https://www.voiptroubleshooter.com/open_speech/american/OSR_us_000_0010
   --device cpu \
   --compute_type int8 \
   --output_format json \
-  --output_dir ./output \
+  --output_dir ~/PROJECTS/audio-transcription-output \
   --language en
 ```
 
@@ -273,7 +273,7 @@ file $(which brew)
 brew install uv ffmpeg git
 
 # Create project venv with ARM-native Python 3.11
-cd ~/audio-transcription-pipeline
+cd ~/PROJECTS/audio-transcription-pipeline
 uv venv --python 3.11 .venv
 source .venv/bin/activate
 
@@ -326,7 +326,7 @@ Same as Apple Silicon with these differences:
 which brew  # should be /usr/local/bin/brew
 brew install uv ffmpeg git
 
-cd ~/audio-transcription-pipeline
+cd ~/PROJECTS/audio-transcription-pipeline
 uv venv --python 3.11 .venv
 source .venv/bin/activate
 uv pip install torch torchaudio
@@ -475,7 +475,7 @@ This is a ~32 second phonetics test recording (Harvard Sentences) — a single
 speaker, clean audio, ideal for verifying transcription works.
 
 ```bash
-cd ~/audio-transcription-pipeline
+cd ~/PROJECTS/audio-transcription-pipeline
 curl -L "https://www.voiptroubleshooter.com/open_speech/american/OSR_us_000_0010_8k.wav" \
   -o test.wav
 ```
@@ -494,7 +494,7 @@ whisperx test.wav \
   --device cpu \
   --compute_type int8 \
   --output_format json \
-  --output_dir ./output \
+  --output_dir ~/PROJECTS/audio-transcription-output \
   --language en
 ```
 
@@ -511,15 +511,15 @@ Performing alignment...
 Performing diarization...
 ```
 
-Output file: `output/test.json`
+Output file: `~/PROJECTS/audio-transcription-output/test.json`
 
 ### Step 3 — Verify in R
 
 ```r
-source("transcribe.R")
+source("summarize-transcript.R")
 
 result <- run_pipeline(
-  "output/test.json",
+  "~/PROJECTS/audio-transcription-output/test.json",
   engine = "ollama",    # or "anthropic" if you have an API key
   save   = FALSE        # skip saving for this test run
 )
@@ -546,7 +546,7 @@ Action Items: None apparent from the transcript.
 ### Step 4 — Clean up test files
 
 ```bash
-rm test.wav output/test.json
+rm test.wav ~/PROJECTS/audio-transcription-output/test.json
 ```
 
 ---
@@ -590,7 +590,7 @@ uv pip install httpx
 Restart your terminal or IDE after installing.
 
 **`could not find function "run_pipeline"`** Source the script first:
-`source("transcribe.R")`
+`source("summarize-transcript.R")`
 
 **Ollama connection refused** Start the Ollama server in a separate terminal:
 `ollama serve`
