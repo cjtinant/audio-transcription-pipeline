@@ -5,6 +5,62 @@ close them when resolved.
 
 ---
 
+## Decided — Not Yet Implemented
+
+### External private output archive
+
+**Status:** decided — implementation not started
+
+**Problem:** The documented `output/raw/` + `output/processed/` structure
+inside the pipeline repo was a pipeline-stage-based layout (raw JSON vs.
+processed derivatives). In practice it didn't match how recordings are
+actually used: files for a recurring subject (e.g. `soil-moisture`) were
+being organized by hand into subject folders inconsistently — only the
+cleaned `.txt` files were being moved and grouped; raw JSON and other
+derivatives weren't. It also meant private research transcripts (interviews,
+grant planning, IRB-adjacent material) sat inside the same directory tree as
+a public GitHub repo, only protected by `.gitignore`, with no backup or
+version history.
+
+**Decision:** Drop the in-repo `output/` folder entirely. All pipeline
+scripts write directly to a new sibling folder, `~/PROJECTS/audio-transcription-output/`:
+
+- **Flat, no subfolders.** The `yyyy-mm-dd_subject-name` naming convention
+  (see naming convention decision above) already makes files findable by
+  subject via sort or search — a folder hierarchy would just duplicate what
+  the filename already does.
+- **Local git, no remote.** Gives version history and protection against
+  accidental edits/deletion. This is not a substitute for disk-level backup
+  (Time Machine, external drive, etc.) — local git history doesn't survive a
+  dead drive.
+- **Permanent, not transient.** Every artifact for every recording (raw
+  JSON, cleaned transcript, summary, reviewed HTML) lands here and stays —
+  no script ever deletes or moves files out of this folder.
+- **Two-stage privacy separation.** This archive is the private original
+  record and never travels further automatically. Producing something
+  shareable (e.g. privacy-edited meeting notes with sensitive material
+  removed) is a separate, manual, human step — done by hand, outside the
+  pipeline's scope, moving only the redacted derivative into the actual
+  destination project.
+
+**To implement** (small, discrete steps — not one rewrite):
+
+1. One-time setup: create and `git init` `~/PROJECTS/audio-transcription-output/`
+   (document in `docs/installation.md`).
+2. `transcribe.sh` — change `--output_dir` to the new folder.
+3. `review_transcript.py` — update default input/output path assumptions.
+4. `summarize-transcript.R` / `summarize-transcript.py` — update default
+   output path.
+5. `README.md` — How It Works diagram, Why JSON section, file table, Daily
+   Use walkthrough commands, and Project Structure diagram all currently
+   describe `output/raw` / `output/processed`; all need rewriting.
+6. Remove `output/*` entries from the pipeline repo's `.gitignore` (no
+   longer applicable) and remove the `output/` folder from the repo.
+
+**Flagged:** 2026-07-11
+
+---
+
 ## Parked:
 
 ### Spell-check pass on transcript JSON
