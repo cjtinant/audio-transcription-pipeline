@@ -16,10 +16,6 @@ __pycache__/
 *.pyd
 .Python
 
-# ── Output files (transcripts, summaries) ────────────────────────────
-output/*
-!output/.gitkeep
-
 # ── Audio files ───────────────────────────────────────────────────────
 *.wav
 *.mp3
