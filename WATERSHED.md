@@ -168,6 +168,11 @@ notes: producing an extra raw `.txt` from transcribe.sh (conflicts with
 JSON-as-source-of-truth design) and pointing `review_transcript.py`'s default
 input at `output/processed/` (it correctly takes `output/raw/*.json`).
 
+**2026-05-2x — Zoom recordings folder moved off iCloud:** Zoom's default save
+location, `~/Documents/Zoom/`, is iCloud-synced and caused access problems
+without an internet connection. Recordings folder relocated to `~/Zoom/`.
+README's Zoom instructions should point here, not the Documents default.
+
 **2026-07-10 — torchcodec entries merged:** The FFmpeg 8 warning and the
 PyTorch 2.8.0 `LC_RPATH` breakage were two separate parked entries describing
 related fallback behavior; merged into one under Parked.

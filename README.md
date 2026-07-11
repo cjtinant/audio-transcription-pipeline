@@ -184,14 +184,16 @@ source .venv/bin/activate
   --language en
 ```
 
-**For Zoom recordings on macOS**, the default location for Zoom files is in
-`~/Documents/Zoom/`. Copy the path in Finder (right-click the file → Copy
-"audio.m4a" as Pathname), then rename the folder and file to the convention
-above before transcribing. Zoom folder names always contain spaces — always
-wrap the path in quotes:
+**For Zoom recordings on macOS**, Zoom's own default save location is
+`~/Documents/Zoom/` — but that folder is iCloud-synced, which causes access
+problems without an internet connection. Recordings here live in `~/Zoom/`
+instead, moved there for that reason. Copy the path in Finder (right-click
+the file → Copy "audio.m4a" as Pathname), then rename the folder and file to
+the convention above before transcribing. Zoom folder names always contain
+spaces — always wrap the path in quotes:
 
 ```bash
-transcribe "~/Documents/Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
+transcribe "~/Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
 ```
 
 Output saved to:
