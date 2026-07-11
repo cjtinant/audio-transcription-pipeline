@@ -26,6 +26,38 @@ echo 'ANTHROPIC_API_KEY=sk-ant-yourkey' >> ~/.Renviron
 
 ---
 
+## Private Output Archive Setup
+
+One-time setup, done once per machine, before first use.
+
+This pipeline never stores research transcripts inside its own repo folder.
+All output — raw JSON, cleaned transcripts, summaries, reviewed HTML — is
+written directly to a separate, private folder outside the repo:
+
+```bash
+mkdir -p ~/PROJECTS/audio-transcription-output
+cd ~/PROJECTS/audio-transcription-output
+git init
+echo ".DS_Store" > .gitignore
+git add .gitignore
+git commit -m "chore: initial commit, ignore .DS_Store"
+```
+
+**Local git only — no remote.** This gives version history (recover a file
+after a bad edit, an accidental deletion, or a script bug) without the data
+ever leaving your machine. It is not a substitute for disk-level backup — if
+the drive fails, git history fails with it. If you want protection against
+that too, back this folder up separately (Time Machine, an external drive,
+etc.).
+
+**Why a separate folder instead of `output/` inside this repo:** this repo
+is public. A sibling folder outside the repo entirely means transcripts can
+never end up in git history here, even by accident — a stronger guarantee
+than relying on `.gitignore` alone. Full design reasoning is in
+[WATERSHED.md](../WATERSHED.md).
+
+---
+
 ## Quick Start — Simple Instructions
 
 These instructions assume you can copy and paste commands into a terminal. On
