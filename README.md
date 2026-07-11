@@ -381,6 +381,7 @@ audio-transcription-pipeline/
 │   ├── processed/              # Cleaned transcripts, summaries, HTML reviews
 │   └── raw/                    # WhisperX JSON output
 ├── .gitignore                  # Excludes credentials, audio files, JSON output
+├── .prettierrc                 # Markdown formatting (80-col prose wrap)
 ├── README.md                   # This file — daily use
 ├── review_transcript.py        # JSON → interactive HTML review tool (optional)
 ├── summarize-transcript.py     # Python pipeline (Step 2 — Python users)
