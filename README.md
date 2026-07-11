@@ -388,6 +388,8 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default
 
 ### Before you start — checklist
 
+- [ ] `~/PROJECTS/audio-transcription-output/` exists and is git-initialized
+      (one-time setup — see `docs/installation.md`)
 - [ ] Ollama is running in a separate terminal (`ollama serve`) if using local
       summarization
 - [ ] `~/.Renviron` contains `HF_TOKEN` and optionally `ANTHROPIC_API_KEY`
