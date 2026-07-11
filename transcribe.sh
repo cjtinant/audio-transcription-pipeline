@@ -16,7 +16,7 @@
 #   transcribe /full/path/to/meeting.m4a --language en
 #
 # Note: Always pass the full path to the audio file.
-#       Zoom recordings live in ~/Documents/Zoom/ — wrap paths in quotes
+#       Zoom recordings live in ~/Zoom/ — wrap paths in quotes
 #       if the folder name contains spaces.
 # ─────────────────────────────────────────────────────────────────────
 
@@ -44,5 +44,5 @@ exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx "$@" \
     --device cpu \
     --compute_type int8 \
     --output_format json \
-    --output_dir ~/PROJECTS/audio-transcription-pipeline/output/raw \
+    --output_dir ~/PROJECTS/audio-transcription-output \
     --language en
