@@ -57,6 +57,10 @@ def load_segments(json_path: Path) -> list[dict]:
                 "w": w.get("word", ""),
                 "s": round(w.get("score", 1.0), 3),
                 "spk": w.get("speaker", seg.get("speaker", "UNKNOWN")),
+                # Word's own start time from whisperx's alignment step, not
+                # the segment's. Some words (e.g. unaligned punctuation) may
+                # lack this — None means "fall back to segment start".
+                "t": w.get("start"),
             })
         out.append({
             "start": round(seg.get("start", 0), 2),
@@ -85,6 +89,12 @@ def build_flagged_report(
     word, confidence, speaker, and a few words of surrounding context — for
     jumping straight to actual trouble spots instead of scanning a full
     highlighted transcript.
+
+    Timestamp is the word's own start time (from whisperx's alignment step),
+    not the segment's — a segment can run much longer than a single word, so
+    using the segment start would point well before the actual word in
+    longer segments. Falls back to segment start only if a word wasn't
+    individually aligned.
     """
     lines = []
     for seg in segments:
@@ -104,7 +114,9 @@ def build_flagged_report(
                 tokens.append(token)
             context = " ".join(tokens)
 
-            m, s = divmod(int(seg.get("start", 0)), 60)
+            word_time = w.get("t")
+            ts = word_time if word_time is not None else seg.get("start", 0)
+            m, s = divmod(int(ts), 60)
             spk = w.get("spk", seg.get("speaker", "UNKNOWN"))
             lines.append(
                 f"[{m}:{s:02d}] {w['w']!r} "
