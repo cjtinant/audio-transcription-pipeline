@@ -26,11 +26,11 @@ whisperx /path/to/your/meeting.m4a \
   --device cpu \
   --compute_type int8 \
   --output_format json \
-  --output_dir ./output \
+  --output_dir ~/PROJECTS/audio-transcription-output \
   --language en
 ```
 
-Output: `output/meeting.json`
+Output: `~/PROJECTS/audio-transcription-output/meeting.json`
 
 **Optional flags:**
 
@@ -43,16 +43,16 @@ Output: `output/meeting.json`
 **R (primary — recommended for R users):**
 
 ```r
-source("transcribe.R")
+source("summarize-transcript.R")
 
 # Local Ollama (free, private, requires Ollama running)
-result <- run_pipeline("output/meeting.json")
+result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
 
 # Anthropic API (requires ANTHROPIC_API_KEY in ~/.Renviron)
-result <- run_pipeline("output/meeting.json", engine = "anthropic")
+result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json", engine = "anthropic")
 
 # With meeting type preset
-result <- run_pipeline("output/meeting.json",
+result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
                        engine       = "anthropic",
                        meeting_type = "interview")
 ```
@@ -61,19 +61,20 @@ result <- run_pipeline("output/meeting.json",
 
 ```bash
 # Local Ollama
-python transcribe.py output/meeting.json
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
 
 # Anthropic API
-python transcribe.py output/meeting.json --engine anthropic
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic
 
 # With meeting type preset
-python transcribe.py output/meeting.json --engine anthropic --type interview
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic --type interview
 
 # List available meeting types
-python transcribe.py --list-types
+python summarize-transcript.py --list-types
 ```
 
-Outputs saved automatically to `output/`:
+Outputs saved automatically to `~/PROJECTS/audio-transcription-output/`
+(the default `output_dir` — no need to pass it explicitly):
 
 - `meeting_transcript_20260502_175200.txt`
 - `meeting_summary_20260502_175200.txt`
@@ -89,7 +90,7 @@ run_pipeline(
   meeting_type = "general",   # See Meeting Type Presets below
   custom_prompt = NULL,       # Your own prompt (if meeting_type = "custom")
   save         = TRUE,        # Save outputs to disk
-  output_dir   = "output",    # Output directory
+  output_dir   = "~/PROJECTS/audio-transcription-output",  # Output directory
   ...                         # Passed to summarize_ollama() or
                               # summarize_anthropic() — e.g., model = "..."
 )
@@ -98,14 +99,14 @@ run_pipeline(
 **Change the Ollama model:**
 
 ```r
-result <- run_pipeline("output/meeting.json",
+result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
                        model = "llama3.1:8b-instruct-q8_0")
 ```
 
 **Change the Anthropic model:**
 
 ```r
-result <- run_pipeline("output/meeting.json",
+result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
                        engine = "anthropic",
                        model  = "claude-haiku-4-5")  # cheaper/faster
 ```
@@ -137,51 +138,67 @@ uv pip install httpx
 
 ```bash
 # Basic — local Ollama, general meeting type
-python transcribe.py output/meeting.json
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
 
 # Anthropic API
-python transcribe.py output/meeting.json --engine anthropic
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic
 
 # Meeting type preset
-python transcribe.py output/meeting.json --type interview
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
 
 # Custom prompt
-python transcribe.py output/meeting.json --type custom \
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
     --prompt "List every action item and who owns it."
 
 # Override model
-python transcribe.py output/meeting.json \
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
     --model llama3.1:8b-instruct-q8_0
 
 # Skip saving to disk
-python transcribe.py output/meeting.json --no-save
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
 
 # List available meeting types
-python transcribe.py --list-types
+python summarize-transcript.py --list-types
 ```
 
 ### Interactive / script usage
 
+The script file is `summarize-transcript.py` — the hyphen makes it an invalid
+Python module name, so a plain `from summarize-transcript import run_pipeline`
+won't work. Load it by file path with `importlib` instead:
+
 ```python
-from transcribe import run_pipeline
+import importlib.util
+
+spec = importlib.util.spec_from_file_location(
+    "summarize_transcript",
+    "~/PROJECTS/audio-transcription-pipeline/summarize-transcript.py",
+)
+summarize_transcript = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(summarize_transcript)
+run_pipeline = summarize_transcript.run_pipeline
 
 # Local Ollama, general meeting (default)
-result = run_pipeline("output/meeting.json")
+result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
 
 # Anthropic API, interview preset
-result = run_pipeline("output/interview.json",
+result = run_pipeline("~/PROJECTS/audio-transcription-output/interview.json",
                       engine="anthropic",
                       meeting_type="interview")
 
 # Custom prompt
-result = run_pipeline("output/meeting.json",
+result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
                       meeting_type="custom",
                       custom_prompt="List every number mentioned.")
 
 # Override model
-result = run_pipeline("output/meeting.json",
+result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
                       model="llama3.1:8b-instruct-q8_0")
 ```
+
+For most interactive use, the CLI usage above is simpler — this is only
+needed if you want `run_pipeline`'s return value (segments, transcript,
+summary) available directly in a Python session or another script.
 
 **Access results programmatically:**
 
@@ -209,7 +226,7 @@ result["paths"]       # dict of saved file paths (if save=True)
 
 ```r
 result <- run_pipeline(
-  "output/meeting.json",
+  "~/PROJECTS/audio-transcription-output/meeting.json",
   meeting_type  = "custom",
   custom_prompt = paste0(
     "You are summarizing a grant planning meeting. ",

@@ -7,6 +7,30 @@ close them when resolved.
 
 ## Parked:
 
+### `summarize-transcript.py` filename blocks clean Python import
+
+**Status:** parked — worked around in docs, not fixed at the source
+
+The hyphen in `summarize-transcript.py` makes it an invalid Python module
+name — `from summarize-transcript import run_pipeline` is a syntax error.
+`docs/reference.md`'s "Interactive / script usage" section now documents an
+`importlib.util` workaround (load by file path instead of importing by
+name), but the underlying inconsistency is still there: the R script uses
+the same hyphenated naming (`summarize-transcript.R`) and that's fine, since
+R's `source()` takes a path, not an identifier — this is Python-specific.
+
+**Options:** rename to `summarize_transcript.py` (breaks the matching CLI
+examples and README references to the hyphenated name everywhere else, but
+makes direct import work naturally); or leave as-is and treat CLI invocation
+as the only supported usage pattern, with `importlib` as a documented
+fallback for anyone who wants the return value in a script. No decision made
+— found while fixing `docs/reference.md`'s stale references, not
+investigated further.
+
+**Flagged:** 2026-07-11
+
+---
+
 ### Spell-check pass on transcript JSON
 
 Add a spell-check flag to `review_transcript.py`, alongside existing
