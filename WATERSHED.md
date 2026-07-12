@@ -141,21 +141,33 @@ distinguish audio (always local) from transcript text (sent externally
 only under the default engine) rather than just swapping which option is
 labeled "(default)".
 
-**Flagged:** 2026-07-11
+**First precision test on unseen content (2026-07-12):** ran
+`sanity_check_transcript.py` (Anthropic, default) against
+`2026-06-09_audio_mentor-meet.json` — untouched by any tool built this
+session, unlike `tho-meet` which had been picked apart repeatedly. 5 flags,
+scored against the user's own knowledge of what was actually said:
 
----
+- **1 confirmed exact catch:** `[14:36]` "barbs" → correct answer "varves"
+  (tree-ring/climate-proxy discussion). Claude didn't just find a real
+  error, it supplied the right fix.
+- **2 likely real catches, context confirmed but exact wording not
+  verified:** `[5:53]` "cow patient" (confirmed as garbled mesonet-station
+  discussion) and `[14:00]` "save your million" (confirmed as the Dakota
+  blizzard discussion).
+- **2 false positives:** `[1:50]` "plumber" and `[33:35]` "straight and to
+  the right" were both actually said — Claude flagged genuine, correct
+  colloquial phrasing about a person's character as semantically odd.
+  Different failure mode than Ollama's informal-speech false positives
+  from the earlier test (filler/backchannel) — this is unusual-but-real
+  descriptive language, not filler.
 
-### [Tier 3] LLM plausibility/sanity pass on transcript text — combine with spell-check
-
-**Status:** idea — not scoped or started
-
-Feed the plain-text transcript through the summarizer's existing LLM, asking it
-to flag anything that reads as semantically odd or out of place. Catches a
-different error category than acoustic confidence. Scoping this out reinforced
-that it shares the same false-positive risk as the already-parked spell-check
-idea below (institution-specific terms and proper nouns getting flagged as
-"wrong" by something that doesn't know your vocabulary) — treat as one combined
-"sanity pass" feature, not two separate builds.
+**Rough precision: 3/5 real, 2/5 false positive** on a single unseen
+recording — not a large enough sample to treat as a stable rate, but the
+first real signal beyond the `tho-meet` test (which validated
+corroboration with `compare_transcripts.py`, not raw precision). Consistent
+with "flags are a signal, not a fix" — about 2 in 5 flags being dead ends
+here is a real cost of using this tool, not a defect to chase down
+immediately.
 
 **Flagged:** 2026-07-11
 
@@ -204,11 +216,16 @@ way an unlabeled one would. Only worth investing in after speaker-slot caching
 
 The hyphen in `summarize-transcript.py` makes it an invalid Python module name —
 `from summarize-transcript import run_pipeline` is a syntax error.
-`docs/reference.md`'s "Interactive / script usage" section now documents an
+`docs/reference.md`'s "Interactive / script usage" section documents an
 `importlib.util` workaround (load by file path instead of importing by name),
-but the underlying inconsistency is still there: the R script uses the same
-hyphenated naming (`summarize-transcript.R`) and that's fine, since R's
-`source()` takes a path, not an identifier — this is Python-specific.
+but the underlying inconsistency is still there.
+
+**Update (2026-07-12):** no longer just a documented inconvenience —
+`sanity_check_transcript.py` now depends on this same workaround to reach
+`summarize_anthropic`/`summarize_ollama` (R is gone as of today, so the old
+"R uses the same hyphenated naming and that's fine" comparison no longer
+applies either — this is now purely a Python problem with one real
+consumer depending on the workaround, not zero).
 
 **Options:** rename to `summarize_transcript.py` (breaks the matching CLI
 examples and README references to the hyphenated name everywhere else, but makes
