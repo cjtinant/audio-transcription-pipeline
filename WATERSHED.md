@@ -50,25 +50,6 @@ separate pass?
 
 ---
 
-### pyannote model: `speaker-diarization-3.1` vs `speaker-diarization-community-1`
-
-**Status:** parked — docs say 3.1, WhisperX actually uses community-1
-
-Perplexity confirmed that WhisperX's GitHub README points to
-`pyannote/speaker-diarization-3.1` for HuggingFace license acceptance. The
-`docs/installation.md` reflects this.
-
-However, the live `transcribe --help` output and the runtime log both show
-WhisperX defaulting to `pyannote/speaker-diarization-community-1`. This means
-users need to accept the license for `community-1`, not `3.1`, for the pipeline
-to work without a `GatedRepoError`.
-
-**To resolve:** verify which model page(s) actually gate access by testing with
-a fresh HuggingFace token that has only accepted one or the other. Update
-`docs/installation.md` HuggingFace Setup accordingly.
-
-**Flagged:** 2026-05-26
-
 ---
 
 ### torchcodec warnings on macOS (FFmpeg 8 / PyTorch 2.8.0)
@@ -256,3 +237,27 @@ names (`transcribe.R`/`transcribe.py`, should be `summarize-transcript.R`/
 `.py`) and every path still points at `output/meeting.json` (the old in-repo
 location, not the archive). Only the model flag was fixed here — the rest is
 tracked as a separate cleanup task, not folded into this one.
+
+**2026-07-11 — pyannote model mismatch resolved via source inspection, no
+token test needed:** Read `whisperx/diarize.py` directly (installed package
+source, not just log output): line 101 hardcodes
+`model_config = model_name or "pyannote/speaker-diarization-community-1"`.
+Since `transcribe.sh` never passes a model override, WhisperX always
+requests `community-1` — this is unconditional, not environment-dependent.
+
+Cross-checked `community-1`'s official HuggingFace model card: it's
+self-contained, benchmarked *against* `speaker-diarization-3.1` as a
+separate "legacy" model, not built on it. Its own setup instructions
+require accepting only its own license — no mention of `3.1` or
+`segmentation-3.0` as dependencies.
+
+**Resolution:** `docs/installation.md`'s HuggingFace Setup now says to
+accept only `pyannote/speaker-diarization-community-1`'s license. The old
+instruction (accept both `segmentation-3.0` and `speaker-diarization-3.1`)
+asked for licenses this pipeline doesn't actually use.
+
+One caveat kept honest rather than overclaimed: this rules out `3.1` and
+`segmentation-3.0` as requirements with high confidence (source code +
+official model card), but can't fully rule out some other undocumented
+gated sub-component `community-1` might pull in — that would only surface
+empirically, via an actual fresh-account test, which wasn't run.

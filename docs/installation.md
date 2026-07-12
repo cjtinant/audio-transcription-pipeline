@@ -444,9 +444,14 @@ a free account and license agreement).
 2. Go to **Settings → Access Tokens → New token**
 3. Select the **Read** tab, name it `whisperx-local`, click **Create**
 4. Copy the `hf_...` token — you only see it once
-5. Accept the license on both model pages (must be logged in):
-   - [pyannote/segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0)
-   - [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1)
+5. Accept the license on the model page (must be logged in):
+   - [pyannote/speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1)
+
+   This is the only gated model this pipeline actually uses —
+   `community-1` is WhisperX's hardcoded diarization default (confirmed in
+   its source, `whisperx/diarize.py`) and is self-contained, not built on
+   `speaker-diarization-3.1` or `segmentation-3.0`. See WATERSHED.md for how
+   this was confirmed.
 6. Add the token to your credentials file:
 
 **macOS/Linux (R users):**
