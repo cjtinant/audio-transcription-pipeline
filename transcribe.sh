@@ -35,6 +35,28 @@ if [ -z "$hf_token" ]; then
     exit 1
 fi
 
+# Record the source audio path in a sidecar file, keyed by the output JSON's
+# stem. The archive deliberately keeps audio out (private-archive design),
+# but review-tooling (audio-linked spot-checking) needs a way to find the
+# original file back. Written before `exec` below, since `exec` replaces
+# this process and nothing after it would run.
+audio_path=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
+audio_stem=$(basename "$audio_path")
+audio_stem="${audio_stem%.*}"
+python3 -c "
+import json
+from pathlib import Path
+sidecar = Path.home() / 'PROJECTS/audio-transcription-output/.source-audio.json'
+data = {}
+if sidecar.exists():
+    try:
+        data = json.loads(sidecar.read_text())
+    except json.JSONDecodeError:
+        data = {}
+data['$audio_stem'] = '$audio_path'
+sidecar.write_text(json.dumps(data, indent=2, sort_keys=True))
+"
+
 # Run WhisperX — full path avoids PATH issues after venv activation.
 # All arguments passed to this script are forwarded to whisperx.
 exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx "$@" \

@@ -17,7 +17,8 @@ cheap/safe; later tiers have real prerequisites or open design questions.
 
 ### [Tier 2] Audio-linked spot-checking for flagged words
 
-**Status:** idea — blocked on a design decision, not started
+**Status:** in progress — design decided, sidecar half built, spot-check
+command not started
 
 Probably the highest-value review-tooling change overall — listening to a
 flagged word resolves ambiguity a confidence score alone can't ("Anne will
@@ -25,11 +26,23 @@ anger" doesn't tell you what was actually said; hearing it might). Every flagged
 word has a timestamp, and ffmpeg is already a dependency, so the clipping itself
 is straightforward.
 
-**Real dependency found while scoping:** the private archive design deliberately
-keeps audio out of the archive — only JSON and derivatives land there. Nothing
-currently records, retrievably, where the source `.m4a` lives once transcription
-is done. Needs a design decision (store the source path somewhere, or require it
-as an explicit argument) before the ffmpeg-clipping part can be built.
+**Design decision (2026-07-11):** sidecar file, not embedded-in-JSON.
+`transcribe.sh` writes `.source-audio.json` in the output archive (same
+directory convention as `.speaker-cache.json`) before its `exec` call, mapping
+each output stem to its resolved source audio path. Chosen over embedding the
+path in whisperx's own JSON because that would require dropping `exec` for a
+post-process/patch step (more invasive, less reversible, and blurs whisperx's
+native output schema with pipeline bookkeeping) — sidecar is a one-line
+addition, fully reversible, and matches an existing pattern in this codebase.
+
+**Built and tested (2026-07-11):** the `transcribe.sh` sidecar write. Verified
+in a sandbox with a fake `$HOME`: handles spaces in the source path correctly,
+and a second run merges into the existing sidecar rather than overwriting it.
+Not yet tested against a real `transcribe` run in the actual archive.
+
+**Still needed:** the actual spot-check command in `review_transcript.py` —
+read `.source-audio.json`, look up the stem, ffmpeg-clip the timestamp range
+for a given flagged word.
 
 **Flagged:** 2026-07-11
 
