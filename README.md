@@ -205,10 +205,10 @@ transcribe "/full/path/to/your/meeting.m4a" --min_speakers 3 --max_speakers 3
 Or call WhisperX directly:
 
 ```bash
-cd ~/audio-transcription-pipeline
+cd ~/PROJECTS/audio-transcription-pipeline
 source .venv/bin/activate
 .venv/bin/whisperx "/full/path/to/your/meeting.m4a" \
-  --model large-v2 \
+  --model large-v3 \
   --diarize \
   --hf_token "$(grep HF_TOKEN ~/.Renviron | cut -d= -f2 | tr -d '\r')" \
   --device cpu \

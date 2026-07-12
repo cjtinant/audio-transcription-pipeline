@@ -5,27 +5,6 @@ close them when resolved.
 
 ---
 
-## Decided — Not Yet Implemented
-
-### Switch default Whisper model to large-v3
-
-**Status:** decided — implementation not started
-
-**Decision:** Adopt `large-v3` as the default model, replacing `large-v2`.
-Full comparison and reasoning logged under 2026-07-11 in Resolved / History
-below.
-
-**To implement:**
-
-1. `transcribe.sh` — change hardcoded `--model large-v2` to `--model large-v3`.
-2. `README.md` — update all example commands showing `--model large-v2`.
-3. `docs/installation.md` — same, in the Quick Start and Testing sections.
-4. Double-check `docs/reference.md` for any model references.
-
-**Flagged:** 2026-07-11
-
----
-
 ## Parked:
 
 ### Spell-check pass on transcript JSON
@@ -238,6 +217,18 @@ speakers). Findings:
 check — the original reason for caution — showed up, and confidence metrics
 favor `large-v3`. The two flagged timestamps are open questions, not blockers.
 Baseline comparison (Zoom's own transcription) remains deferred to a future
-meeting, per the revised scope above. Implementation (switching the
-hardcoded default in `transcribe.sh` and updating docs) tracked separately
-under "Decided — Not Yet Implemented."
+meeting, per the revised scope above.
+
+**Implemented same day:** `transcribe.sh`'s hardcoded `--model` flag, and all
+example commands in `README.md`, `docs/installation.md`, and
+`docs/reference.md`. Two performance claims in `docs/installation.md`
+(10–15× realtime on M1 Max; ~3-5x slower on Intel) were measured for
+`large-v2` specifically and were not silently carried over — both now note
+the figure is `large-v2`'s, not verified for `large-v3`.
+
+While checking `docs/reference.md` for model references, found it had been
+missed by two earlier passes entirely: it still shows the pre-rename script
+names (`transcribe.R`/`transcribe.py`, should be `summarize-transcript.R`/
+`.py`) and every path still points at `output/meeting.json` (the old in-repo
+location, not the archive). Only the model flag was fixed here — the rest is
+tracked as a separate cleanup task, not folded into this one.

@@ -38,7 +38,7 @@ fi
 # Run WhisperX — full path avoids PATH issues after venv activation.
 # All arguments passed to this script are forwarded to whisperx.
 exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx "$@" \
-    --model large-v2 \
+    --model large-v3 \
     --diarize \
     --hf_token "$hf_token" \
     --device cpu \

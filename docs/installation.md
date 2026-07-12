@@ -131,7 +131,7 @@ export PATH="$HOME/bin:$PATH"
 source .venv/bin/activate
 curl -L "https://www.voiptroubleshooter.com/open_speech/american/OSR_us_000_0010_8k.wav" -o test.wav
 .venv/bin/whisperx test.wav \
-  --model large-v2 \
+  --model large-v3 \
   --diarize \
   --hf_token "YOUR_HF_TOKEN" \
   --device cpu \
@@ -292,9 +292,12 @@ file .venv/bin/python3
 correct choice for Apple Silicon. WhisperX uses `faster-whisper` as its
 transcription engine, which does not support Metal (MPS) natively. CPU with int8
 quantization on Apple Silicon unified memory is both fast and reliable —
-`large-v2` transcribes at approximately 10–15× realtime on M1 Max, meaning a
-1-hour recording completes in 4–6 minutes. No alternative device flags are
-needed or recommended.
+`large-v2` transcribed at approximately 10–15× realtime on M1 Max, meaning a
+1-hour recording completed in 4–6 minutes. This repo now defaults to
+`large-v3` (see WATERSHED.md for the comparison); its speed on the same
+hardware hasn't been separately measured yet — timing above is `large-v2`'s
+figure, not verified for `large-v3`. No alternative device flags are needed
+or recommended.
 
 **Install the transcribe script:**
 
@@ -319,7 +322,9 @@ Same as Apple Silicon with these differences:
 - Homebrew root: `/usr/local`
 - Python architecture: `x86_64` (not arm64)
 - PyTorch install: same CPU wheels work on Intel
-- Performance: ~3-5x slower than Apple Silicon for large-v2
+- Performance: ~3-5x slower than Apple Silicon (figure measured for
+  `large-v2`; not separately verified for `large-v3`, this repo's current
+  default)
 
 ```bash
 # Verify Homebrew location
@@ -488,7 +493,7 @@ source .venv/bin/activate
 
 ```bash
 whisperx test.wav \
-  --model large-v2 \
+  --model large-v3 \
   --diarize \
   --hf_token "YOUR_HF_TOKEN" \
   --device cpu \

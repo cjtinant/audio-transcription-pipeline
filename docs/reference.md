@@ -20,7 +20,7 @@ transcribe /path/to/your/meeting.m4a
 source .venv/bin/activate
 
 whisperx /path/to/your/meeting.m4a \
-  --model large-v2 \
+  --model large-v3 \
   --diarize \
   --hf_token "YOUR_HF_TOKEN" \
   --device cpu \
