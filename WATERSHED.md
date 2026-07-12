@@ -50,19 +50,28 @@ for a given flagged word.
 
 ### [Tier 2] Cross-model disagreement as a confidence signal
 
-**Status:** idea — blocked on a prerequisite fix, not started
+**Status:** idea — prerequisite fixed, still blocked on the recurring-cost
+tradeoff, feature itself not started
 
 Two independently-run models agreeing is stronger evidence of correctness than
 either model's own self-reported confidence. Proven value: the "Anne will anger"
 divergence in the large-v2/v3 comparison wasn't flagged by either model's own
 confidence score, only by diffing the two against each other.
 
-**Real costs:** roughly doubles transcription time per recording, every time,
-not just once — a recurring cost, not a one-time setup cost. Also blocked on a
-small prerequisite: `transcribe.sh` can't currently run a second model through
-the wrapper at all, because of the `--model` argument-order bug found earlier
-(hardcoded flag comes after `"$@"`, so a user-supplied override is silently
-ignored).
+**Prerequisite fixed (2026-07-11):** `transcribe.sh`'s `--model` argument-order
+bug. Hardcoded flags (`--model large-v3` among them) came *before* `"$@"`, and
+argparse takes the last occurrence when a flag repeats — so any user-supplied
+override was silently beaten by the hardcoded default coming after it.
+Confirmed with an argparse reproduction before fixing. Reordered so `"$@"`
+comes last; hardcoded defaults still apply when the user doesn't override, but
+now any of them (`--model`, `--device`, `--language`, etc.) actually can be
+overridden. `transcribe file.m4a --model large-v2` now works as expected.
+
+**Real costs (still unresolved):** roughly doubles transcription time per
+recording, every time, not just once — a recurring cost, not a one-time setup
+cost. This is a tradeoff decision, not a bug — not something to fix, something
+to decide is worth it. Today's `large-v3` run (in progress) will give a real
+timing data point to weigh this against.
 
 **Flagged:** 2026-07-11
 

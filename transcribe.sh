@@ -59,7 +59,13 @@ sidecar.write_text(json.dumps(data, indent=2, sort_keys=True))
 
 # Run WhisperX — full path avoids PATH issues after venv activation.
 # All arguments passed to this script are forwarded to whisperx.
-exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx "$@" \
+#
+# "$@" comes LAST, after the hardcoded defaults, not before. argparse (which
+# whisperx uses) takes the last occurrence when a flag repeats — with "$@"
+# first, a user-supplied override (e.g. --model large-v2) was silently beaten
+# by the hardcoded --model large-v3 coming after it. Defaults first, "$@"
+# last means any hardcoded flag below can actually be overridden.
+exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx \
     --model large-v3 \
     --diarize \
     --hf_token "$hf_token" \
@@ -67,4 +73,5 @@ exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx "$@" \
     --compute_type int8 \
     --output_format json \
     --output_dir ~/PROJECTS/audio-transcription-output \
-    --language en
+    --language en \
+    "$@"
