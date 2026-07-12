@@ -7,6 +7,64 @@ close them when resolved.
 
 ## Parked:
 
+### Make the installed `transcribe` wrapper easy to keep in sync
+
+**Status:** idea — not scoped or started
+
+Raised 2026-07-12 as the concrete next step after "confidence in output"
+work (Tier 2/3) wrapped up — of the original three friction points (output
+confidence, confusing file management, too many manual steps), this is
+aimed at the last one.
+
+A related item was dropped earlier the same day (see Resolved/History):
+`~/bin/transcribe` had genuinely drifted from the repo's `transcribe.sh`
+(missing the sidecar block, stale model/output-dir defaults), but that
+specific confusion turned out to be caused by a direct `whisperx`
+invocation, not the drift — so nothing was built. The underlying gap is
+still real, though: editing `transcribe.sh` doesn't do anything until
+someone remembers to run `cp transcribe.sh ~/bin/transcribe`, and today's
+priority (easy to update) is a different, better reason to revisit it than
+the reason it got dropped for.
+
+**Candidate approaches, not evaluated yet** (carried over from the dropped
+item): a Makefile/install-script target for the re-copy step; a symlink
+(`ln -s`) instead of a copy, so edits take effect immediately with no
+re-sync step — the previously-dropped item noted the install docs' choice
+of copy-over-symlink isn't explained anywhere, worth checking if there was
+a real reason; or a version/date check `transcribe` prints on startup so
+drift is visible immediately if a symlink isn't used.
+
+**Flagged:** 2026-07-12
+
+---
+
+### Is maintaining both the R and Python summarizer paths worth it?
+
+**Status:** idea — not scoped or started
+
+`summarize-transcript.R` and `summarize-transcript.py` are parallel
+implementations of the same pipeline stage — same meeting-type presets,
+same two LLM backends, same save/merge logic — kept in sync by hand. Every
+change to one has to be manually mirrored in the other: today's
+engine-default flip (Tier 3 fallout) touched both files separately, and
+so did the original large-v3 adoption and the external-archive migration
+before it. That's a real, recurring maintenance cost, and it's directly
+relevant to the "too many manual steps" friction point, even though the
+duplication itself isn't a step in the pipeline you run — it's a step in
+maintaining the pipeline.
+
+**Open question, not a decision:** does having both paths add anything
+proportional to that cost (e.g., genuine R-workflow needs vs. Python-CLI
+needs that can't be served by one implementation), or would picking one as
+primary and dropping/simplifying the other reduce upkeep without losing
+real capability? Not evaluated — first real step would be checking whether
+both paths actually get used, or whether one has quietly become the
+default habit already.
+
+**Flagged:** 2026-07-12
+
+---
+
 ### Review tooling ideas — priority order
 
 Ranked by effort-vs-value, with dependencies noted where an idea isn't as
@@ -190,25 +248,6 @@ fixing `docs/reference.md`'s stale references, not investigated further.
 
 ---
 
-### Spell-check pass on transcript JSON
-
-Add a spell-check flag to `review_transcript.py`, alongside existing
-confidence-threshold flagging.
-
-- Walk the `words` array per token (not full sentence text) so punctuation
-  doesn't interfere.
-- Needs a custom word list layered on the base dictionary — institution/ proper
-  nouns (TEA-Center, pyannote, WhisperX, Lakota terms) will otherwise
-  false-positive constantly.
-- Flags are a signal, not a fix — still requires human review to resolve.
-- Candidate tools: R `hunspell` (fits existing R stack) or Python
-  `pyspellchecker` / `hunspell` bindings.
-
-Open question: build as a second flag type in the existing review tool, or a
-separate pass?
-
----
-
 ---
 
 ### torchcodec warnings on macOS (FFmpeg 8 / PyTorch 2.8.0)
@@ -237,15 +276,21 @@ release. Not worth doing until it causes an actual problem.
 
 ---
 
-### Diarization std() warning with pinned speaker count
+### Diarization std() warning
 
 **Status:** parked — cosmetic, does not affect usable output
 
-When `--min_speakers` and `--max_speakers` are both set to 2, pyannote
-occasionally hits a segment too short to compute a speaker embedding reliably,
-producing a "std(): degrees of freedom is <= 0" warning. Transcript is produced
-normally. May result in uncertain speaker labels on very short segments
-(silence, crosstalk).
+Pyannote occasionally hits a segment too short to compute a speaker embedding
+reliably, producing a "std(): degrees of freedom is <= 0" warning. Transcript
+is produced normally. May result in uncertain speaker labels on very short
+segments (silence, crosstalk).
+
+**Correction (2026-07-12):** originally attributed specifically to pinning
+`--min_speakers`/`--max_speakers` to 2. A 2026-07-12 test run (plain
+`transcribe`, no speaker-count flags set) produced the same warning —
+the cause is broader than pinned speaker count, likely just short/ambiguous
+segments generally. Title and description corrected; still cosmetic, still
+not worth fixing until it causes an actual problem.
 
 **Flagged:** 2026-05-26
 
@@ -524,3 +569,14 @@ rules, which risk the same false-positive fragility already flagged for
 the parked spell-check idea. That need is exactly Tier 3 (LLM
 plausibility/sanity pass), promoted to in-progress as the direct next
 step rather than parked further.
+
+**2026-07-12 — "Spell-check pass on transcript JSON" closed, superseded:**
+The original idea (a dictionary-based spell-check flag in
+`review_transcript.py`, layered with a custom institution-vocabulary word
+list to avoid false positives) is now redundant. `sanity_check_transcript.py`
+does the more capable version of the same job — semantic implausibility
+detection plus a `known-terms.txt` vocabulary list — built as Tier 3, per
+the original scoping note that treated these as one combined feature, not
+two separate builds. Nothing lost by closing this; the open question it
+posed ("second flag type in the review tool, or a separate pass?") was
+answered in practice: separate pass, `sanity_check_transcript.py`.
