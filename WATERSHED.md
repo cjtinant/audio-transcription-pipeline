@@ -7,118 +7,106 @@ close them when resolved.
 
 ## Parked:
 
-### Speaker auto-labeling via voice embeddings
+### Review tooling ideas — priority order
 
-**Status:** idea — not scoped or started
+Ranked by effort-vs-value, with dependencies noted where an idea isn't as
+standalone as it first looked. Tier 1 has no real dependencies and is
+cheap/safe; later tiers have real prerequisites or open design questions.
 
-`whisperx/diarize.py`'s `DiarizationPipeline` can already return speaker
-embeddings (`return_embeddings=True`), currently unused. Recurring meetings
-tend to have the same participants across recordings (the comparison test
-recording showed one dominant, one secondary, two minor speakers — a
-pattern, not a one-off). A local library of known speakers' voice
-embeddings, matched against each new recording's `SPEAKER_XX` clusters via
-cosine similarity, could propose real names automatically instead of
-generic labels — turning the manual "type in each speaker's name" step into
-confirm-or-correct.
+---
 
-**Tradeoffs:** requires upfront effort to enroll voices; accuracy depends on
-audio quality; doesn't help with new/one-off speakers who aren't enrolled.
+### [Tier 2] Audio-linked spot-checking for flagged words
+
+**Status:** idea — blocked on a design decision, not started
+
+Probably the highest-value review-tooling change overall — listening to a
+flagged word resolves ambiguity a confidence score alone can't ("Anne will
+anger" doesn't tell you what was actually said; hearing it might). Every
+flagged word has a timestamp, and ffmpeg is already a dependency, so the
+clipping itself is straightforward.
+
+**Real dependency found while scoping:** the private archive design
+deliberately keeps audio out of the archive — only JSON and derivatives
+land there. Nothing currently records, retrievably, where the source
+`.m4a` lives once transcription is done. Needs a design decision (store the
+source path somewhere, or require it as an explicit argument) before the
+ffmpeg-clipping part can be built.
 
 **Flagged:** 2026-07-11
 
 ---
 
-### Speaker-slot caching (lighter alternative to embeddings)
+### [Tier 2] Cross-model disagreement as a confidence signal
 
-**Status:** idea — not scoped or started
-
-Simpler than voice embeddings: cache which name got assigned to which
-speaker-slot the last time a given meeting series ran, and pre-fill that as
-a suggestion next time. No audio matching, just a small local record keyed
-by meeting subject.
-
-**Tradeoffs:** only works if the same person tends to dominate the same
-role across a meeting series — less robust than embeddings, but far cheaper
-to build.
-
-**Flagged:** 2026-07-11
-
----
-
-### Speaker inference from transcript content (LLM pass)
-
-**Status:** idea — not scoped or started
-
-Orthogonal to voice-based matching: people address each other by name or
-self-introduce in conversation. An LLM pass over the transcript text could
-infer speaker identity from content alone, independent of an embeddings
-library, and could run as part of the existing summarization step rather
-than as a separate tool.
-
-**Flagged:** 2026-07-11
-
----
-
-### Compact flagged-words report (replace full-transcript visual scan)
-
-**Status:** idea — not scoped or started
-
-The HTML review tool currently requires reading a full highlighted
-transcript to find a handful of low-confidence spots. A compact report
-instead — timestamp, word, confidence score, surrounding context, for only
-the flagged words — would let review jump straight to the actual trouble
-spots. Close to what was done manually via a one-off script when comparing
-`large-v2`/`large-v3` output; this would package it as a standing feature.
-
-**Flagged:** 2026-07-11
-
----
-
-### Audio-linked spot-checking for flagged words
-
-**Status:** idea — not scoped or started
-
-Probably the highest-value change of this batch. Every flagged word has a
-timestamp, and ffmpeg is already a dependency — auto-clip a few seconds of
-audio around each flagged word so review means *listening* to a handful of
-short clips instead of reading confidence scores and guessing. Listening
-resolves ambiguity a confidence number alone can't: reading "Anne will
-anger" doesn't tell you what was actually said; hearing it might.
-
-**Flagged:** 2026-07-11
-
----
-
-### Cross-model disagreement as a confidence signal
-
-**Status:** idea — not scoped or started
+**Status:** idea — blocked on a prerequisite fix, not started
 
 Two independently-run models agreeing is stronger evidence of correctness
-than either model's own self-reported confidence score. Running both
-`large-v2` and `large-v3` as standard practice (not just a one-off
-comparison) and treating disagreement points as the real review list would
-likely catch errors neither model's own confidence flags — the "Anne will
-anger" divergence found in the model comparison wasn't flagged by either
-model's confidence score, only by diffing the two against each other.
+than either model's own self-reported confidence. Proven value: the "Anne
+will anger" divergence in the large-v2/v3 comparison wasn't flagged by
+either model's own confidence score, only by diffing the two against each
+other.
 
-**Tradeoffs:** roughly doubles transcription time per recording (a few
-extra minutes for a ~25-minute meeting on this hardware — not prohibitive,
-but not free either).
+**Real costs:** roughly doubles transcription time per recording, every
+time, not just once — a recurring cost, not a one-time setup cost. Also
+blocked on a small prerequisite: `transcribe.sh` can't currently run a
+second model through the wrapper at all, because of the `--model`
+argument-order bug found earlier (hardcoded flag comes after `"$@"`, so a
+user-supplied override is silently ignored).
 
 **Flagged:** 2026-07-11
 
 ---
 
-### LLM plausibility/sanity pass on transcript text
+### [Tier 3] LLM plausibility/sanity pass on transcript text — combine with spell-check
 
 **Status:** idea — not scoped or started
 
 Feed the plain-text transcript through the summarizer's existing LLM,
 asking it to flag anything that reads as semantically odd or out of place.
-Catches a different error category than acoustic confidence — overlaps
-with the spell-check idea already parked below; worth treating as one
-broader "sanity pass" feature rather than two separate ones if both get
-built.
+Catches a different error category than acoustic confidence. Scoping this
+out reinforced that it shares the same false-positive risk as the
+already-parked spell-check idea below (institution-specific terms and
+proper nouns getting flagged as "wrong" by something that doesn't know your
+vocabulary) — treat as one combined "sanity pass" feature, not two
+separate builds.
+
+**Flagged:** 2026-07-11
+
+---
+
+### [Tier 4] Speaker inference from transcript content (LLM pass)
+
+**Status:** idea — speculative, not started
+
+People sometimes address each other by name or self-introduce in
+conversation, which an LLM pass over transcript text could use to infer
+speaker identity independent of voice matching. Speculative value — no
+evidence this pattern is common in these meetings specifically (didn't show
+up in the sample diffed during the model comparison). Real risk of
+confident misattribution if the LLM guesses wrong.
+
+**Flagged:** 2026-07-11
+
+---
+
+### [Tier 4] Speaker auto-labeling via voice embeddings
+
+**Status:** idea — biggest build of the batch, not started
+
+`whisperx/diarize.py`'s `DiarizationPipeline` can already return speaker
+embeddings (`return_embeddings=True`), currently unused. A local library of
+known speakers' voice embeddings, matched against each new recording's
+`SPEAKER_XX` clusters via cosine similarity, could propose real names
+automatically instead of generic labels.
+
+**Tradeoffs:** requires enrollment UX (a name still has to be attached to
+an embedding once, per person), a persistent embeddings library, and has a
+cold-start problem — no benefit until enough meetings are enrolled. Real
+risk, easy to underweight: a *confidently wrong* name is worse than a
+generic `SPEAKER_00` placeholder, since a wrong label might not get
+double-checked the way an unlabeled one would. Only worth investing in
+after speaker-slot caching (Tier 1) shows the simpler approach isn't
+enough.
 
 **Flagged:** 2026-07-11
 
@@ -378,3 +366,28 @@ One caveat kept honest rather than overclaimed: this rules out `3.1` and
 official model card), but can't fully rule out some other undocumented
 gated sub-component `community-1` might pull in — that would only surface
 empirically, via an actual fresh-account test, which wasn't run.
+
+**2026-07-11 — Tier 1 review-tooling changes built (compact flagged-words
+report, speaker-slot caching):**
+
+`--report` flag added to `review_transcript.py`: writes a plain-text file
+of only words below the confidence threshold, each with timestamp,
+speaker, and surrounding context (bold-marked target word) — tested
+against `2026-06-09_audio_tho-meet_large-v3.json` (118 words below 0.20),
+confirmed context resolves ambiguous flags like the earlier "Anne will
+anger" case.
+
+Speaker-slot caching added: subject slug parsed from the filename's
+`yyyy-mm-dd_subject-name` convention (override with `--subject`); speaker
+names saved via `--save-speakers SPEAKER_00=Name,...` are stored in a
+`.speaker-cache.json` file next to the transcript and pre-filled
+automatically next time a transcript with the same subject is opened.
+Tested end-to-end: saved names for subject `tho-meet`, confirmed the
+second run printed the cached names and the generated HTML's embedded
+`KNOWN_NAMES` matched.
+
+Both were built and tested in the sandbox against a copy of real
+transcript data (not the read-only upload), no changes needed to the
+archive folder or existing HTML review flow. No known issues; open
+question of whether the caching actually helps in practice is left to
+real use, not testable synthetically.

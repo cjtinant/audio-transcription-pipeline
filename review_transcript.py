@@ -7,6 +7,9 @@ Convert a WhisperX JSON transcript into a standalone HTML review tool.
 Usage:
     python3 review_transcript.py path/to/transcript.json
     python3 review_transcript.py path/to/transcript.json --out path/to/output.html
+    python3 review_transcript.py path/to/transcript.json --report
+    python3 review_transcript.py path/to/transcript.json --report --threshold 0.15
+    python3 review_transcript.py path/to/transcript.json --save-speakers "SPEAKER_00=Jason,SPEAKER_02=Dana"
 
 The HTML file opens in your default browser and lets you:
   - Label speakers by name
@@ -14,11 +17,24 @@ The HTML file opens in your default browser and lets you:
   - Search for hot words / key terms
   - Export a labeled plain-text transcript
 
+--report additionally writes a compact text file listing only the
+low-confidence words (timestamp, confidence, speaker, surrounding
+context) — for jumping straight to trouble spots instead of scanning
+the full highlighted transcript.
+
+Speaker-slot caching: the subject slug is parsed from the filename's
+yyyy-mm-dd_subject-name convention (override with --subject). Speaker
+names saved for a subject are cached in a .speaker-cache.json file next
+to the transcript, and pre-filled automatically next time a transcript
+with the same subject is opened. Use --save-speakers to record names
+for the current subject without regenerating the HTML.
+
 No external dependencies — standard library only.
 """
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -59,6 +75,87 @@ def collect_speakers(segments: list[dict]) -> list[str]:
         if spk not in seen:
             seen.append(spk)
     return sorted(seen)
+
+
+def build_flagged_report(
+    segments: list[dict], threshold: float = 0.2, context_words: int = 4
+) -> str:
+    """
+    Build a compact plain-text report of low-confidence words: timestamp,
+    word, confidence, speaker, and a few words of surrounding context — for
+    jumping straight to actual trouble spots instead of scanning a full
+    highlighted transcript.
+    """
+    lines = []
+    for seg in segments:
+        words = seg.get("words", [])
+        for i, w in enumerate(words):
+            score = w.get("s")
+            if score is None or score >= threshold:
+                continue
+
+            start_ctx = max(0, i - context_words)
+            end_ctx = min(len(words), i + context_words + 1)
+            tokens = []
+            for j in range(start_ctx, end_ctx):
+                token = words[j]["w"]
+                if j == i:
+                    token = f"**{token}**"
+                tokens.append(token)
+            context = " ".join(tokens)
+
+            m, s = divmod(int(seg.get("start", 0)), 60)
+            spk = w.get("spk", seg.get("speaker", "UNKNOWN"))
+            lines.append(
+                f"[{m}:{s:02d}] {w['w']!r} "
+                f"(confidence: {score:.2f}, speaker: {spk})\n"
+                f"    {context}"
+            )
+
+    header = f"{len(lines)} word(s) below confidence {threshold:.2f}"
+    header += "\n" + "=" * len(header)
+    if not lines:
+        return header + "\n\n(none found)"
+    return header + "\n\n" + "\n\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Speaker-slot caching
+# ---------------------------------------------------------------------------
+
+SPEAKER_CACHE_FILENAME = ".speaker-cache.json"
+
+
+def parse_subject(json_path: Path) -> str:
+    """
+    Extract a subject slug from a filename following the
+    yyyy-mm-dd_subject-name(_audio)? naming convention (see README's
+    Naming convention section). Also handles the older audio_subject-name
+    ordering and strips a trailing _large-v2/_large-v3 comparison suffix.
+    Falls back to the full filename stem if nothing matches — caching
+    still works, just keyed on a less clean name.
+    """
+    stem = json_path.stem
+    stem = re.sub(r"_(large-v2|large-v3)$", "", stem)
+    m = re.match(r"^\d{4}-\d{2}-\d{2}_(.+)$", stem)
+    rest = m.group(1) if m else stem
+    rest = re.sub(r"^audio_", "", rest)
+    rest = re.sub(r"_audio$", "", rest)
+    return rest
+
+
+def load_speaker_cache(cache_path: Path) -> dict:
+    if not cache_path.exists():
+        return {}
+    try:
+        with open(cache_path) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_speaker_cache(cache_path: Path, cache: dict) -> None:
+    cache_path.write_text(json.dumps(cache, indent=2, sort_keys=True), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +251,7 @@ textarea#export-out{{width:100%;height:300px;font-family:"SF Mono",Consolas,mono
 <script>
 const SEGS = {segs_json};
 const ALL_SPEAKERS = {speakers_json};
+const KNOWN_NAMES = {known_names_json};
 
 // Palette: blue, green, amber, coral, purple, teal
 const PALETTES = [
@@ -168,7 +266,7 @@ const PALETTES = [
 const spkNames = {{}};
 const spkPalette = {{}};
 ALL_SPEAKERS.forEach((s,i) => {{
-  spkNames[s] = s;
+  spkNames[s] = KNOWN_NAMES[s] || s;
   spkPalette[s] = PALETTES[i % PALETTES.length];
 }});
 
@@ -305,12 +403,67 @@ def main():
         "--no-open", action="store_true",
         help="Write the file but do not open it in the browser"
     )
+    parser.add_argument(
+        "--report", action="store_true",
+        help=(
+            "Also write a compact text report of low-confidence words "
+            "(timestamp, confidence, speaker, context) — same directory "
+            "as the HTML output, stem + _flagged.txt"
+        )
+    )
+    parser.add_argument(
+        "--threshold", type=float, default=0.2,
+        help="Confidence threshold for --report (default: 0.2, matches "
+             "the HTML tool's default slider position)"
+    )
+    parser.add_argument(
+        "--subject", default=None,
+        help=(
+            "Override the subject slug used for speaker-name caching "
+            "(default: parsed from the filename's "
+            "yyyy-mm-dd_subject-name convention)"
+        )
+    )
+    parser.add_argument(
+        "--save-speakers", default=None,
+        help=(
+            "Save speaker names for this subject, comma-separated "
+            "SPEAKER_XX=Name pairs (e.g. "
+            "SPEAKER_00=Jason,SPEAKER_02=Dana). Updates the cache without "
+            "regenerating the HTML — run this after you've decided on "
+            "names, so next time they're pre-filled automatically."
+        )
+    )
     args = parser.parse_args()
 
     json_path = Path(args.json_path).expanduser().resolve()
     if not json_path.exists():
         print(f"Error: file not found: {json_path}", file=sys.stderr)
         sys.exit(1)
+
+    subject = args.subject or parse_subject(json_path)
+    cache_path = json_path.parent / SPEAKER_CACHE_FILENAME
+    cache = load_speaker_cache(cache_path)
+
+    if args.save_speakers:
+        pairs = {}
+        for item in args.save_speakers.split(","):
+            item = item.strip()
+            if not item:
+                continue
+            if "=" not in item:
+                print(f"Error: expected SPEAKER_XX=Name, got {item!r}", file=sys.stderr)
+                sys.exit(1)
+            key, _, name = item.partition("=")
+            pairs[key.strip()] = name.strip()
+        cache.setdefault(subject, {}).update(pairs)
+        save_speaker_cache(cache_path, cache)
+        print(f"Saved speaker names for subject {subject!r} to {cache_path}:")
+        for k, v in pairs.items():
+            print(f"  {k} -> {v}")
+        return
+
+    known_names = cache.get(subject, {})
 
     if args.out:
         out_path = Path(args.out).expanduser().resolve()
@@ -328,6 +481,10 @@ def main():
 
     print(f"Segments: {len(segments)}")
     print(f"Speakers: {', '.join(speakers)}")
+    if known_names:
+        print(f"Subject:  {subject!r} — pre-filled from cache: {known_names}")
+    else:
+        print(f"Subject:  {subject!r} — no cached speaker names yet")
 
     title = json_path.stem
     duration_s = segments[-1]["end"] if segments else 0
@@ -339,10 +496,19 @@ def main():
         subtitle=subtitle,
         segs_json=json.dumps(segments, separators=(",", ":")),
         speakers_json=json.dumps(speakers),
+        known_names_json=json.dumps(known_names),
     )
 
     out_path.write_text(html, encoding="utf-8")
     print(f"Written:  {out_path}")
+
+    if args.report:
+        report = build_flagged_report(segments, threshold=args.threshold)
+        report_path = out_path.with_name(f"{json_path.stem}_flagged.txt")
+        report_path.write_text(report, encoding="utf-8")
+        print(f"Report:   {report_path}")
+        print()
+        print(report)
 
     if not args.no_open:
         subprocess.run(["open", str(out_path)], check=False)
