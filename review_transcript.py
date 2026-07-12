@@ -29,7 +29,17 @@ to the transcript, and pre-filled automatically next time a transcript
 with the same subject is opened. Use --save-speakers to record names
 for the current subject without regenerating the HTML.
 
-No external dependencies — standard library only.
+Audio-linked spot-checking: --clip TIMESTAMP ffmpeg-clips a few seconds
+of the source audio around a flagged word, e.g. the [M:SS] timestamp
+--report just printed. Requires the transcript's source audio path to
+be recorded in .source-audio.json (written by transcribe.sh since
+2026-07-12 — older transcripts won't have an entry).
+
+    python3 review_transcript.py path/to/transcript.json --clip 2:26
+    python3 review_transcript.py path/to/transcript.json --clip 2:26 --clip-padding 5
+
+No external dependencies — standard library only. --clip additionally
+requires ffmpeg on PATH (already a pipeline dependency via transcribe.sh).
 """
 
 import argparse
@@ -168,6 +178,97 @@ def load_speaker_cache(cache_path: Path) -> dict:
 
 def save_speaker_cache(cache_path: Path, cache: dict) -> None:
     cache_path.write_text(json.dumps(cache, indent=2, sort_keys=True), encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Audio-linked spot-checking
+# ---------------------------------------------------------------------------
+
+SOURCE_AUDIO_FILENAME = ".source-audio.json"
+
+
+def parse_timestamp(ts: str) -> float:
+    """
+    Parse a timestamp given as M:SS, H:MM:SS, or a plain number of seconds
+    into float seconds. Accepts the same [M:SS] format --report prints, so a
+    timestamp can be copied straight from one command into the other.
+    """
+    parts = ts.strip().split(":")
+    try:
+        parts = [float(p) for p in parts]
+    except ValueError:
+        print(f"Error: could not parse timestamp {ts!r} (expected M:SS, "
+              f"H:MM:SS, or seconds)", file=sys.stderr)
+        sys.exit(1)
+
+    if len(parts) == 1:
+        return parts[0]
+    elif len(parts) == 2:
+        m, s = parts
+        return m * 60 + s
+    elif len(parts) == 3:
+        h, m, s = parts
+        return h * 3600 + m * 60 + s
+    else:
+        print(f"Error: could not parse timestamp {ts!r} (expected M:SS, "
+              f"H:MM:SS, or seconds)", file=sys.stderr)
+        sys.exit(1)
+
+
+def clip_audio(json_path: Path, timestamp: str, padding: float, no_open: bool) -> None:
+    """
+    Look up the transcript's source audio in .source-audio.json (written by
+    transcribe.sh) and ffmpeg-clip a few seconds around `timestamp` — for
+    listening to a flagged word directly instead of trusting a confidence
+    score alone.
+    """
+    archive_dir = json_path.parent
+    sidecar_path = archive_dir / SOURCE_AUDIO_FILENAME
+    # Reuses load_speaker_cache's generic tolerant-JSON-dict-load logic —
+    # same shape (missing/corrupt file both mean "empty dict"), different
+    # sidecar file.
+    source_map = load_speaker_cache(sidecar_path)
+
+    stem = json_path.stem
+    audio_path_str = source_map.get(stem)
+    if not audio_path_str:
+        print(f"Error: no source audio recorded for {stem!r} in "
+              f"{sidecar_path}.", file=sys.stderr)
+        print("Only transcripts produced by transcribe.sh since the "
+              "sidecar fix (2026-07-12) have this — older transcripts "
+              "can't be spot-checked this way.", file=sys.stderr)
+        sys.exit(1)
+
+    audio_path = Path(audio_path_str)
+    if not audio_path.exists():
+        print(f"Error: recorded source audio no longer exists: "
+              f"{audio_path}", file=sys.stderr)
+        sys.exit(1)
+
+    center = parse_timestamp(timestamp)
+    start = max(0.0, center - padding)
+    end = center + padding
+
+    m, s = divmod(int(center), 60)
+    out_path = archive_dir / f"{stem}_clip_{m}m{s:02d}s.wav"
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(audio_path),
+        "-ss", f"{start:.2f}",
+        "-to", f"{end:.2f}",
+        str(out_path),
+    ]
+    print(f"Clipping {audio_path.name} [{start:.1f}s–{end:.1f}s] -> {out_path.name}")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print("ffmpeg failed:", file=sys.stderr)
+        print(result.stderr, file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Written: {out_path}")
+    if not no_open:
+        subprocess.run(["open", str(out_path)], check=False)
 
 
 # ---------------------------------------------------------------------------
@@ -446,12 +547,31 @@ def main():
             "names, so next time they're pre-filled automatically."
         )
     )
+    parser.add_argument(
+        "--clip", default=None, metavar="TIMESTAMP",
+        help=(
+            "Spot-check a flagged word: ffmpeg-clip the source audio around "
+            "TIMESTAMP (e.g. 2:26, 1:02:26, or seconds — accepts the same "
+            "[M:SS] format --report prints). Requires the transcript's "
+            "source audio path in .source-audio.json (written by "
+            "transcribe.sh since 2026-07-12). Writes a .wav clip next to "
+            "the transcript and exits without generating the HTML review."
+        )
+    )
+    parser.add_argument(
+        "--clip-padding", type=float, default=3.0,
+        help="Seconds of context before/after --clip's timestamp (default: 3.0)"
+    )
     args = parser.parse_args()
 
     json_path = Path(args.json_path).expanduser().resolve()
     if not json_path.exists():
         print(f"Error: file not found: {json_path}", file=sys.stderr)
         sys.exit(1)
+
+    if args.clip is not None:
+        clip_audio(json_path, args.clip, args.clip_padding, args.no_open)
+        return
 
     subject = args.subject or parse_subject(json_path)
     cache_path = json_path.parent / SPEAKER_CACHE_FILENAME
