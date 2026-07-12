@@ -1,0 +1,18 @@
+# known-terms.txt
+# One term per line. Lines starting with # are comments and ignored.
+#
+# Institution-specific vocabulary, proper nouns, and technical terms that
+# should NOT be flagged by sanity_check_transcript.py as likely
+# mistranscriptions, even though they may look unusual out of context.
+#
+# This is a starting point, seeded from terms already mentioned across
+# WATERSHED and prior transcripts (2026-07-12) — it is almost certainly
+# incomplete. Add speaker names, project names, and recurring domain terms
+# as you notice false positives.
+
+TEA-Center
+WhisperX
+pyannote
+OLC
+Oglala Lakota College
+Lakota
