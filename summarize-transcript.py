@@ -321,7 +321,7 @@ def save_outputs(
 
 def run_pipeline(
     input_path: str,
-    engine: str = "ollama",
+    engine: str = "anthropic",
     meeting_type: str = "general",
     custom_prompt: str | None = None,
     save: bool = True,
@@ -483,7 +483,7 @@ def merge_summaries(
 
 def run_pipeline_merged(
     input_path: str,
-    engine: str = "ollama",
+    engine: str = "anthropic",
     meeting_type: str = "general",
     custom_prompt: str | None = None,
     save: bool = True,
@@ -582,8 +582,8 @@ examples:
     parser.add_argument(
         "--engine",
         choices=["ollama", "anthropic"],
-        default="ollama",
-        help="LLM backend (default: ollama)",
+        default="anthropic",
+        help="LLM backend (default: anthropic; use ollama for local/private processing)",
     )
     parser.add_argument(
         "--type",

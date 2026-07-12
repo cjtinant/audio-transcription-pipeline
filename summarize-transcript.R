@@ -251,7 +251,7 @@ save_outputs <- function(transcript, summary, input_path,
 #'
 #' @param input_path  Path to input file: cleaned .txt (recommended) or
 #'                    raw WhisperX .json (quick path, no human review)
-#' @param engine       LLM backend: "ollama" (local/free) or "anthropic" (API)
+#' @param engine       LLM backend: "anthropic" (API, default) or "ollama" (local/private)
 #' @param meeting_type Prompt preset: "general", "standup", "interview",
 #'                     "research", "lecture", or "custom"
 #' @param custom_prompt If meeting_type = "custom", your prompt string
@@ -284,7 +284,7 @@ save_outputs <- function(transcript, summary, input_path,
 #'                        custom_prompt = "Summarize this in haiku form:\n\n")
 
 run_pipeline <- function(input_path,
-                         engine       = c("ollama", "anthropic"),
+                         engine       = c("anthropic", "ollama"),
                          meeting_type = c("general", "standup", "interview",
                                           "research", "lecture",
                                           "grant_planning", "custom"),
@@ -401,7 +401,7 @@ merge_summaries <- function(summary1, summary2, engine,
 #' then uses the LLM to merge both outputs into one comprehensive summary.
 #'
 #' @param input_path   Path to cleaned .txt (recommended) or raw .json
-#' @param engine       LLM backend: "ollama" or "anthropic"
+#' @param engine       LLM backend: "anthropic" (default) or "ollama" (local/private)
 #' @param meeting_type Prompt preset
 #' @param custom_prompt Your own prompt string (if meeting_type = "custom")
 #' @param save         Whether to save merged summary to disk
@@ -412,7 +412,7 @@ merge_summaries <- function(summary1, summary2, engine,
 #'         summary_merged, and paths
 
 run_pipeline_merged <- function(input_path,
-                                 engine        = c("ollama", "anthropic"),
+                                 engine        = c("anthropic", "ollama"),
                                  meeting_type  = c("general", "standup", "interview",
                                                    "research", "lecture",
                                                    "grant_planning", "custom"),

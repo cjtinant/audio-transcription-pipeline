@@ -45,29 +45,28 @@ Output: `~/PROJECTS/audio-transcription-output/meeting.json`
 ```r
 source("summarize-transcript.R")
 
-# Local Ollama (free, private, requires Ollama running)
+# Anthropic API — default (requires ANTHROPIC_API_KEY in ~/.Renviron)
 result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
 
-# Anthropic API (requires ANTHROPIC_API_KEY in ~/.Renviron)
-result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json", engine = "anthropic")
+# Local Ollama (free, private, requires `ollama serve` running)
+result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json", engine = "ollama")
 
 # With meeting type preset
 result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
-                       engine       = "anthropic",
                        meeting_type = "interview")
 ```
 
 **Python (CLI — recommended for Python users):**
 
 ```bash
-# Local Ollama
+# Anthropic API — default
 python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
 
-# Anthropic API
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic
+# Local Ollama
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
 
 # With meeting type preset
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic --type interview
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
 
 # List available meeting types
 python summarize-transcript.py --list-types
@@ -86,13 +85,13 @@ Outputs saved automatically to `~/PROJECTS/audio-transcription-output/`
 ```r
 run_pipeline(
   json_path,              # Path to WhisperX JSON output
-  engine       = "ollama",    # "ollama" or "anthropic"
+  engine       = "anthropic", # "anthropic" (default) or "ollama" (local/private)
   meeting_type = "general",   # See Meeting Type Presets below
   custom_prompt = NULL,       # Your own prompt (if meeting_type = "custom")
   save         = TRUE,        # Save outputs to disk
   output_dir   = "~/PROJECTS/audio-transcription-output",  # Output directory
-  ...                         # Passed to summarize_ollama() or
-                              # summarize_anthropic() — e.g., model = "..."
+  ...                         # Passed to summarize_anthropic() or
+                              # summarize_ollama() — e.g., model = "..."
 )
 ```
 
@@ -137,11 +136,11 @@ uv pip install httpx
 ### CLI usage
 
 ```bash
-# Basic — local Ollama, general meeting type
+# Basic — Anthropic API (default), general meeting type
 python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
 
-# Anthropic API
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic
+# Local Ollama
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
 
 # Meeting type preset
 python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
@@ -178,12 +177,12 @@ summarize_transcript = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(summarize_transcript)
 run_pipeline = summarize_transcript.run_pipeline
 
-# Local Ollama, general meeting (default)
+# Anthropic API (default), general meeting
 result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
 
-# Anthropic API, interview preset
+# Local Ollama, interview preset
 result = run_pipeline("~/PROJECTS/audio-transcription-output/interview.json",
-                      engine="anthropic",
+                      engine="ollama",
                       meeting_type="interview")
 
 # Custom prompt
@@ -241,10 +240,40 @@ result <- run_pipeline(
 
 ## LLM Backend Options
 
+### Anthropic API (Cloud) — default
+
+Requires an [Anthropic account](https://console.anthropic.com) and API key.
+Transcript text (not audio) is sent to Anthropic's servers — do not use for
+sensitive/confidential recordings without reviewing their data policy, or
+use the Ollama option below instead. Chosen as the default after a real
+engine comparison (2026-07-12, logged in `WATERSHED.md`) found it
+noticeably more reliable than Ollama's local model for LLM-based
+transcript review — not just faster, but more likely to follow output-format
+instructions exactly and less prone to false-positive flags.
+
+**Pricing (May 2026, per million tokens):**
+
+| Model               | Input | Output | Notes               |
+| ------------------- | ----- | ------ | ------------------- |
+| `claude-haiku-4-5`  | $1.00 | $5.00  | Fastest, cheapest   |
+| `claude-sonnet-4-6` | $3.00 | $15.00 | Recommended balance |
+| `claude-opus-4-6`   | $5.00 | $25.00 | Highest quality     |
+
+**Typical cost per 1-hour meeting summary:** ~$0.035 (Sonnet 4.6)
+
+```bash
+# Add to ~/.Renviron
+echo 'ANTHROPIC_API_KEY=sk-ant-yourkey' >> ~/.Renviron
+```
+
+In R: `engine = "anthropic"` (default)
+
 ### Ollama (Local — Free, Private)
 
 Runs entirely on your machine. No data leaves your computer. Requires
-[Ollama](https://ollama.com) to be installed and running.
+[Ollama](https://ollama.com) to be installed and running. Use this for
+sensitive recordings you don't want processed by a third-party server —
+the tradeoff is lower reliability, per the same engine comparison above.
 
 ```bash
 # Install Ollama
@@ -266,27 +295,4 @@ command above — not the Windows installer. Your scripts connect to it at
 unreachable, start Ollama with `OLLAMA_HOST=0.0.0.0:11434 ollama serve` to make
 it listen on all interfaces.
 
-In R: `engine = "ollama"` (default)
-
-### Anthropic API (Cloud)
-
-Requires an [Anthropic account](https://console.anthropic.com) and API key. Data
-is sent to Anthropic's servers — do not use for sensitive/confidential
-recordings without reviewing their data policy.
-
-**Pricing (May 2026, per million tokens):**
-
-| Model               | Input | Output | Notes               |
-| ------------------- | ----- | ------ | ------------------- |
-| `claude-haiku-4-5`  | $1.00 | $5.00  | Fastest, cheapest   |
-| `claude-sonnet-4-6` | $3.00 | $15.00 | Recommended balance |
-| `claude-opus-4-6`   | $5.00 | $25.00 | Highest quality     |
-
-**Typical cost per 1-hour meeting summary:** ~$0.035 (Sonnet 4.6)
-
-```bash
-# Add to ~/.Renviron
-echo 'ANTHROPIC_API_KEY=sk-ant-yourkey' >> ~/.Renviron
-```
-
-In R: `engine = "anthropic"`
+In R: `engine = "ollama"`

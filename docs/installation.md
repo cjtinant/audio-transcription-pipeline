@@ -530,7 +530,7 @@ source("summarize-transcript.R")
 
 result <- run_pipeline(
   "~/PROJECTS/audio-transcription-output/test.json",
-  engine = "ollama",    # or "anthropic" if you have an API key
+  engine = "anthropic", # or "ollama" for local/private (needs `ollama serve` running)
   save   = FALSE        # skip saving for this test run
 )
 ```

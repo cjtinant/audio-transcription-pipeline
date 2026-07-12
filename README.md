@@ -1,9 +1,9 @@
 # Audio Transcription Pipeline
 
-A local, private, free pipeline for transcribing multi-speaker audio recordings
-and generating AI summaries. Built on WhisperX + pyannote for speaker-aware
-transcription, with support for both local (Ollama) and cloud (Anthropic API)
-summarization.
+A pipeline for transcribing multi-speaker audio recordings and generating AI
+summaries. Built on WhisperX + pyannote for speaker-aware transcription
+(always local), with Claude (Anthropic API) as the default summarization
+engine and a fully local Ollama option for sensitive recordings.
 
 **What it does:**
 
@@ -18,24 +18,29 @@ conversation, lecture, or custom prompt
 **Supported platforms:** macOS (Apple Silicon), macOS (Intel), Windows (WSL2),
 Linux
 
-**Privacy:** This pipeline is designed so that your audio and transcripts never
-have to leave your computer. The transcription step (WhisperX + pyannote) runs
-entirely locally — no audio is uploaded anywhere, ever.
+**Privacy:** The transcription step (WhisperX + pyannote) runs entirely
+locally — no audio is ever uploaded anywhere, regardless of which
+summarization option you use.
 
-For the summarization step you have two options:
+The summarization step is where your choice of engine matters, since this
+step sends the text transcript (never the audio) to whichever backend you
+pick:
 
-- **Ollama (default)** — runs a local AI model on your own machine. Nothing
-  leaves your computer. Free, private, and works offline. Recommended for
-  sensitive recordings: interviews, clinical conversations, confidential
-  meetings, or anything you would not want stored on a third-party server.
+- **Anthropic API (default)** — sends the transcript text to Anthropic's
+  servers for summarization. Faster and noticeably more reliable in testing
+  (see `WATERSHED.md`'s 2026-07-12 engine comparison). Review
+  [Anthropic's privacy policy](https://www.anthropic.com/privacy) before
+  using this on sensitive material.
 
-- **Anthropic API** — sends the text transcript (not the audio) to Anthropic's
-  servers for summarization. Faster and higher quality, but your transcript
-  content is processed externally. Review
-  [Anthropic's privacy policy](https://www.anthropic.com/privacy) before using
-  this option with sensitive material.
+- **Ollama (local/private)** — runs a local AI model on your own machine.
+  Nothing leaves your computer. Free, private, and works offline. Use this
+  for sensitive recordings: interviews, clinical conversations, confidential
+  meetings, or anything you would not want processed by a third-party
+  server. Pass `--engine ollama` (Python CLI) or `engine = "ollama"`
+  (R) to use it.
 
-In both cases, your audio file stays on your machine.
+In both cases, your audio file stays on your machine — only the transcript
+text is ever sent externally, and only if you use the Anthropic option.
 
 ---
 
@@ -390,9 +395,10 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default
 
 - [ ] `~/PROJECTS/audio-transcription-output/` exists and is git-initialized
       (one-time setup — see `docs/installation.md`)
-- [ ] Ollama is running in a separate terminal (`ollama serve`) if using local
-      summarization
-- [ ] `~/.Renviron` contains `HF_TOKEN` and optionally `ANTHROPIC_API_KEY`
+- [ ] `~/.Renviron` contains `HF_TOKEN` and `ANTHROPIC_API_KEY` (the default
+      summarization engine)
+- [ ] Ollama is running in a separate terminal (`ollama serve`) only if using
+      `--engine ollama` / `engine = "ollama"` for local/private summarization
 - [ ] The venv is activated (or `.venv/bin/python3` used directly) before
       calling whisperx or the Python summarizer
 

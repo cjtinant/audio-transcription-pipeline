@@ -15,35 +15,100 @@ cheap/safe; later tiers have real prerequisites or open design questions.
 
 ---
 
-### [Tier 2] Cross-model disagreement as a confidence signal
+### [Tier 3] LLM plausibility/sanity pass on transcript text — combine with spell-check
 
-**Status:** idea — prerequisite fixed, still blocked on the recurring-cost
-tradeoff, feature itself not started
+**Status:** in progress — picked up 2026-07-12 as the direct next step after
+Tier 2's noise-reduction ceiling (see Resolved/History)
 
-Two independently-run models agreeing is stronger evidence of correctness than
-either model's own self-reported confidence. Proven value: the "Anne will anger"
-divergence in the large-v2/v3 comparison wasn't flagged by either model's own
-confidence score, only by diffing the two against each other.
+Feed the plain-text transcript through the summarizer's existing LLM, asking it
+to flag anything that reads as semantically odd or out of place. Catches a
+different error category than acoustic confidence. Scoping this out reinforced
+that it shares the same false-positive risk as the already-parked spell-check
+idea below (institution-specific terms and proper nouns getting flagged as
+"wrong" by something that doesn't know your vocabulary) — treat as one combined
+"sanity pass" feature, not two separate builds.
 
-**Prerequisite fixed (2026-07-11):** `transcribe.sh`'s `--model` argument-order
-bug. Hardcoded flags (`--model large-v3` among them) came *before* `"$@"`, and
-argparse takes the last occurrence when a flag repeats — so any user-supplied
-override was silently beaten by the hardcoded default coming after it.
-Confirmed with an argparse reproduction before fixing. Reordered so `"$@"`
-comes last; hardcoded defaults still apply when the user doesn't override, but
-now any of them (`--model`, `--device`, `--language`, etc.) actually can be
-overridden. `transcribe file.m4a --model large-v2` now works as expected.
+**Why now:** `compare_transcripts.py` (Tier 2) hit a real ceiling — a
+hand-maintained filler-word list only cut disagreements 164 → 124 before
+running into the same false-positive risk this item already flagged. Getting
+further requires actual judgment about "is this divergence/word substantive,"
+not more word-list rules — which is exactly what this item is.
 
-**Real costs (still unresolved):** roughly doubles transcription time per
-recording, every time, not just once — a recurring cost, not a one-time setup
-cost. This is a tradeoff decision, not a bug — not something to fix, something
-to decide is worth it.
+**Skeleton built (2026-07-12), real LLM validation still needed:**
+`sanity_check_transcript.py` reuses `summarize-transcript.py`'s
+`summarize_anthropic`/`summarize_ollama` for the LLM call itself (loaded via
+`importlib` — the hyphenated filename issue below applies here too, worked
+around rather than fixed as part of this task) and `review_transcript.py`'s
+`load_segments` for parsing. A prompt asks the model to flag phrases that
+read as semantically odd, supplying a `known-terms.txt` list (seeded with
+TEA-Center, WhisperX, pyannote, OLC/Oglala Lakota College, Lakota — almost
+certainly incomplete) so legitimate vocabulary isn't flagged as error, per
+the false-positive risk already identified below. Output format is a simple
+`FLAG:`/`REASON:` block per flag (chosen over JSON — more forgiving to
+parse if a smaller local model doesn't format strictly), matched back to a
+timestamp by locating the phrase in the transcript's word list.
 
-**Real data point (2026-07-12):** `large-v3` on `2026-06-09_audio_tho-meet.m4a`
-(~25 min recording) took 26:36 wall-clock (`4903.52s user`, `628.36s system`,
-346% CPU). Doubling for a second model would mean roughly 53 min per
-recording of this length, every time — the tradeoff decision now has a real
-number behind it instead of an estimate. Still not decided.
+Unit-tested what can be tested without a real model: known-terms file
+parsing (comments/blanks filtered), flag-block parsing (multiple flags,
+`NONE FOUND`, a phrase that doesn't match verbatim — reported as `?:??`
+rather than silently dropped or crashing), and confirmed the `importlib`
+reuse of `summarize-transcript.py`'s functions actually resolves. The one
+thing that can't be verified without your machine: whether the prompt
+actually gets good results from a real model, and whether Ollama's
+smaller local models follow the `FLAG:`/`REASON:` format reliably or need
+a stricter/looser parser.
+
+**Real test run (2026-07-12), both engines, against
+`2026-06-09_audio_tho-meet_large-v3.json`:** meaningful quality gap between
+engines, not just a style difference.
+
+`ollama` (`llama3.1:8b-instruct-q6_k`): 7 flags, 1 couldn't be matched back
+to a timestamp (the model paraphrased instead of quoting verbatim, despite
+the prompt's explicit instruction — a real prompt-compliance gap for the
+smaller model). Several flags look like informal-speech false positives
+despite being told not to flag those ("Not fine.", "And actually what
+we'll do is about this."). One genuinely good catch not found by the other
+engine or by `compare_transcripts.py`: `[24:21]` flagged garbled grammar
+("I haven't done a darn thing since like, I think it's all it is") and
+suggested a plausible real reading.
+
+`anthropic` (`claude-sonnet-4-6`): 6 flags, all matched verbatim — no
+format-compliance issue. More striking: most of Claude's flags land on
+timestamps `compare_transcripts.py` had already found suspicious, from a
+completely different signal (semantic plausibility vs. cross-model
+disagreement):
+
+- `[20:58]` "lacrosse" ↔ Tier 2's `[20:59] replace: 'no cost' → 'lacrosse'` — exact match.
+- `[19:29]` "green" ↔ Tier 2's `[19:30] insert: 'green'` — exact match.
+- `[9:14]`/`[9:17]` "Wall Street"/"Causes" ↔ Tier 2's `[9:15] replace: "OLC... Because it's" → "the Wall Street... Causes"` — same region.
+- `[7:24]` "Tho" ↔ Tier 2's `[7:24] replace: 'though' → 'Tho'` — same divergence, different theory (Claude guessed a mistranscribed proper name; could equally be the reverse — `2026-06-09_audio_tho-meet`'s own filename already uses "tho" as a subject slug, so `large-v3`'s "Tho" might be the *correct* one and `large-v2`'s "though" the error. Neither tool says which side is right, same as `compare_transcripts.py`'s own design — human judgment still required.)
+- `[11:04]` "Nike" is *near* Tier 2's `[11:04] replace: 'Gabe at' → 'the agent of'` but "Nike" itself doesn't appear in that diff — meaning it's possibly a word both models transcribed *identically wrong*, which cross-model diffing structurally cannot see. Genuinely interesting if true, but unconfirmed — would need the raw JSON words checked directly, not done here.
+
+**Decision (2026-07-12):** the two engines are not actually interchangeable
+— this test is evidence they never were, the pipeline's docs just treated
+them that way. `anthropic` (Claude) becomes the default engine pipeline-wide,
+not just for this tool. `ollama` stays fully supported, reframed as the
+explicit local/privacy-focused option rather than the default — a real
+choice for sensitive recordings, not a downgrade path.
+
+**Rollout completed (2026-07-12):** default engine flipped consistently
+across code and docs. Code: `summarize-transcript.py`'s `run_pipeline`/
+`run_pipeline_merged`/CLI default, `summarize-transcript.R`'s `match.arg()`
+vectors reordered (R uses the first listed value as the default —
+confirmed by R semantics, not executed since R isn't available in this
+session, worth a quick real check), `sanity_check_transcript.py`'s CLI
+default. Docs: `README.md`, `docs/reference.md`, `docs/installation.md` —
+every example and section label reordered to present Anthropic first/as
+default, Ollama reframed as the local/private option, not a fallback.
+
+One thing caught and fixed along the way, not just relabeled: README's
+privacy framing ("your audio and transcripts never have to leave your
+computer") was accurate when Ollama was default but became a real
+inaccuracy once Anthropic is default — transcript *text* now leaves the
+machine unless a user explicitly opts into `--engine ollama`. Rewrote to
+distinguish audio (always local) from transcript text (sent externally
+only under the default engine) rather than just swapping which option is
+labeled "(default)".
 
 **Flagged:** 2026-07-11
 
@@ -422,3 +487,40 @@ comparison). Built in three steps:
 Not yet exercised on a real flagged word from a real recording — sandbox
 and synthetic-data tested only, same caveat as Tier 1's speaker-slot
 caching.
+
+**2026-07-12 — [Tier 2] Cross-model disagreement as a confidence signal,
+resolved (scope capped deliberately):** Cost decision: proceed — `large-v3`
+measured at 26:36 wall-clock for a ~25 min recording, doubling for a second
+model (~53 min) accepted as worth it, since transcription runtime wasn't
+the actual friction (confidence in output, file management, and manual
+step count were).
+
+Built `compare_transcripts.py` (new standalone script, not folded into
+`review_transcript.py` — comparing two transcripts is a different shape of
+task than reviewing one): flattens each transcript into a chronological
+word list, normalizes for comparison, runs `difflib.SequenceMatcher` to
+align and report divergences with timestamps. Verified against synthetic
+data, then against the real `2026-06-09_audio_tho-meet` large-v2/v3 pair —
+found both previously-documented divergences exactly (`[2:26]` "Anne will
+anger", `[12:37]` the extra sentence), plus 162 more, at 89.7% raw
+word-level agreement. That the models substantially agree once accounted
+for is itself a confidence-building result, independent of whether the
+tool sees regular use.
+
+Considered and rejected confidence-score filtering for noise reduction —
+would silently hide the exact class of error (both models confident, both
+wrong or different) this feature exists to catch. Built a small explicit
+filler-word filter instead (`um`, `uh`, `yeah`, `yep`, `okay`, `ok`,
+`right`, `so`) plus a raw/content dual agreement metric. Real impact was
+modest: 164 → 124 disagreements (~24%), 89.7% → 90.5% agreement. Most of
+what remained was the same category of noise just outside the 8-word list
+(`gonna`/`going to`, `till`/`until`, `2 PM`/`2pm`, a name spelled three
+different ways).
+
+**Decision:** stop here rather than keep expanding the filler list.
+Diminishing returns, and further noise reduction needs actual judgment
+about whether a divergence is substantive — not more hand-maintained word
+rules, which risk the same false-positive fragility already flagged for
+the parked spell-check idea. That need is exactly Tier 3 (LLM
+plausibility/sanity pass), promoted to in-progress as the direct next
+step rather than parked further.
