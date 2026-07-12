@@ -1,6 +1,6 @@
 # Pipeline Reference
 
-R and Python API reference, meeting type presets, and LLM backend options.
+Python API reference, meeting type presets, and LLM backend options.
 
 ---
 
@@ -40,24 +40,6 @@ Output: `~/PROJECTS/audio-transcription-output/meeting.json`
 
 ### Step 2 — Generate summary
 
-**R (primary — recommended for R users):**
-
-```r
-source("summarize-transcript.R")
-
-# Anthropic API — default (requires ANTHROPIC_API_KEY in ~/.Renviron)
-result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
-
-# Local Ollama (free, private, requires `ollama serve` running)
-result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json", engine = "ollama")
-
-# With meeting type preset
-result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
-                       meeting_type = "interview")
-```
-
-**Python (CLI — recommended for Python users):**
-
 ```bash
 # Anthropic API — default
 python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
@@ -77,47 +59,6 @@ Outputs saved automatically to `~/PROJECTS/audio-transcription-output/`
 
 - `meeting_transcript_20260502_175200.txt`
 - `meeting_summary_20260502_175200.txt`
-
----
-
-## R Pipeline Reference
-
-```r
-run_pipeline(
-  json_path,              # Path to WhisperX JSON output
-  engine       = "anthropic", # "anthropic" (default) or "ollama" (local/private)
-  meeting_type = "general",   # See Meeting Type Presets below
-  custom_prompt = NULL,       # Your own prompt (if meeting_type = "custom")
-  save         = TRUE,        # Save outputs to disk
-  output_dir   = "~/PROJECTS/audio-transcription-output",  # Output directory
-  ...                         # Passed to summarize_anthropic() or
-                              # summarize_ollama() — e.g., model = "..."
-)
-```
-
-**Change the Ollama model:**
-
-```r
-result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
-                       model = "llama3.1:8b-instruct-q8_0")
-```
-
-**Change the Anthropic model:**
-
-```r
-result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
-                       engine = "anthropic",
-                       model  = "claude-haiku-4-5")  # cheaper/faster
-```
-
-**Access results programmatically:**
-
-```r
-result$segments    # data frame: start, end, speaker, text
-result$transcript  # formatted string
-result$summary     # LLM summary string
-result$paths       # list of saved file paths
-```
 
 ---
 
@@ -149,9 +90,13 @@ python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.jso
 python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
     --prompt "List every action item and who owns it."
 
-# Override model
+# Override the Anthropic model (default is claude-sonnet-4-6)
 python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
-    --model llama3.1:8b-instruct-q8_0
+    --model claude-haiku-4-5   # cheaper/faster
+
+# Override the Ollama model
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
+    --engine ollama --model llama3.1:8b-instruct-q8_0
 
 # Skip saving to disk
 python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
@@ -223,17 +168,10 @@ result["paths"]       # dict of saved file paths (if save=True)
 
 **Custom prompt example:**
 
-```r
-result <- run_pipeline(
-  "~/PROJECTS/audio-transcription-output/meeting.json",
-  meeting_type  = "custom",
-  custom_prompt = paste0(
-    "You are summarizing a grant planning meeting. ",
-    "Extract: funding opportunities discussed, ",
-    "deadlines mentioned, assigned responsibilities, ",
-    "and budget considerations.\n\nTranscript:\n"
-  )
-)
+```bash
+python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
+  --type custom \
+  --prompt "You are summarizing a grant planning meeting. Extract: funding opportunities discussed, deadlines mentioned, assigned responsibilities, and budget considerations."
 ```
 
 ---
@@ -266,7 +204,7 @@ instructions exactly and less prone to false-positive flags.
 echo 'ANTHROPIC_API_KEY=sk-ant-yourkey' >> ~/.Renviron
 ```
 
-In R: `engine = "anthropic"` (default)
+Default — no `--engine` flag needed.
 
 ### Ollama (Local — Free, Private)
 
@@ -295,4 +233,4 @@ command above — not the Windows installer. Your scripts connect to it at
 unreachable, start Ollama with `OLLAMA_HOST=0.0.0.0:11434 ollama serve` to make
 it listen on all interfaces.
 
-In R: `engine = "ollama"`
+`--engine ollama` (Python CLI) or `engine="ollama"` (interactive/script usage).

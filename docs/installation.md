@@ -12,9 +12,12 @@ platform and follow the steps in order.
 This repo's `.gitignore` is configured to exclude credential files, audio files,
 and output files. Before doing anything else:
 
-1. Never paste a token into any `.R`, `.py`, or `.sh` file
+1. Never paste a token into any `.py` or `.sh` file
 2. Never commit `.Renviron` or `.env` files
-3. Store all tokens in `~/.Renviron` (R reads this automatically at startup)
+3. Store all tokens in `~/.Renviron` — note that only `transcribe.sh` reads
+   this automatically (via `grep`); the Python summarizer needs
+   `ANTHROPIC_API_KEY` actually exported to your shell session (see
+   Troubleshooting if you hit `ANTHROPIC_API_KEY not set`)
 4. If you accidentally expose a token, invalidate it immediately at the
    provider's website and generate a new one
 
@@ -103,15 +106,7 @@ uv pip install httpx
 
 **Step 4 — Set up HuggingFace** (see [HuggingFace Setup](#huggingface-setup))
 
-**Step 5 — Install R packages**
-
-Open R or RStudio and run:
-
-```r
-install.packages(c("jsonlite", "httr2"))
-```
-
-**Step 6 — Install the transcribe script**
+**Step 5 — Install the transcribe script**
 
 ```bash
 mkdir -p ~/bin
@@ -125,7 +120,7 @@ Add `~/bin` to your PATH if it isn't already (add to `~/.zshrc` or `~/.bashrc`):
 export PATH="$HOME/bin:$PATH"
 ```
 
-**Step 7 — Test it**
+**Step 6 — Test it**
 
 ```bash
 source .venv/bin/activate
@@ -207,20 +202,6 @@ uv pip install httpx
 
 **Step 5 — Set up HuggingFace** (see [HuggingFace Setup](#huggingface-setup))
 
-**Step 6 — Install R**
-
-In the Ubuntu terminal:
-
-```bash
-sudo apt install -y r-base
-```
-
-Then start R with `R` and install packages:
-
-```r
-install.packages(c("jsonlite", "httr2"))
-```
-
 ---
 
 ### Linux (Simple)
@@ -243,9 +224,6 @@ source .venv/bin/activate
 uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 uv pip install whisperx
 uv pip install httpx
-
-# Install R packages
-R -e 'install.packages(c("jsonlite", "httr2"), repos="https://cloud.r-project.org")'
 ```
 
 If you have an NVIDIA GPU, replace the torch install with:
@@ -384,8 +362,9 @@ uv pip install httpx
 cp /mnt/c/Users/YourName/Downloads/meeting.m4a ~/audio-transcription-pipeline/
 ```
 
-**Tokens in WSL2:** Add to `~/.bashrc` (WSL2 doesn't use `~/.Renviron` unless
-you install R inside WSL2):
+**Tokens in WSL2:** Add to `~/.bashrc` (nothing in this pipeline reads
+`~/.Renviron` automatically on WSL2 — export tokens as shell env vars
+instead):
 
 ```bash
 echo 'export HF_TOKEN=hf_yourtoken' >> ~/.bashrc
@@ -523,17 +502,16 @@ Performing diarization...
 
 Output file: `~/PROJECTS/audio-transcription-output/test.json`
 
-### Step 3 — Verify in R
+### Step 3 — Verify summarization
 
-```r
-source("summarize-transcript.R")
-
-result <- run_pipeline(
-  "~/PROJECTS/audio-transcription-output/test.json",
-  engine = "anthropic", # or "ollama" for local/private (needs `ollama serve` running)
-  save   = FALSE        # skip saving for this test run
-)
+```bash
+python3 summarize-transcript.py \
+  ~/PROJECTS/audio-transcription-output/test.json \
+  --no-save   # skip saving for this test run
 ```
+
+Uses Anthropic (default) — add `--engine ollama` instead if you're testing
+the local/private path (needs `ollama serve` running).
 
 **Expected transcript output:**
 
@@ -585,8 +563,16 @@ your HF token is wrong.
 - Visit the two model pages and click Agree (must be logged in)
 - Verify your token: `grep HF_TOKEN ~/.Renviron`
 
-**`ANTHROPIC_API_KEY not set`** Restart R after adding the key to `~/.Renviron`
-— R only reads it at startup.
+**`ANTHROPIC_API_KEY not set`** Nothing in the Python path reads `~/.Renviron`
+automatically — only `transcribe.sh` does (via `grep`, for `HF_TOKEN`). Export
+it into your shell session for this terminal:
+
+```bash
+export ANTHROPIC_API_KEY=$(grep ANTHROPIC_API_KEY ~/.Renviron | cut -d= -f2 | tr -d '\r')
+```
+
+Add the same line to `~/.zshrc`/`~/.bashrc` if you don't want to repeat this
+every new terminal session.
 
 **`ModuleNotFoundError: No module named 'httpx'` or `Cannot find module httpx`**
 `httpx` is missing from the venv. This venv is managed by `uv` — `pip install`
@@ -598,9 +584,6 @@ uv pip install httpx
 ```
 
 Restart your terminal or IDE after installing.
-
-**`could not find function "run_pipeline"`** Source the script first:
-`source("summarize-transcript.R")`
 
 **Ollama connection refused** Start the Ollama server in a separate terminal:
 `ollama serve`

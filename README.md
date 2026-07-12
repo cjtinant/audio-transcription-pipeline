@@ -36,8 +36,7 @@ pick:
   Nothing leaves your computer. Free, private, and works offline. Use this
   for sensitive recordings: interviews, clinical conversations, confidential
   meetings, or anything you would not want processed by a third-party
-  server. Pass `--engine ollama` (Python CLI) or `engine = "ollama"`
-  (R) to use it.
+  server. Pass `--engine ollama` to use it.
 
 In both cases, your audio file stays on your machine — only the transcript
 text is ever sent externally, and only if you use the Anthropic option.
@@ -67,8 +66,8 @@ Step 1 — Transcribe (terminal)
        │                                                                  │
        └──────────────────────────────────────────────────┬──────────────┘
                                                           ▼
-Step 2 — Summarize (R or Python)
-  result <- run_pipeline("~/PROJECTS/audio-transcription-output/meeting_clean.txt")
+Step 2 — Summarize
+  python3 summarize-transcript.py meeting_clean.txt
        │
        │  reads transcript, sends to LLM, returns structured summary
        ▼
@@ -89,10 +88,8 @@ repo — see [Where output goes](#where-output-goes) below.
   prompts in seconds — without touching the audio again.
 
 - **They are independent by design.** The terminal step (WhisperX) and the
-  summarization step (R or Python) do not depend on each other being open or
-  running. If one fails, the other is unaffected. This also means R users and
-  Python users can share the same JSON output and run their own summarization
-  step independently.
+  summarization step do not depend on each other being open or running. If
+  one fails, the other is unaffected.
 
 **Why JSON as the intermediate format?**
 
@@ -112,8 +109,7 @@ permanently, in the private output archive (see below).
 | ------------------------------------------------------------ | --------------------------------------------- | ------------------------------------ |
 | `transcribe.sh`                                             | Runs WhisperX on any audio file               | Step 1 — once per recording          |
 | `review_transcript.py`                                      | JSON → interactive HTML for reviewing output  | Optional — between Step 1 and Step 2 |
-| `summarize-transcript.R`                                    | Reads JSON, summarizes via R                  | Step 2 — R users                     |
-| `summarize-transcript.py`                                   | Reads JSON, summarizes via Python or CLI      | Step 2 — Python users                |
+| `summarize-transcript.py`                                   | Reads JSON, generates LLM summary             | Step 2                               |
 | `~/PROJECTS/audio-transcription-output/*.json`              | WhisperX output — permanent original record   | Created in Step 1, read in Step 2    |
 | `~/PROJECTS/audio-transcription-output/*_transcript_*.txt`  | Clean readable transcript                     | Created in Step 2                    |
 | `~/PROJECTS/audio-transcription-output/*_summary_*.txt`     | LLM summary                                   | Created in Step 2                    |
@@ -309,43 +305,6 @@ manually (fix mishears, proper nouns, anything the model got wrong). The cleaned
 
 ---
 
-### Step 2 — Summarize (R)
-
-Open Positron or RStudio, set your working directory to the repo, then:
-
-```r
-source("~/PROJECTS/audio-transcription-pipeline/summarize-transcript.R")
-
-# Merged (recommended): runs twice and merges for a more complete summary
-result <- run_pipeline_merged(
-  "~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt",
-  engine       = "anthropic",
-  meeting_type = "general"
-)
-
-# Single run: cleaned .txt from review step
-result <- run_pipeline(
-  "~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt",
-  engine       = "anthropic",   # or "ollama" for local/free
-  meeting_type = "general"      # match to your recording type
-)
-
-# Quick path: raw JSON, no human review
-result <- run_pipeline(
-  "~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json",
-  engine       = "anthropic",
-  meeting_type = "general"
-)
-```
-
-Outputs saved automatically to `~/PROJECTS/audio-transcription-output/`
-(default `output_dir` — no need to pass it explicitly):
-
-- `2026-07-07_soil-moisture_audio_transcript_20260707_130000.txt`
-- `2026-07-07_soil-moisture_audio_summary_20260707_130000.txt`
-
----
-
 ### Choosing a meeting type
 
 | Preset           | Best for                                       |
@@ -361,7 +320,7 @@ Outputs saved automatically to `~/PROJECTS/audio-transcription-output/`
 When in doubt, use `general`. It catches decisions, action items, and open
 questions, which are useful across most meeting types.
 
-### Step 2 — Summarize (Python CLI)
+### Step 2 — Summarize
 
 ```bash
 cd ~/PROJECTS/audio-transcription-pipeline
@@ -369,21 +328,23 @@ cd ~/PROJECTS/audio-transcription-pipeline
 # Merged (recommended): runs twice and merges for a more complete summary
 .venv/bin/python3 summarize-transcript.py \
   ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt \
-  --engine anthropic \
   --type general \
   --merge
 
 # Single run: cleaned .txt from review step
 .venv/bin/python3 summarize-transcript.py \
   ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt \
-  --engine anthropic \
   --type general
 
 # Quick path: raw JSON, no human review
 .venv/bin/python3 summarize-transcript.py \
   ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
-  --engine anthropic \
   --type general
+
+# Use Ollama instead (local/private)
+.venv/bin/python3 summarize-transcript.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt \
+  --engine ollama --type general
 ```
 
 Output is written to `~/PROJECTS/audio-transcription-output/` by default
@@ -398,7 +359,7 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default
 - [ ] `~/.Renviron` contains `HF_TOKEN` and `ANTHROPIC_API_KEY` (the default
       summarization engine)
 - [ ] Ollama is running in a separate terminal (`ollama serve`) only if using
-      `--engine ollama` / `engine = "ollama"` for local/private summarization
+      `--engine ollama` for local/private summarization
 - [ ] The venv is activated (or `.venv/bin/python3` used directly) before
       calling whisperx or the Python summarizer
 
@@ -408,7 +369,7 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default
 
 - [docs/installation.md](docs/installation.md) — Security, platform setup,
   HuggingFace tokens, testing your install, troubleshooting
-- [docs/reference.md](docs/reference.md) — R and Python API reference, meeting
+- [docs/reference.md](docs/reference.md) — Python API reference, meeting
   type presets, LLM backend options
 - [docs/noise-reduction.md](docs/noise-reduction.md) — Pre-processing options
   for poor-quality audio
@@ -422,17 +383,19 @@ audio-transcription-pipeline/
 ├── docs/
 │   ├── installation.md               # Setup instructions for all platforms
 │   ├── noise-reduction.md            # Pre-processing options for poor audio
-│   ├── reference.md                  # R/Python API reference and LLM options
+│   ├── reference.md                  # Python API reference and LLM options
 │   ├── cowork-folder-access.md       # Connecting a local folder in Cowork
 │   └── YYYY-MM-DD_session-notes.md   # Dated log per working session
-├── .gitignore                  # Excludes credentials and audio files
-├── .prettierrc                 # Markdown formatting (80-col prose wrap)
-├── README.md                   # This file — daily use
-├── review_transcript.py        # JSON → interactive HTML review tool (optional)
-├── summarize-transcript.py     # Python pipeline (Step 2 — Python users)
-├── summarize-transcript.R      # R pipeline (Step 2 — R users)
-├── transcribe.sh               # Bash wrapper for WhisperX (Step 1)
-└── WATERSHED.md                # Parked decisions, resolved history, open questions
+├── .gitignore                   # Excludes credentials and audio files
+├── .prettierrc                  # Markdown formatting (80-col prose wrap)
+├── README.md                    # This file — daily use
+├── transcribe.sh                # Bash wrapper for WhisperX (Step 1)
+├── review_transcript.py         # JSON → interactive HTML review tool (optional)
+├── compare_transcripts.py       # Word-level diff between two transcripts (optional)
+├── sanity_check_transcript.py   # LLM plausibility pass, flags likely mistranscriptions (optional)
+├── known-terms.txt              # Vocabulary list for sanity_check_transcript.py
+├── summarize-transcript.py      # Pipeline Step 2 — LLM summary
+└── WATERSHED.md                 # Parked decisions, resolved history, open questions
 ```
 
 `00_admin/`, `scratch.md`, and personal draft files are intentionally excluded

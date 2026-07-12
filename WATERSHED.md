@@ -38,33 +38,6 @@ drift is visible immediately if a symlink isn't used.
 
 ---
 
-### Is maintaining both the R and Python summarizer paths worth it?
-
-**Status:** idea — not scoped or started
-
-`summarize-transcript.R` and `summarize-transcript.py` are parallel
-implementations of the same pipeline stage — same meeting-type presets,
-same two LLM backends, same save/merge logic — kept in sync by hand. Every
-change to one has to be manually mirrored in the other: today's
-engine-default flip (Tier 3 fallout) touched both files separately, and
-so did the original large-v3 adoption and the external-archive migration
-before it. That's a real, recurring maintenance cost, and it's directly
-relevant to the "too many manual steps" friction point, even though the
-duplication itself isn't a step in the pipeline you run — it's a step in
-maintaining the pipeline.
-
-**Open question, not a decision:** does having both paths add anything
-proportional to that cost (e.g., genuine R-workflow needs vs. Python-CLI
-needs that can't be served by one implementation), or would picking one as
-primary and dropping/simplifying the other reduce upkeep without losing
-real capability? Not evaluated — first real step would be checking whether
-both paths actually get used, or whether one has quietly become the
-default habit already.
-
-**Flagged:** 2026-07-12
-
----
-
 ### Review tooling ideas — priority order
 
 Ranked by effort-vs-value, with dependencies noted where an idea isn't as
@@ -580,3 +553,36 @@ the original scoping note that treated these as one combined feature, not
 two separate builds. Nothing lost by closing this; the open question it
 posed ("second flag type in the review tool, or a separate pass?") was
 answered in practice: separate pass, `sanity_check_transcript.py`.
+
+**2026-07-12 — R path dropped, `summarize-transcript.R` removed:** Raised
+as an open question the same day (parked item, above the Tier list) — not
+used for any analysis outside this pipeline, and already the *only*
+R-specific file in an otherwise Python/bash toolchain (`review_transcript.py`,
+`compare_transcripts.py`, `sanity_check_transcript.py`, `transcribe.sh` are
+all Python/bash). Concrete cost: every recent change had to be applied
+twice — today's engine-default flip, the large-v3 adoption, and the
+external-archive migration all touched both `summarize-transcript.R` and
+`summarize-transcript.py` separately. Decided to drop rather than keep
+paying that cost for a path that wasn't being used.
+
+Removed `summarize-transcript.R` entirely. Updated every doc reference:
+`README.md` (file table, Project Structure tree — also updated to include
+`compare_transcripts.py`/`sanity_check_transcript.py`/`known-terms.txt`,
+which had drifted out of date independently of this change; "How It Works"
+diagram and independence argument; Step 2 section — R version removed,
+Python version's redundant `--engine anthropic` flags dropped now that
+it's the default; checklist), `docs/reference.md` (R Pipeline Reference
+section removed; Step 2 examples, custom-prompt example, and both
+"In R:" backend labels converted to Python-only), `docs/installation.md`
+(R packages install step removed from all four platform Quick-Start
+sections, renumbering subsequent steps where needed; "Verify in R" testing
+step replaced with a Python equivalént — there wasn't a separate Python
+verify step to fall back to, so this was a real gap, not just a deletion;
+two R-specific troubleshooting entries removed/rewritten, including giving
+the `ANTHROPIC_API_KEY not set` entry an actual fix for the Python path
+rather than the R-specific non-fix it had — the same `.Renviron`-isn't-
+automatically-exported issue identified earlier the same session for
+`transcribe.sh`'s `HF_TOKEN` handling).
+
+Verified clean with a full-repo grep for R-specific patterns after all
+edits — no remaining references.
