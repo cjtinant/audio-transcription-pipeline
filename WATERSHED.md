@@ -5,6 +5,27 @@ close them when resolved.
 
 ---
 
+## Decided — Not Yet Implemented
+
+### Switch default Whisper model to large-v3
+
+**Status:** decided — implementation not started
+
+**Decision:** Adopt `large-v3` as the default model, replacing `large-v2`.
+Full comparison and reasoning logged under 2026-07-11 in Resolved / History
+below.
+
+**To implement:**
+
+1. `transcribe.sh` — change hardcoded `--model large-v2` to `--model large-v3`.
+2. `README.md` — update all example commands showing `--model large-v2`.
+3. `docs/installation.md` — same, in the Quick Start and Testing sections.
+4. Double-check `docs/reference.md` for any model references.
+
+**Flagged:** 2026-07-11
+
+---
+
 ## Parked:
 
 ### Spell-check pass on transcript JSON
@@ -23,41 +44,6 @@ confidence-threshold flagging.
 
 Open question: build as a second flag type in the existing review tool, or a
 separate pass?
-
-### `--model large-v2` vs `--model large-v3`
-
-**Status:** in progress — test file identified, scope narrowed to two-way
-
-WhisperX's current README uses `large-v3` as the example model. This repo
-documents `large-v2` throughout (README, transcribe.sh, transcribe.py,
-transcribe.R).
-
-`large-v3` may offer better accuracy but has known issues with hallucination on
-silent or low-speech segments — a common complaint in the WhisperX issue
-tracker. `large-v2` is more conservative and well-tested.
-
-**Scope, revised 2026-07-11:** originally planned as a 3-way comparison
-including an unresolved "baseline" leg. Running two-way for now
-(`large-v2` vs `large-v3` on the same recording); a baseline comparison
-point deferred to later — collect a flat `.txt`/`.vtt` transcript from
-Zoom's own built-in transcription on a future meeting, once one's
-available to compare against.
-
-**Test file:** `~/PROJECTS/audio-transcription-output/2026-06-09_audio_tho-meet.m4a`
-— an untranscribed recording already sitting in the archive.
-
-**Operational note:** the archive is flat, keyed by filename — WhisperX
-names output by swapping the extension on the input filename, so running
-the same audio through two models produces identically-named output.
-Each run's JSON gets renamed immediately after (`_large-v2` / `_large-v3`
-suffix) to avoid the second run silently overwriting the first.
-
-Compare: proper noun accuracy, speaker label quality, hallucinations in
-low-speech segments, and overall readability. If `large-v3` is better or
-neutral, update all four files and the README. If `large-v2` remains preferable,
-add a note to the README explaining the deliberate choice.
-
-**Flagged:** 2026-05-26. **Updated:** 2026-07-11
 
 ---
 
@@ -221,3 +207,37 @@ location (transcribe.sh header comment), `~/audio-transcription-pipeline`
 missing the `PROJECTS/` prefix (three places in `docs/installation.md`), and
 two leftover references to the pre-rename script name `transcribe.R`
 (should be `summarize-transcript.R`).
+
+**2026-07-11 — large-v2 vs large-v3 comparison resolved, large-v3 adopted:**
+Two-way comparison run on `2026-06-09_audio_tho-meet.m4a` (25.2 min, 4
+speakers). Findings:
+
+- **Speaker labels:** identical between models (diarization is pyannote's
+  job, not Whisper's) — expected, confirms model choice doesn't affect this.
+- **Hallucination check:** no red flags. Zero segments crossed the
+  low-confidence threshold (avg_logprob < -0.5) in either version.
+  Consecutive-duplicate-segment counts were low and similar (6 vs 4), and all
+  were short natural repeats ("Yep.", "Excellent."), not fabricated looping
+  text. `large-v3`'s reputation for hallucinating in silence didn't
+  materialize on this recording.
+- **Confidence:** `large-v3` modestly better — avg segment logprob -0.125 vs
+  -0.312 for `large-v2`; avg word confidence 0.699 vs 0.696.
+- **Readability tradeoff:** `large-v3` produced ~30 fewer words overall,
+  mostly by dropping short backchannel filler ("Yeah.", "Right.", "So") that
+  `large-v2` kept. Cleaner to read; also quietly discards some acknowledgment
+  cues.
+- **Accuracy:** 84% word-level agreement overall. Two specific divergences
+  flagged for audio spot-check but not independently verified: at 2:26,
+  `large-v2` produced "and I have eight of" where `large-v3` produced "Anne
+  will anger" (possible proper-noun divergence around a name); at 12:37,
+  `large-v3` included a full extra sentence ("with... Come back a month
+  later, no, I haven't really done anything on this.") not present in
+  `large-v2` at all.
+
+**Decision:** adopt `large-v3` as the default. Nothing in the hallucination
+check — the original reason for caution — showed up, and confidence metrics
+favor `large-v3`. The two flagged timestamps are open questions, not blockers.
+Baseline comparison (Zoom's own transcription) remains deferred to a future
+meeting, per the revised scope above. Implementation (switching the
+hardcoded default in `transcribe.sh` and updating docs) tracked separately
+under "Decided — Not Yet Implemented."
