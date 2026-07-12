@@ -2,7 +2,7 @@
 """
 review_transcript.py
 --------------------
-Convert a WhisperX JSON transcript into a standalone HTML review tool.
+Convert a WhisperX JSON transcript into an standalone HTML review tool.
 
 Usage:
     python3 review_transcript.py path/to/transcript.json
