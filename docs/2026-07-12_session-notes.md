@@ -73,15 +73,28 @@ Python equivalent rather than just deleted.
 
 ## Not yet done / commit status uncertain
 
-- **`compare_transcripts.py` has not been run on the new `mentor-meet`
-  large-v2/v3 pair yet** — this is the direct next step, and the actual
-  reason this session's hardening effort isn't closed out.
-- A `git add WATERSHED.md; git commit -m "..."` command was given for the
-  duplicate-Tier-3 fix and mentor-meet precision-test log, but not
-  explicitly confirmed as run. Worth checking `git status` before
-  resuming.
 - Minor, unresolved: `tho-meet_large-v2.json` showed a hard-link count of
   2 in a directory listing — not investigated, probably nothing.
+
+## `compare_transcripts.py` run: mentor-meet large-v2/v3 (closed out)
+
+Git confirmed up to date (duplicate-Tier-3 fix and mentor-meet
+precision-test log commits went through). Ran the pending diff:
+
+- Raw agreement: 94.8% (4378/4617 words) — content agreement 95.4%
+  (4225/4431, filler removed), 174 disagreements shown. Higher than
+  tho-meet's 90.5% — confirms agreement rate isn't stable across
+  recordings, signal not a fixed baseline.
+- Standout: "PEDON" (soils term, a 3D soil-sampling unit) at [8:30],
+  [8:31], [18:33]. large-v2 mangled it as "heat on" / "PDON"; large-v3
+  got it right all three times. Jason notes he may have mispronounced it
+  in the recording — if so, v3 recovering the correct term despite
+  non-standard pronunciation is a stronger result, not a weaker one.
+- Rest of the diff is mostly v3 picking up conversational filler/asides
+  v2 dropped ("you know,", "–", "Hmm", longer run-ons) — no other clear
+  correctness win either direction on a skim.
+- **Open, not decided:** whether this settles large-v2 vs large-v3 as
+  canonical for `mentor-meet`. Not started without explicit ask.
 
 ## Still parked / pending (in WATERSHED, not started)
 

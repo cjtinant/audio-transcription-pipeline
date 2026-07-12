@@ -603,3 +603,24 @@ automatically-exported issue identified earlier the same session for
 
 Verified clean with a full-repo grep for R-specific patterns after all
 edits — no remaining references.
+
+**2026-07-12 — [Tier 2] `compare_transcripts.py` second hardening test,
+`mentor-meet` large-v2/v3:** Backed up existing `mentor-meet.json` to
+`mentor-meet_large-v2.json`, re-ran `transcribe` for a fresh `large-v3`
+pass, diffed the pair. Raw agreement 94.8% (4378/4617 words), content
+agreement 95.4% (4225/4431, filler removed), 174 disagreements shown —
+higher than `tho-meet`'s 90.5%, confirming agreement rate is a
+per-recording signal, not a fixed baseline.
+
+Standout finding: "PEDON" (soils term — a 3D soil-sampling unit) at
+`[8:30]`, `[8:31]`, `[18:33]`. `large-v2` mangled it as "heat on" / "PDON";
+`large-v3` transcribed it correctly all three times. Jason notes he may
+have mispronounced the term in the recording — if so, `large-v3` recovering
+the correct word despite non-standard pronunciation is a stronger result
+than a clean pronunciation would have been. Rest of the diff is mostly
+`large-v3` picking up conversational filler/asides `large-v2` dropped
+("you know,", "–", "Hmm", longer run-ons) — no other clear correctness win
+either direction found on a skim.
+
+**Open, not decided:** whether this settles `large-v2` vs `large-v3` as
+canonical for `mentor-meet`. Not started without explicit ask.
