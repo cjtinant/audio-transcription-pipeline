@@ -17,8 +17,8 @@ cheap/safe; later tiers have real prerequisites or open design questions.
 
 ### [Tier 2] Audio-linked spot-checking for flagged words
 
-**Status:** in progress — design decided, sidecar half built, spot-check
-command not started
+**Status:** in progress — sidecar built and verified against a real run,
+spot-check command not started
 
 Probably the highest-value review-tooling change overall — listening to a
 flagged word resolves ambiguity a confidence score alone can't ("Anne will
@@ -35,10 +35,17 @@ post-process/patch step (more invasive, less reversible, and blurs whisperx's
 native output schema with pipeline bookkeeping) — sidecar is a one-line
 addition, fully reversible, and matches an existing pattern in this codebase.
 
-**Built and tested (2026-07-11):** the `transcribe.sh` sidecar write. Verified
-in a sandbox with a fake `$HOME`: handles spaces in the source path correctly,
-and a second run merges into the existing sidecar rather than overwriting it.
-Not yet tested against a real `transcribe` run in the actual archive.
+**Built and verified (2026-07-11 sandbox, 2026-07-12 real run):** sandbox
+test with a fake `$HOME` confirmed spaces-in-path handling and correct
+merge-not-overwrite behavior across runs. Real-run confirmation came only
+after an unrelated snag: the installed `~/bin/transcribe` is a one-time copy
+of the repo's `transcribe.sh` (per `docs/installation.md`) that nothing
+re-syncs automatically, so it had drifted — missing this sidecar block
+entirely, and also still on `large-v2` and the pre-archive-migration
+`output_dir`, predating two other already-resolved changes. Re-copied with
+`cp transcribe.sh ~/bin/transcribe`, re-ran against
+`2026-06-09_audio_tho-meet.m4a`, confirmed `.source-audio.json` correctly
+mapped the stem to the absolute source path.
 
 **Still needed:** the actual spot-check command in `review_transcript.py` —
 read `.source-audio.json`, look up the stem, ffmpeg-clip the timestamp range
@@ -70,8 +77,13 @@ overridden. `transcribe file.m4a --model large-v2` now works as expected.
 **Real costs (still unresolved):** roughly doubles transcription time per
 recording, every time, not just once — a recurring cost, not a one-time setup
 cost. This is a tradeoff decision, not a bug — not something to fix, something
-to decide is worth it. Today's `large-v3` run (in progress) will give a real
-timing data point to weigh this against.
+to decide is worth it.
+
+**Real data point (2026-07-12):** `large-v3` on `2026-06-09_audio_tho-meet.m4a`
+(~25 min recording) took 26:36 wall-clock (`4903.52s user`, `628.36s system`,
+346% CPU). Doubling for a second model would mean roughly 53 min per
+recording of this length, every time — the tradeoff decision now has a real
+number behind it instead of an estimate. Still not decided.
 
 **Flagged:** 2026-07-11
 
@@ -403,3 +415,13 @@ Both were built and tested in the sandbox against a copy of real transcript data
 (not the read-only upload), no changes needed to the archive folder or existing
 HTML review flow. No known issues; open question of whether the caching actually
 helps in practice is left to real use, not testable synthetically.
+
+**2026-07-12 — `~/bin/transcribe` drift item dropped, not pursued:** Parked
+earlier the same day after a `diff` genuinely showed the installed copy stale
+(missing the sidecar block, still on `large-v2`, still on the pre-archive
+`output_dir`) — that finding was real. But the actual cause of that day's
+confusing test result (a July 11 23:50 file landing in the archive despite
+the stale script's `output_dir` pointing elsewhere) turned out to be simpler:
+the July 11 run used `whisperx` directly, not the `transcribe` wrapper at
+all. Decided not to build any of the drift-prevention options (Makefile
+target, symlink, version check) — dropped rather than left parked.
