@@ -7,6 +7,123 @@ close them when resolved.
 
 ## Parked:
 
+### Speaker auto-labeling via voice embeddings
+
+**Status:** idea — not scoped or started
+
+`whisperx/diarize.py`'s `DiarizationPipeline` can already return speaker
+embeddings (`return_embeddings=True`), currently unused. Recurring meetings
+tend to have the same participants across recordings (the comparison test
+recording showed one dominant, one secondary, two minor speakers — a
+pattern, not a one-off). A local library of known speakers' voice
+embeddings, matched against each new recording's `SPEAKER_XX` clusters via
+cosine similarity, could propose real names automatically instead of
+generic labels — turning the manual "type in each speaker's name" step into
+confirm-or-correct.
+
+**Tradeoffs:** requires upfront effort to enroll voices; accuracy depends on
+audio quality; doesn't help with new/one-off speakers who aren't enrolled.
+
+**Flagged:** 2026-07-11
+
+---
+
+### Speaker-slot caching (lighter alternative to embeddings)
+
+**Status:** idea — not scoped or started
+
+Simpler than voice embeddings: cache which name got assigned to which
+speaker-slot the last time a given meeting series ran, and pre-fill that as
+a suggestion next time. No audio matching, just a small local record keyed
+by meeting subject.
+
+**Tradeoffs:** only works if the same person tends to dominate the same
+role across a meeting series — less robust than embeddings, but far cheaper
+to build.
+
+**Flagged:** 2026-07-11
+
+---
+
+### Speaker inference from transcript content (LLM pass)
+
+**Status:** idea — not scoped or started
+
+Orthogonal to voice-based matching: people address each other by name or
+self-introduce in conversation. An LLM pass over the transcript text could
+infer speaker identity from content alone, independent of an embeddings
+library, and could run as part of the existing summarization step rather
+than as a separate tool.
+
+**Flagged:** 2026-07-11
+
+---
+
+### Compact flagged-words report (replace full-transcript visual scan)
+
+**Status:** idea — not scoped or started
+
+The HTML review tool currently requires reading a full highlighted
+transcript to find a handful of low-confidence spots. A compact report
+instead — timestamp, word, confidence score, surrounding context, for only
+the flagged words — would let review jump straight to the actual trouble
+spots. Close to what was done manually via a one-off script when comparing
+`large-v2`/`large-v3` output; this would package it as a standing feature.
+
+**Flagged:** 2026-07-11
+
+---
+
+### Audio-linked spot-checking for flagged words
+
+**Status:** idea — not scoped or started
+
+Probably the highest-value change of this batch. Every flagged word has a
+timestamp, and ffmpeg is already a dependency — auto-clip a few seconds of
+audio around each flagged word so review means *listening* to a handful of
+short clips instead of reading confidence scores and guessing. Listening
+resolves ambiguity a confidence number alone can't: reading "Anne will
+anger" doesn't tell you what was actually said; hearing it might.
+
+**Flagged:** 2026-07-11
+
+---
+
+### Cross-model disagreement as a confidence signal
+
+**Status:** idea — not scoped or started
+
+Two independently-run models agreeing is stronger evidence of correctness
+than either model's own self-reported confidence score. Running both
+`large-v2` and `large-v3` as standard practice (not just a one-off
+comparison) and treating disagreement points as the real review list would
+likely catch errors neither model's own confidence flags — the "Anne will
+anger" divergence found in the model comparison wasn't flagged by either
+model's confidence score, only by diffing the two against each other.
+
+**Tradeoffs:** roughly doubles transcription time per recording (a few
+extra minutes for a ~25-minute meeting on this hardware — not prohibitive,
+but not free either).
+
+**Flagged:** 2026-07-11
+
+---
+
+### LLM plausibility/sanity pass on transcript text
+
+**Status:** idea — not scoped or started
+
+Feed the plain-text transcript through the summarizer's existing LLM,
+asking it to flag anything that reads as semantically odd or out of place.
+Catches a different error category than acoustic confidence — overlaps
+with the spell-check idea already parked below; worth treating as one
+broader "sanity pass" feature rather than two separate ones if both get
+built.
+
+**Flagged:** 2026-07-11
+
+---
+
 ### `summarize-transcript.py` filename blocks clean Python import
 
 **Status:** parked — worked around in docs, not fixed at the source
