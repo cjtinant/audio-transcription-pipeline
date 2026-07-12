@@ -15,46 +15,6 @@ cheap/safe; later tiers have real prerequisites or open design questions.
 
 ---
 
-### [Tier 2] Audio-linked spot-checking for flagged words
-
-**Status:** in progress — sidecar built and verified against a real run,
-spot-check command not started
-
-Probably the highest-value review-tooling change overall — listening to a
-flagged word resolves ambiguity a confidence score alone can't ("Anne will
-anger" doesn't tell you what was actually said; hearing it might). Every flagged
-word has a timestamp, and ffmpeg is already a dependency, so the clipping itself
-is straightforward.
-
-**Design decision (2026-07-11):** sidecar file, not embedded-in-JSON.
-`transcribe.sh` writes `.source-audio.json` in the output archive (same
-directory convention as `.speaker-cache.json`) before its `exec` call, mapping
-each output stem to its resolved source audio path. Chosen over embedding the
-path in whisperx's own JSON because that would require dropping `exec` for a
-post-process/patch step (more invasive, less reversible, and blurs whisperx's
-native output schema with pipeline bookkeeping) — sidecar is a one-line
-addition, fully reversible, and matches an existing pattern in this codebase.
-
-**Built and verified (2026-07-11 sandbox, 2026-07-12 real run):** sandbox
-test with a fake `$HOME` confirmed spaces-in-path handling and correct
-merge-not-overwrite behavior across runs. Real-run confirmation came only
-after an unrelated snag: the installed `~/bin/transcribe` is a one-time copy
-of the repo's `transcribe.sh` (per `docs/installation.md`) that nothing
-re-syncs automatically, so it had drifted — missing this sidecar block
-entirely, and also still on `large-v2` and the pre-archive-migration
-`output_dir`, predating two other already-resolved changes. Re-copied with
-`cp transcribe.sh ~/bin/transcribe`, re-ran against
-`2026-06-09_audio_tho-meet.m4a`, confirmed `.source-audio.json` correctly
-mapped the stem to the absolute source path.
-
-**Still needed:** the actual spot-check command in `review_transcript.py` —
-read `.source-audio.json`, look up the stem, ffmpeg-clip the timestamp range
-for a given flagged word.
-
-**Flagged:** 2026-07-11
-
----
-
 ### [Tier 2] Cross-model disagreement as a confidence signal
 
 **Status:** idea — prerequisite fixed, still blocked on the recurring-cost
@@ -425,3 +385,40 @@ the stale script's `output_dir` pointing elsewhere) turned out to be simpler:
 the July 11 run used `whisperx` directly, not the `transcribe` wrapper at
 all. Decided not to build any of the drift-prevention options (Makefile
 target, symlink, version check) — dropped rather than left parked.
+
+**2026-07-12 — [Tier 2] Audio-linked spot-checking for flagged words,
+resolved:** Listening to a flagged word resolves ambiguity a confidence
+score alone can't (the "Anne will anger" case from the large-v2/v3
+comparison). Built in three steps:
+
+1. **Sidecar** (2026-07-11 design, verified 2026-07-12): `transcribe.sh`
+   writes `.source-audio.json` before its `exec` call, mapping each output
+   stem to its resolved source audio path — chosen over embedding the path
+   in whisperx's own JSON, which would've required dropping `exec` for a
+   post-process/patch step. Verified in a sandbox (spaces-in-path,
+   merge-not-overwrite across runs) and against a real `transcribe` run once
+   an unrelated snag was found: the installed `~/bin/transcribe` had drifted
+   from the repo's `transcribe.sh` (see dropped item above).
+2. **`--report` timestamp accuracy fix:** found while scoping the clip
+   command that `build_flagged_report` reported each flagged word's
+   *segment* start time, not the word's own — for a word late in a long
+   segment, clipping around the reported timestamp would've missed the word
+   entirely. Confirmed via a real transcript
+   (`2026-06-09_audio_tho-meet.json`) that whisperx's alignment step does
+   record per-word `start`/`end`; `load_segments` just wasn't carrying it
+   through. Fixed and verified with two synthetic cases: a word 19s into a
+   0-start segment now reports `[0:19]` (was `[0:00]`), and a word without
+   its own alignment still falls back to the segment start rather than
+   erroring.
+3. **`--clip TIMESTAMP` command:** reads `.source-audio.json`, looks up the
+   transcript's stem, ffmpeg-clips `±3s` (default, `--clip-padding`
+   adjustable) around the timestamp into a `.wav` next to the transcript.
+   Accepts `M:SS`, `H:MM:SS`, or raw seconds — same format `--report`
+   prints, so a timestamp copies straight across. Verified end-to-end in a
+   sandbox with a synthetic tone file: `ffprobe` confirmed the clipped
+   duration matched the requested window exactly, and a missing sidecar
+   entry fails with a clear message rather than a crash.
+
+Not yet exercised on a real flagged word from a real recording — sandbox
+and synthetic-data tested only, same caveat as Tier 1's speaker-slot
+caching.
