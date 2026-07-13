@@ -1,0 +1,119 @@
+# requirements-lock.txt
+#
+# Exact versions installed in this pipeline's venv, recorded 2026-07-12
+# (macOS arm64, Python 3.11). This is a reproducibility snapshot, not an
+# install script — for setup, follow docs/installation.md, which installs
+# only the three direct dependencies (torch/torchaudio, whisperx, httpx)
+# and lets the resolver pull the rest.
+#
+# Why this exists: several documented behaviors are version-specific —
+# the torchcodec/PyTorch 2.8 fallback warnings, FFmpeg-8 incompatibility,
+# and the claim that WhisperX hardcodes pyannote/speaker-diarization-
+# community-1 as its diarization default (verified against whisperx 3.8.6,
+# pyannote.audio 4.0.4). See WATERSHED.md.
+#
+# Regenerate after any venv change with:
+#   uv pip freeze > requirements-lock.txt
+
+aiohappyeyeballs==2.6.2
+aiohttp==3.13.5
+aiosignal==1.4.0
+alembic==1.18.4
+antlr4-python3-runtime==4.9.3
+anyio==4.13.0
+asteroid-filterbanks==0.4.0
+attrs==26.1.0
+av==17.0.1
+certifi==2026.5.20
+charset-normalizer==3.4.7
+click==8.4.1
+colorlog==6.10.1
+contourpy==1.3.3
+ctranslate2==4.7.2
+cycler==0.12.1
+einops==0.8.2
+faster-whisper==1.2.1
+filelock==3.29.0
+flatbuffers==25.12.19
+fonttools==4.63.0
+frozenlist==1.8.0
+fsspec==2026.4.0
+googleapis-common-protos==1.75.0
+grpcio==1.80.0
+h11==0.16.0
+hf-xet==1.5.0
+httpcore==1.0.9
+httpx==0.28.1
+huggingface-hub==0.36.2
+idna==3.16
+jinja2==3.1.6
+joblib==1.5.3
+julius==0.2.7
+kiwisolver==1.5.0
+lightning==2.6.4
+lightning-utilities==0.15.3
+mako==1.3.12
+markdown-it-py==4.2.0
+markupsafe==3.0.3
+matplotlib==3.10.9
+mdurl==0.1.2
+mpmath==1.3.0
+multidict==6.7.1
+networkx==3.6.1
+nltk==3.9.4
+numpy==2.4.6
+omegaconf==2.3.0
+onnxruntime==1.26.0
+opentelemetry-api==1.42.1
+opentelemetry-exporter-otlp==1.42.1
+opentelemetry-exporter-otlp-proto-common==1.42.1
+opentelemetry-exporter-otlp-proto-grpc==1.42.1
+opentelemetry-exporter-otlp-proto-http==1.42.1
+opentelemetry-proto==1.42.1
+opentelemetry-sdk==1.42.1
+opentelemetry-semantic-conventions==0.63b1
+optuna==4.8.0
+packaging==26.2
+pandas==3.0.3
+pillow==12.2.0
+primePy==1.3
+propcache==0.5.2
+protobuf==6.33.6
+pyannote.audio==4.0.4
+pyannote.core==6.0.1
+pyannote.database==6.1.1
+pyannote.metrics==4.1
+pyannote.pipeline==4.0.0
+pyannoteai-sdk==0.4.0
+pygments==2.20.0
+pyparsing==3.3.2
+python-dateutil==2.9.0.post0
+pytorch-lightning==2.6.4
+pytorch-metric-learning==2.9.0
+pyyaml==6.0.3
+regex==2026.5.9
+requests==2.34.2
+rich==15.0.0
+safetensors==0.7.0
+scikit-learn==1.8.0
+scipy==1.17.1
+setuptools==81.0.0
+six==1.17.0
+sortedcontainers==2.4.0
+sqlalchemy==2.0.50
+sympy==1.14.0
+threadpoolctl==3.6.0
+tokenizers==0.22.2
+torch==2.8.0
+torch-audiomentations==0.12.0
+torch-pitch-shift==1.2.5
+torchaudio==2.8.0
+torchcodec==0.7.0
+torchmetrics==1.9.0
+torchvision==0.23.0
+tqdm==4.67.3
+transformers==4.57.6
+typing-extensions==4.15.0
+urllib3==2.7.0
+whisperx==3.8.6
+yarl==1.24.2

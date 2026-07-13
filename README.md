@@ -13,7 +13,7 @@ fully local Ollama option for sensitive recordings.
 - Saves both the full transcript and summary to disk automatically
 
 **Supported meeting types:** General meeting, standup, interview, research
-conversation, lecture, or custom prompt
+conversation, lecture, grant planning, or custom prompt
 
 **Supported platforms:** macOS (Apple Silicon), macOS (Intel), Windows (WSL2),
 Linux
@@ -469,6 +469,7 @@ audio-transcription-pipeline/
 ├── LICENSE.md                   # PolyForm Noncommercial 1.0.0
 ├── Makefile                     # `make install` — symlinks transcribe.sh into ~/bin
 ├── README.md                    # This file — daily use
+├── requirements-lock.txt        # Exact tested versions (reproducibility snapshot)
 ├── transcribe.sh                # Bash wrapper for WhisperX (Step 1)
 ├── review_transcript.py         # JSON → interactive HTML review tool (optional)
 ├── compare_transcripts.py       # Word-level diff between two transcripts (optional)

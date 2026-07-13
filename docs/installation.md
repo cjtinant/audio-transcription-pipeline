@@ -61,6 +61,23 @@ than relying on `.gitignore` alone. Full design reasoning is in
 
 ---
 
+## Exact Versions (Reproducibility)
+
+The install steps below deliberately pin only the direct dependencies
+(torch/torchaudio, whisperx, httpx) and let the resolver pick the rest. The
+exact versions this pipeline was built and tested against are snapshotted in
+[`requirements-lock.txt`](../requirements-lock.txt) (recorded 2026-07-12,
+macOS arm64, Python 3.11). Check it first when debugging version-specific
+behavior — the torchcodec warnings and the pyannote model-default claims in
+this repo were all verified against those versions. To reproduce the tested
+environment exactly:
+
+```bash
+uv pip install -r requirements-lock.txt
+```
+
+---
+
 ## Quick Start — Simple Instructions
 
 These instructions assume you can copy and paste commands into a terminal. On
