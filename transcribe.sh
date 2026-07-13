@@ -18,7 +18,10 @@
 #       if the folder name contains spaces.
 # ─────────────────────────────────────────────────────────────────────
 
-# Suppress harmless torchcodec warning
+# Suppress UserWarnings raised from pyannote modules. Known limitation:
+# this does NOT catch the torchcodec/FFmpeg-8 startup warnings (they come
+# from other modules with a different category) — those are cosmetic and
+# tracked in WATERSHED.md, not suppressed here.
 export PYTHONWARNINGS="ignore::UserWarning:pyannote"
 
 # Activate the WhisperX virtual environment
@@ -41,19 +44,22 @@ fi
 audio_path=$(cd "$(dirname "$1")" && pwd)/$(basename "$1")
 audio_stem=$(basename "$audio_path")
 audio_stem="${audio_stem%.*}"
-python3 -c "
-import json
+# Stem and path are passed as argv, NOT interpolated into the program
+# text — an apostrophe in a path (e.g. Zoom's "...(he_they)'s Zoom
+# Meeting" folder names) would break the quoting or worse.
+python3 -c '
+import json, sys
 from pathlib import Path
-sidecar = Path.home() / 'PROJECTS/audio-transcription-output/.source-audio.json'
+sidecar = Path.home() / "PROJECTS/audio-transcription-output/.source-audio.json"
 data = {}
 if sidecar.exists():
     try:
         data = json.loads(sidecar.read_text())
     except json.JSONDecodeError:
         data = {}
-data['$audio_stem'] = '$audio_path'
+data[sys.argv[1]] = sys.argv[2]
 sidecar.write_text(json.dumps(data, indent=2, sort_keys=True))
-"
+' "$audio_stem" "$audio_path"
 
 # Run WhisperX — full path avoids PATH issues after venv activation.
 # All arguments passed to this script are forwarded to whisperx.
