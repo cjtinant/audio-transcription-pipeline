@@ -66,7 +66,7 @@ Step 1 — Transcribe (terminal)
        └──────────────────────────────────────────────────┬──────────────┘
                                                           ▼
 Step 2 — Summarize
-  python3 summarize-transcript.py meeting_clean.txt
+  python3 summarize_transcript.py meeting_clean.txt
        │
        │  reads transcript, sends to LLM, returns structured summary
        ▼
@@ -108,7 +108,7 @@ permanently, in the private output archive (see below).
 | ---------------------------------------------------------- | -------------------------------------------- | ------------------------------------ |
 | `transcribe.sh`                                            | Runs WhisperX on any audio file              | Step 1 — once per recording          |
 | `review_transcript.py`                                     | JSON → interactive HTML for reviewing output | Optional — between Step 1 and Step 2 |
-| `summarize-transcript.py`                                  | Reads JSON, generates LLM summary            | Step 2                               |
+| `summarize_transcript.py`                                  | Reads JSON, generates LLM summary            | Step 2                               |
 | `~/PROJECTS/audio-transcription-output/*.json`             | WhisperX output — permanent original record  | Created in Step 1, read in Step 2    |
 | `~/PROJECTS/audio-transcription-output/*_transcript_*.txt` | Clean readable transcript                    | Created in Step 2                    |
 | `~/PROJECTS/audio-transcription-output/*_summary_*.txt`    | LLM summary                                  | Created in Step 2                    |
@@ -401,23 +401,23 @@ questions, which are useful across most meeting types.
 cd ~/PROJECTS/audio-transcription-pipeline
 
 # Merged (recommended): runs twice and merges for a more complete summary
-.venv/bin/python3 summarize-transcript.py \
+.venv/bin/python3 summarize_transcript.py \
   ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt \
   --type general \
   --merge
 
 # Single run: cleaned .txt from review step
-.venv/bin/python3 summarize-transcript.py \
+.venv/bin/python3 summarize_transcript.py \
   ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt \
   --type general
 
 # Quick path: raw JSON, no human review
-.venv/bin/python3 summarize-transcript.py \
+.venv/bin/python3 summarize_transcript.py \
   ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
   --type general
 
 # Use Ollama instead (local/private)
-.venv/bin/python3 summarize-transcript.py \
+.venv/bin/python3 summarize_transcript.py \
   ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt \
   --engine ollama --type general
 ```
@@ -477,7 +477,7 @@ audio-transcription-pipeline/
 ├── compare_transcripts.py       # Word-level diff between two transcripts (optional)
 ├── sanity_check_transcript.py   # LLM plausibility pass, flags likely mistranscriptions (optional)
 ├── known-terms.txt              # Vocabulary list for sanity_check_transcript.py
-├── summarize-transcript.py      # Pipeline Step 2 — LLM summary
+├── summarize_transcript.py      # Pipeline Step 2 — LLM summary
 └── WATERSHED.md                 # Parked decisions, resolved history, open questions
 ```
 

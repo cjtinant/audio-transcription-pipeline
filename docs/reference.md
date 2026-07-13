@@ -42,16 +42,16 @@ Output: `~/PROJECTS/audio-transcription-output/meeting.json`
 
 ```bash
 # Anthropic API — default
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
 
 # Local Ollama
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
 
 # With meeting type preset
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
 
 # List available meeting types
-python summarize-transcript.py --list-types
+python summarize_transcript.py --list-types
 ```
 
 Outputs saved automatically to `~/PROJECTS/audio-transcription-output/`
@@ -78,49 +78,40 @@ uv pip install httpx
 
 ```bash
 # Basic — Anthropic API (default), general meeting type
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
 
 # Local Ollama
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
 
 # Meeting type preset
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
 
 # Custom prompt
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
     --prompt "List every action item and who owns it."
 
 # Override the Anthropic model (default is claude-sonnet-4-6)
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
     --model claude-haiku-4-5   # cheaper/faster
 
 # Override the Ollama model
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
     --engine ollama --model llama3.1:8b-instruct-q8_0
 
 # Skip saving to disk
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
 
 # List available meeting types
-python summarize-transcript.py --list-types
+python summarize_transcript.py --list-types
 ```
 
 ### Interactive / script usage
 
-The script file is `summarize-transcript.py` — the hyphen makes it an invalid
-Python module name, so a plain `from summarize-transcript import run_pipeline`
-won't work. Load it by file path with `importlib` instead:
+Import it like any module — run Python from the repo folder (or add the repo
+to `sys.path` first):
 
 ```python
-import importlib.util
-
-spec = importlib.util.spec_from_file_location(
-    "summarize_transcript",
-    "~/PROJECTS/audio-transcription-pipeline/summarize-transcript.py",
-)
-summarize_transcript = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(summarize_transcript)
-run_pipeline = summarize_transcript.run_pipeline
+from summarize_transcript import run_pipeline
 
 # Anthropic API (default), general meeting
 result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
@@ -170,7 +161,7 @@ result["paths"]       # dict of saved file paths (if save=True)
 **Custom prompt example:**
 
 ```bash
-python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
   --type custom \
   --prompt "You are summarizing a grant planning meeting. Extract: funding opportunities discussed, deadlines mentioned, assigned responsibilities, and budget considerations."
 ```

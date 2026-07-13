@@ -30,37 +30,21 @@ already identified for a plain spell-check pass. Treated as one combined
 "sanity pass" feature rather than two separate builds, per the original
 scoping note in WATERSHED.
 
-Reuses summarize-transcript.py's summarize_anthropic/summarize_ollama for
-the actual LLM call (loaded via importlib since the hyphenated filename
-blocks a normal import — see WATERSHED's parked note on this) and
-review_transcript.py's load_segments for parsing WhisperX JSON and locating
-flagged phrases back to a timestamp.
+Reuses summarize_transcript.py's summarize_anthropic/summarize_ollama for
+the actual LLM call and review_transcript.py's load_segments for parsing
+WhisperX JSON and locating flagged phrases back to a timestamp.
 
 Flags are a signal, not a fix — same as --report and compare_transcripts.py,
 still requires human judgment to resolve.
 """
 
 import argparse
-import importlib.util
 import re
 import sys
 from pathlib import Path
 
 from review_transcript import load_segments
-
-# ---------------------------------------------------------------------------
-# Load summarize-transcript.py's LLM call functions. The hyphenated filename
-# isn't a valid Python module name, so a normal `from summarize_transcript
-# import ...` won't work — same workaround already documented in
-# docs/reference.md for interactive use.
-# ---------------------------------------------------------------------------
-
-_SUMMARIZER_PATH = Path(__file__).parent / "summarize-transcript.py"
-_spec = importlib.util.spec_from_file_location("summarize_transcript", _SUMMARIZER_PATH)
-_summarizer = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_summarizer)
-summarize_anthropic = _summarizer.summarize_anthropic
-summarize_ollama = _summarizer.summarize_ollama
+from summarize_transcript import summarize_anthropic, summarize_ollama
 
 
 DEFAULT_KNOWN_TERMS_FILE = Path(__file__).parent / "known-terms.txt"

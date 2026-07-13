@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-audio-transcription-pipeline/summarize-transcript.py
+audio-transcription-pipeline/summarize_transcript.py
 ─────────────────────────────────────────────────────────────────────
 Pipeline Step 2: WhisperX JSON → formatted transcript → LLM summary
 
 CLI usage:
-    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
-    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
-    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
-    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
+    python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
+    python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
+    python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
+    python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
         --prompt "Summarize this grant meeting, focusing on deadlines."
-    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
-    python summarize-transcript.py --list-types
+    python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
+    python summarize_transcript.py --list-types
 
-Interactive usage (Python REPL or script): the hyphen in this filename
-makes it an invalid module name, so `import` won't work directly — load
-it by file path with importlib instead. See "Interactive / script usage"
-in docs/reference.md for the working recipe.
+Interactive usage (Python REPL or script, from the repo folder):
+    from summarize_transcript import run_pipeline
+    result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
+See "Interactive / script usage" in docs/reference.md for more examples.
 ─────────────────────────────────────────────────────────────────────
 """
 
@@ -568,13 +568,13 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 examples:
-  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
-  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
-  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
-  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \\
+  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
+  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
+  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
+  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \\
       --prompt "List every action item and who owns it."
-  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --model llama3.1:8b-instruct-q8_0
-  python summarize-transcript.py --list-types
+  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --model llama3.1:8b-instruct-q8_0
+  python summarize_transcript.py --list-types
         """,
     )
 

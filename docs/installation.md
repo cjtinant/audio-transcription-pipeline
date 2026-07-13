@@ -566,7 +566,7 @@ Output file: `~/PROJECTS/audio-transcription-output/test.json`
 ### Step 3 — Verify summarization
 
 ```bash
-python3 summarize-transcript.py \
+python3 summarize_transcript.py \
   ~/PROJECTS/audio-transcription-output/test.json \
   --no-save   # skip saving for this test run
 ```

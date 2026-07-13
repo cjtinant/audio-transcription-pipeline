@@ -187,3 +187,21 @@ diagnostics = the three lazy `import httpx` sites.
 
 Deliberately not done (no decision forced): committing unit tests,
 env-var override for the hardcoded archive path.
+
+## Closed later this session
+
+- Step 2 polish done and committed: real clone URLs
+  (github.com/cjtinant/audio-transcription-pipeline), `.gitignore` R
+  section pruned, diarization claims marked anecdotal (and the "audio
+  energy patterns" mechanism description corrected to embedding
+  clustering).
+- **Step 3 closed: replied to Thomas at pyannoteAI** (engineer,
+  GitHub `thomasmol`) in the May 4 email thread with the public repo
+  link. Context: the original "Hervé" welcome email was automated
+  onboarding; Thomas's "I'll have a look" was the real human opening,
+  left unanswered since May 4. Reply included the R-fork removal, the
+  version pins, and two pyannote-specific items: the short-segment
+  `std()` warning, and whether the parked Tier 4 embeddings idea
+  (`return_embeddings=True` speaker library) is sensible or a known
+  footgun. Both of those parked items are now effectively
+  awaiting-expert-reply.

@@ -53,34 +53,6 @@ way an unlabeled one would. Only worth investing in after speaker-slot caching
 
 ---
 
-### `summarize-transcript.py` filename blocks clean Python import
-
-**Status:** parked — worked around in docs, not fixed at the source
-
-The hyphen in `summarize-transcript.py` makes it an invalid Python module name —
-`from summarize-transcript import run_pipeline` is a syntax error.
-`docs/reference.md`'s "Interactive / script usage" section documents an
-`importlib.util` workaround (load by file path instead of importing by name),
-but the underlying inconsistency is still there.
-
-**Update (2026-07-12):** no longer just a documented inconvenience —
-`sanity_check_transcript.py` now depends on this same workaround to reach
-`summarize_anthropic`/`summarize_ollama` (R is gone as of today, so the old "R
-uses the same hyphenated naming and that's fine" comparison no longer applies
-either — this is now purely a Python problem with one real consumer depending on
-the workaround, not zero).
-
-**Options:** rename to `summarize_transcript.py` (breaks the matching CLI
-examples and README references to the hyphenated name everywhere else, but makes
-direct import work naturally); or leave as-is and treat CLI invocation as the
-only supported usage pattern, with `importlib` as a documented fallback for
-anyone who wants the return value in a script. No decision made — found while
-fixing `docs/reference.md`'s stale references, not investigated further.
-
-**Flagged:** 2026-07-11
-
----
-
 ### torchcodec warnings on macOS (FFmpeg 8 / PyTorch 2.8.0)
 
 **Status:** parked — cosmetic, non-fatal, does not affect output
@@ -693,3 +665,32 @@ kept), env-var overrides for the hardcoded `~/PROJECTS` archive path,
 replacing the `your-username` placeholder clone URLs, pruning
 `.gitignore`'s vestigial R section, and softening the "auto-detection
 degrades with 3+ speakers" diarization claim to explicitly anecdotal.
+(The last three were done later the same day as follow-up polish; the
+first two remain undone.)
+
+**2026-07-12 — Hyphenated filename resolved: `summarize-transcript.py`
+renamed to `summarize_transcript.py`:** Parked 2026-07-11 with two
+options (rename vs. treat CLI as the only supported pattern); resolved
+in favor of the rename once three things tipped the balance the same
+day: two consumers depended on the `importlib` workaround
+(`sanity_check_transcript.py` plus the documented interactive recipe),
+the repo had just gone public with zero external users — the cheapest
+the rename would ever be — and a pyannoteAI engineer was about to read
+the code, where a file-path `importlib` load of a sibling module reads
+as a wart.
+
+Mechanical rollout: `mv` (git detects the rename on `git add -A`);
+`sanity_check_transcript.py`'s 8-line `importlib` block collapsed to
+`from summarize_transcript import summarize_anthropic,
+summarize_ollama` (its docstring note about the workaround removed);
+`docs/reference.md`'s "Interactive / script usage" `importlib` recipe
+replaced with a normal import (run from the repo folder or add to
+`sys.path`); the renamed file's own docstring now shows the working
+import; every CLI example across `README.md`, `docs/reference.md`,
+`docs/installation.md` updated. Historical references in WATERSHED and
+session notes left as-is — they describe the past accurately.
+
+Verified: both files `py_compile` clean, `import sanity_check_transcript`
+resolves the new import chain end-to-end, `--list-types` runs, and a
+repo-wide grep confirms no live references to the hyphenated name
+outside history documents.
