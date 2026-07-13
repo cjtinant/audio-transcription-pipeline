@@ -4,9 +4,7 @@
 # Bash/zsh wrapper for running WhisperX on any audio file.
 #
 # Installation:
-#   mkdir -p ~/bin
-#   cp transcribe.sh ~/bin/transcribe
-#   chmod +x ~/bin/transcribe
+#   make install
 #   # Ensure ~/bin is on your PATH (add to ~/.zshrc or ~/.bashrc):
 #   #   export PATH="$HOME/bin:$PATH"
 #

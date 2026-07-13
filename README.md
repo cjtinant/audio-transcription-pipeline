@@ -388,6 +388,7 @@ audio-transcription-pipeline/
 │   └── YYYY-MM-DD_session-notes.md   # Dated log per working session
 ├── .gitignore                   # Excludes credentials and audio files
 ├── .prettierrc                  # Markdown formatting (80-col prose wrap)
+├── Makefile                     # `make install` — symlinks transcribe.sh into ~/bin
 ├── README.md                    # This file — daily use
 ├── transcribe.sh                # Bash wrapper for WhisperX (Step 1)
 ├── review_transcript.py         # JSON → interactive HTML review tool (optional)

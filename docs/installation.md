@@ -109,9 +109,7 @@ uv pip install httpx
 **Step 5 — Install the transcribe script**
 
 ```bash
-mkdir -p ~/bin
-cp transcribe.sh ~/bin/transcribe
-chmod +x ~/bin/transcribe
+make install
 ```
 
 Add `~/bin` to your PATH if it isn't already (add to `~/.zshrc` or `~/.bashrc`):
@@ -183,7 +181,7 @@ inside this Ubuntu terminal.
 **Step 3 — Install required tools**
 
 ```bash
-sudo apt update && sudo apt install -y git ffmpeg python3-pip curl
+sudo apt update && sudo apt install -y git ffmpeg python3-pip curl build-essential
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.bashrc
 ```
@@ -202,6 +200,18 @@ uv pip install httpx
 
 **Step 5 — Set up HuggingFace** (see [HuggingFace Setup](#huggingface-setup))
 
+**Step 6 — Install the transcribe script**
+
+```bash
+make install
+```
+
+Add `~/bin` to your PATH if it isn't already (add to `~/.bashrc`):
+
+```bash
+export PATH="$HOME/bin:$PATH"
+```
+
 ---
 
 ### Linux (Simple)
@@ -210,7 +220,7 @@ uv pip install httpx
 
 ```bash
 # Install system dependencies
-sudo apt update && sudo apt install -y git ffmpeg python3-pip curl
+sudo apt update && sudo apt install -y git ffmpeg python3-pip curl build-essential
 
 # Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -224,6 +234,18 @@ source .venv/bin/activate
 uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 uv pip install whisperx
 uv pip install httpx
+```
+
+**Install the transcribe script:**
+
+```bash
+make install
+```
+
+Add `~/bin` to your PATH if it isn't already (add to `~/.bashrc`):
+
+```bash
+export PATH="$HOME/bin:$PATH"
 ```
 
 If you have an NVIDIA GPU, replace the torch install with:
@@ -280,9 +302,7 @@ or recommended.
 **Install the transcribe script:**
 
 ```bash
-mkdir -p ~/bin
-cp transcribe.sh ~/bin/transcribe
-chmod +x ~/bin/transcribe
+make install
 
 # Make sure ~/bin is on your PATH — add to ~/.zshrc or ~/.bashrc:
 #   export PATH="$HOME/bin:$PATH"
@@ -355,6 +375,18 @@ uv pip install whisperx
 uv pip install httpx
 ```
 
+**Install the transcribe script:**
+
+```bash
+make install
+```
+
+Add `~/bin` to your PATH if it isn't already (add to `~/.bashrc`):
+
+```bash
+export PATH="$HOME/bin:$PATH"
+```
+
 **Audio files on Windows:** Your Windows files are accessible at
 `/mnt/c/Users/YourName/`. Copy audio files to your WSL2 home first:
 
@@ -390,7 +422,7 @@ sudo apt update && sudo apt install -y \
   git ffmpeg python3-pip curl build-essential
 
 # RHEL/Fedora
-sudo dnf install -y git ffmpeg python3-pip curl gcc
+sudo dnf install -y git ffmpeg python3-pip curl gcc make
 
 # Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -410,6 +442,18 @@ uv pip install httpx
 # NVIDIA GPU (CUDA 12.4)
 # uv pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124
 # Use: --device cuda --compute_type float16
+```
+
+**Install the transcribe script:**
+
+```bash
+make install
+```
+
+Add `~/bin` to your PATH if it isn't already (add to `~/.bashrc`):
+
+```bash
+export PATH="$HOME/bin:$PATH"
 ```
 
 ---
@@ -433,7 +477,7 @@ a free account and license agreement).
    this was confirmed.
 6. Add the token to your credentials file:
 
-**macOS/Linux (R users):**
+**macOS/Linux:**
 
 ```bash
 echo 'HF_TOKEN=hf_yourtoken' >> ~/.Renviron

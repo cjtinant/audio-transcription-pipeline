@@ -7,85 +7,6 @@ close them when resolved.
 
 ## Parked:
 
-### Make the installed `transcribe` wrapper easy to keep in sync
-
-**Status:** idea — not scoped or started
-
-Raised 2026-07-12 as the concrete next step after "confidence in output" work
-(Tier 2/3) wrapped up — of the original three friction points (output
-confidence, confusing file management, too many manual steps), this is aimed at
-the last one.
-
-A related item was dropped earlier the same day (see Resolved/History):
-`~/bin/transcribe` had genuinely drifted from the repo's `transcribe.sh`
-(missing the sidecar block, stale model/output-dir defaults), but that specific
-confusion turned out to be caused by a direct `whisperx` invocation, not the
-drift — so nothing was built. The underlying gap is still real, though: editing
-`transcribe.sh` doesn't do anything until someone remembers to run
-`cp transcribe.sh ~/bin/transcribe`, and today's priority (easy to update) is a
-different, better reason to revisit it than the reason it got dropped for.
-
-**Candidate approaches, not evaluated yet** (carried over from the dropped
-item): a Makefile/install-script target for the re-copy step; a symlink
-(`ln -s`) instead of a copy, so edits take effect immediately with no re-sync
-step — the previously-dropped item noted the install docs' choice of
-copy-over-symlink isn't explained anywhere, worth checking if there was a real
-reason; or a version/date check `transcribe` prints on startup so drift is
-visible immediately if a symlink isn't used.
-
-**Scoping notes (2026-07-12):**
-
-- Checked for a documented reason behind copy-over-symlink: none found.
-  `installation.md` and `transcribe.sh`'s own header comment both just say
-  `cp`, no rationale given anywhere. Nothing blocks switching to a symlink.
-- Reframed the actual friction, per Jason: not just step *count* but
-  remembering the correct *sequence/syntax* to type. That favors combining
-  approaches — a symlink removes the ongoing re-sync step entirely (edit
-  the repo file, done), wrapped in a Makefile `install` target so the
-  one-time symlink command (`ln -s`, easy to get the argument order backwards
-  on) doesn't need to be recalled either. Only `make install` would ever
-  need remembering.
-- No Makefile exists in this repo yet. `make` isn't guaranteed on plain
-  Windows (there's a separate "Windows (Simple)" doc section distinct from
-  "Windows WSL2," and only WSL2 reliably has `make`) — relevant only if the
-  public install docs need to stay platform-general.
-- Read `README.md` and `docs/installation.md` in full to ground this.
-  Confirmed the two-repo structure: this repo (`audio-transcription-pipeline`)
-  is the only one that's actually version-controlled/public;
-  `audio-transcription-output` is private data only and irrelevant to this
-  question. Also surfaced that Positron (Jason's actual daily terminal/IDE)
-  appears exactly once in the docs, as a troubleshooting aside about PATH
-  after venv activation — the macOS Quick Start sections otherwise assume
-  Terminal.app, with no stated default IDE anywhere.
-
-**Open design questions, not decided:**
-
-1. Should `installation.md`'s macOS sections document Positron as the
-   default terminal/IDE (with Terminal.app noted as an alternative), given
-   that's Jason's actual daily setup — or stay platform-general as written?
-2. Does the wrapper-sync fix (symlink + Makefile) only need to work for
-   Jason's own macOS/Positron setup, or does it need an equivalent path
-   documented for the Windows-Simple audience too, given the repo is public?
-
-**Flagged:** 2026-07-12
-
----
-
-### Stale "R users" label in `installation.md`
-
-**Status:** idea — not started, one-line fix
-
-Found while scoping the item above. `docs/installation.md` line 436 still
-headers a step **"macOS/Linux (R users):"** — a leftover from the R-path
-removal earlier the same session. The full-repo grep run at the time
-("Verified clean with a full-repo grep for R-specific patterns," see
-Resolved/History) missed it because it's a prose label, not literal R code
-or an `.R` file reference.
-
-**Flagged:** 2026-07-12
-
----
-
 ### Review tooling ideas — priority order
 
 Ranked by effort-vs-value, with dependencies noted where an idea isn't as
@@ -674,3 +595,41 @@ run-ons) — no other clear correctness win either direction found on a skim.
 
 **Open, not decided:** whether this settles `large-v2` vs `large-v3` as
 canonical for `mentor-meet`. Not started without explicit ask.
+
+**2026-07-12 — `transcribe` wrapper sync fixed (symlink + Makefile), rolled
+out across all platform docs:** Resolved the "keep `~/bin/transcribe` in
+sync" item scoped earlier the same day. Both open design questions decided:
+Positron does *not* need to become the documented default (Jason confirmed
+platform-general docs are fine as written); the symlink + Makefile approach
+*is* feasible for the Windows-Simple audience (WSL2 is a real Linux
+userland — `ln -s`/`make` behave identically to native Linux there) and was
+extended to it.
+
+Built `Makefile` (new, repo root) with a single `.PHONY: install` target:
+`ln -sf` the repo's `transcribe.sh` into `~/bin/transcribe` (idempotent,
+safe to re-run) plus `chmod +x`. Replaces the old `cp`/`chmod` sequence
+everywhere it appeared, and fills three places that never had an install
+step documented at all:
+
+- `installation.md` — macOS Apple Silicon (Simple + Technical) switched from
+  `cp` to `make install`. Linux (Simple), Linux (Technical), and Windows
+  WSL2 (Technical) each gained a net-new "Install the transcribe script"
+  step (previously missing entirely) using the same command. Windows
+  (Simple) already got this fix in the prior turn.
+- `transcribe.sh`'s own header comment updated to match.
+- `README.md`'s Project Structure tree gained a `Makefile` entry.
+- Linux (Simple) and Windows (Simple) both gained `build-essential` in
+  their `apt install` lines (`make`'s actual dependency, previously present
+  only in the Technical tracks). RHEL/Fedora's `dnf` line also gained an
+  explicit `make` package — not verified whether `gcc` alone would have
+  pulled it in as a dependency, added explicitly rather than assumed.
+
+Also fixed while doing this full-repo doc pass: the stale `"macOS/Linux (R
+users):"` label at `installation.md` (flagged, not fixed, in the prior
+turn) — changed to `"macOS/Linux:"`. Confirms the earlier full-repo grep
+for R-specific patterns had a real blind spot (prose labels vs. literal `R`
+code/file references), now closed.
+
+`noise-reduction.md` and `cowork-folder-access.md` were read as part of
+this pass and need no changes — neither references the engine default, R,
+or the install method.
