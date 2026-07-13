@@ -637,3 +637,59 @@ code/file references), now closed.
 `noise-reduction.md` and `cowork-folder-access.md` were read as part of
 this pass and need no changes — neither references the engine default, R,
 or the install method.
+
+**2026-07-12 — Repo-sharing readiness pass (pre-share with a pyannote
+dev):** Full-project read surfaced inconsistencies and gaps ahead of
+sharing the repo externally. Done in two tiers the same day:
+
+_Blockers:_ `LICENSE.md` added (PolyForm Noncommercial 1.0.0, verbatim
+canonical text, Required Notice: Copyright (c) 2026 C. Jason Tinant) plus
+a plain-language License section in README — noted honestly:
+source-available, not OSI open source. `summarize-transcript.py`'s
+docstring and `--help` epilog corrected from the pre-rename
+`transcribe.py` naming; the `from transcribe import run_pipeline` example
+(which the hyphenated filename never allowed) now points at
+`docs/reference.md`'s importlib recipe. Privacy question resolved by
+decision, not deletion: Jason reviewed the transcript fragments and first
+names in WATERSHED/session notes and judged them innocuous; session notes
+stay in the repo. (Removing them wouldn't have helped much anyway —
+WATERSHED carries the same material, and git history retains committed
+files.)
+
+_Second tier (things a reviewer would notice):_
+
+- `requirements-lock.txt` added — exact versions extracted from the
+  venv's dist-info metadata (equivalent to `uv pip freeze`, which
+  couldn't run from the session sandbox against the macOS venv):
+  whisperx 3.8.6, pyannote.audio 4.0.4, torch 2.8.0, faster-whisper
+  1.2.1, torchcodec 0.7.0, et al. Pins the versions behind this repo's
+  version-specific claims (torchcodec warnings, `community-1` default).
+  Referenced from a new "Exact Versions" section in `installation.md`
+  and README's structure tree.
+- Real bug fixed in `transcribe.sh`: `$audio_stem`/`$audio_path` were
+  interpolated directly into the sidecar `python3 -c` program text — a
+  path containing an apostrophe (Zoom's own `...(he_they)'s Zoom
+  Meeting` folder naming) would have broken it. Now passed as argv with
+  a single-quoted program. Verified in the sandbox with exactly such a
+  path; the old form would have raised a SyntaxError.
+- `transcribe.sh`'s PYTHONWARNINGS comment corrected: it claimed to
+  suppress the torchcodec warning, which it never did (already
+  documented in the torchcodec parked item). Comment now states what the
+  line actually does (pyannote UserWarnings) and what it doesn't.
+  Behavior unchanged.
+- `review_transcript.py`: macOS-only `open` calls replaced with a
+  platform-aware `open_with_default_app` (`open` on darwin, `xdg-open`
+  elsewhere) — docs claim Linux/WSL2 support, so this was a real gap.
+- `grant_planning` preset gaps closed: it existed in `MEETING_PROMPTS`
+  and README's table but was missing from `MEETING_TYPE_DESCRIPTIONS`
+  (so `--list-types` silently omitted it), `docs/reference.md`'s presets
+  table, and README's supported-types line. All three fixed;
+  `--list-types` column width bumped to fit the longer name. Verified by
+  running `--list-types`.
+
+Deliberately not done (noted in the evaluation, no decision forced):
+committing unit tests (the sandbox tests from prior sessions were never
+kept), env-var overrides for the hardcoded `~/PROJECTS` archive path,
+replacing the `your-username` placeholder clone URLs, pruning
+`.gitignore`'s vestigial R section, and softening the "auto-detection
+degrades with 3+ speakers" diarization claim to explicitly anecdotal.
