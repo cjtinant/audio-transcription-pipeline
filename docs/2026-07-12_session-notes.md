@@ -111,3 +111,79 @@ precision-test log commits went through). Ran the pending diff:
   confirmed this session to occur with or without pinned speaker count).
 
 None of the above should be started without an explicit ask.
+
+---
+
+# Session 2 — 2026-07-12 (repo-sharing readiness)
+
+Repo connected directly via Cowork folder access this session (first
+time — prior sessions worked from uploads). Ask: full-project read,
+find and fix WATERSHED inconsistencies, then evaluate the repo as if
+sharing it with a pyannote dev.
+
+## Consistency pass (committed, batch 1)
+
+- Tier 3 (sanity pass) had been left "in progress" under Parked after
+  the work completed — moved to Resolved/History; Parked intro updated
+  (only Tier 4 remains). Cosmetic fixes (doubled `---`, typo).
+- Two WATERSHED claims contradicted the repo and were reconciled:
+  `installation.md` troubleshooting still said "two model pages"
+  (community-1 is the only gated model), and `summarize-transcript.py`'s
+  `ANTHROPIC_API_KEY` error message still gave the `.Renviron (R)`
+  non-fix. Both fixed; the R-removal entry's "verified clean" claim
+  corrected with a dated note. Lesson repeated: pattern greps miss prose
+  and string literals.
+
+## Sharing evaluation → blockers (committed, batch 1)
+
+- **Privacy: resolved by decision, not deletion.** Reviewed the
+  transcript fragments and first names in WATERSHED/session notes and
+  judged them innocuous; session notes stay. (Removing them wouldn't
+  have helped much — WATERSHED carries the same material, and git
+  history retains committed files.)
+- **License chosen: PolyForm Noncommercial 1.0.0**, copyright C. Jason
+  Tinant — after a plain-language comparison of MIT/Apache/GPL/CC-BY.
+  Verbatim canonical text in `LICENSE.md`; README License section.
+  Noted honestly: source-available, not OSI open source.
+- **Stale docstring fixed:** `summarize-transcript.py` still named
+  itself `transcribe.py` and suggested `from transcribe import
+  run_pipeline`, which the hyphenated filename never allowed.
+
+## Second tier (committed, batch 2)
+
+- `requirements-lock.txt` — exact versions extracted from the venv's
+  dist-info (whisperx 3.8.6, pyannote.audio 4.0.4, torch 2.8.0,
+  torchcodec 0.7.0); referenced from installation.md's new "Exact
+  Versions" section.
+- Real bug: `transcribe.sh` interpolated paths into the sidecar
+  `python3 -c` text — an apostrophe in a path (Zoom's own
+  `...(he_they)'s` folder naming) would have broken it. Now argv;
+  verified in sandbox with exactly such a path.
+- `PYTHONWARNINGS` comment made honest (never caught the torchcodec
+  warning); behavior unchanged.
+- `review_transcript.py`: platform-aware opener (`open`/`xdg-open`)
+  replacing macOS-only calls.
+- `grant_planning` preset surfaced in `--list-types`, reference.md's
+  table, and README's supported-types line (existed in prompts + README
+  table only).
+
+## Also diagnosed, no repo change
+
+Editor showed 3× "Cannot find module httpx" — static checker pointed at
+system Python 3.9, not the venv (3.11.11, httpx 0.28.1 confirmed at
+runtime). Fix is interpreter selection in the editor, not code. Three
+diagnostics = the three lazy `import httpx` sites.
+
+## Next steps (decided, not started)
+
+1. ~~Session notes entry~~ (this).
+2. Small polish: real clone URLs (needs the GitHub URL), prune
+   `.gitignore`'s vestigial R section, mark the "3+ speakers degrades"
+   diarization claim as anecdotal.
+3. The share itself: decide what is wanted *from* the pyannote dev —
+   if diarization feedback, distill the `std()` warning/short-segment
+   observations into a short note or issue draft rather than sending
+   the bare repo link.
+
+Deliberately not done (no decision forced): committing unit tests,
+env-var override for the hardcoded archive path.
