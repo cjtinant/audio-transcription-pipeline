@@ -1,24 +1,22 @@
 #!/usr/bin/env python3
 """
-audio-transcription-pipeline/transcribe.py
+audio-transcription-pipeline/summarize-transcript.py
 ─────────────────────────────────────────────────────────────────────
-Full pipeline: WhisperX JSON → formatted transcript → LLM summary
-
-Interactive usage (Python REPL or script):
-    from transcribe import run_pipeline
-    result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
-    result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
-                          engine="anthropic",
-                          meeting_type="interview")
+Pipeline Step 2: WhisperX JSON → formatted transcript → LLM summary
 
 CLI usage:
-    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json
-    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic
-    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
-    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
+    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
+    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
+    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
+    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
         --prompt "Summarize this grant meeting, focusing on deadlines."
-    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
-    python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --list-types
+    python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
+    python summarize-transcript.py --list-types
+
+Interactive usage (Python REPL or script): the hyphen in this filename
+makes it an invalid module name, so `import` won't work directly — load
+it by file path with importlib instead. See "Interactive / script usage"
+in docs/reference.md for the working recipe.
 ─────────────────────────────────────────────────────────────────────
 """
 
@@ -205,8 +203,13 @@ def summarize_anthropic(
     if not api_key:
         raise EnvironmentError(
             "ANTHROPIC_API_KEY not set.\n"
-            "Add it to ~/.Renviron (R) or ~/.bashrc / ~/.zshrc (shell):\n"
-            "  export ANTHROPIC_API_KEY=sk-ant-yourkey"
+            "Export it in your shell session (add to ~/.zshrc / ~/.bashrc "
+            "to persist):\n"
+            "  export ANTHROPIC_API_KEY=sk-ant-yourkey\n"
+            "If the key is stored in ~/.Renviron (this pipeline's token "
+            "file), export it from there:\n"
+            "  export ANTHROPIC_API_KEY=$(grep ANTHROPIC_API_KEY "
+            "~/.Renviron | cut -d= -f2 | tr -d '\\r')"
         )
 
     full_prompt = prompt + "Transcript:\n" + transcript
@@ -564,13 +567,13 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 examples:
-  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json
-  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --engine anthropic
-  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
-  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \\
+  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json
+  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --engine ollama
+  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
+  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \\
       --prompt "List every action item and who owns it."
-  python transcribe.py ~/PROJECTS/audio-transcription-output/meeting.json --model llama3.1:8b-instruct-q8_0
-  python transcribe.py --list-types
+  python summarize-transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --model llama3.1:8b-instruct-q8_0
+  python summarize-transcript.py --list-types
         """,
     )
 

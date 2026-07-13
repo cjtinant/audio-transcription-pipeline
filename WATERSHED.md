@@ -9,146 +9,10 @@ close them when resolved.
 
 ### Review tooling ideas — priority order
 
-Ranked by effort-vs-value, with dependencies noted where an idea isn't as
-standalone as it first looked. Tier 1 has no real dependencies and is
-cheap/safe; later tiers have real prerequisites or open design questions.
-
----
-
-### [Tier 3] LLM plausibility/sanity pass on transcript text — combine with spell-check
-
-**Status:** in progress — picked up 2026-07-12 as the direct next step after
-Tier 2's noise-reduction ceiling (see Resolved/History)
-
-Feed the plain-text transcript through the summarizer's existing LLM, asking it
-to flag anything that reads as semantically odd or out of place. Catches a
-different error category than acoustic confidence. Scoping this out reinforced
-that it shares the same false-positive risk as the already-parked spell-check
-idea below (institution-specific terms and proper nouns getting flagged as
-"wrong" by something that doesn't know your vocabulary) — treat as one combined
-"sanity pass" feature, not two separate builds.
-
-**Why now:** `compare_transcripts.py` (Tier 2) hit a real ceiling — a
-hand-maintained filler-word list only cut disagreements 164 → 124 before running
-into the same false-positive risk this item already flagged. Getting further
-requires actual judgment about "is this divergence/word substantive," not more
-word-list rules — which is exactly what this item is.
-
-**Skeleton built (2026-07-12), real LLM validation still needed:**
-`sanity_check_transcript.py` reuses `summarize-transcript.py`'s
-`summarize_anthropic`/`summarize_ollama` for the LLM call itself (loaded via
-`importlib` — the hyphenated filename issue below applies here too, worked
-around rather than fixed as part of this task) and `review_transcript.py`'s
-`load_segments` for parsing. A prompt asks the model to flag phrases that read
-as semantically odd, supplying a `known-terms.txt` list (seeded with TEA-Center,
-WhisperX, pyannote, OLC/Oglala Lakota College, Lakota — almost certainly
-incomplete) so legitimate vocabulary isn't flagged as error, per the
-false-positive risk already identified below. Output format is a simple
-`FLAG:`/`REASON:` block per flag (chosen over JSON — more forgiving to parse if
-a smaller local model doesn't format strictly), matched back to a timestamp by
-locating the phrase in the transcript's word list.
-
-Unit-tested what can be tested without a real model: known-terms file parsing
-(comments/blanks filtered), flag-block parsing (multiple flags, `NONE FOUND`, a
-phrase that doesn't match verbatim — reported as `?:??` rather than silently
-dropped or crashing), and confirmed the `importlib` reuse of
-`summarize-transcript.py`'s functions actually resolves. The one thing that
-can't be verified without your machine: whether the prompt actually gets good
-results from a real model, and whether Ollama's smaller local models follow the
-`FLAG:`/`REASON:` format reliably or need a stricter/looser parser.
-
-**Real test run (2026-07-12), both engines, against
-`2026-06-09_audio_tho-meet_large-v3.json`:** meaningful quality gap between
-engines, not just a style difference.
-
-`ollama` (`llama3.1:8b-instruct-q6_k`): 7 flags, 1 couldn't be matched back to a
-timestamp (the model paraphrased instead of quoting verbatim, despite the
-prompt's explicit instruction — a real prompt-compliance gap for the smaller
-model). Several flags look like informal-speech false positives despite being
-told not to flag those ("Not fine.", "And actually what we'll do is about
-this."). One genuinely good catch not found by the other engine or by
-`compare_transcripts.py`: `[24:21]` flagged garbled grammar ("I haven't done a
-darn thing since like, I think it's all it is") and suggested a plausible real
-reading.
-
-`anthropic` (`claude-sonnet-4-6`): 6 flags, all matched verbatim — no
-format-compliance issue. More striking: most of Claude's flags land on
-timestamps `compare_transcripts.py` had already found suspicious, from a
-completely different signal (semantic plausibility vs. cross-model
-disagreement):
-
-- `[20:58]` "lacrosse" ↔ Tier 2's `[20:59] replace: 'no cost' → 'lacrosse'` —
-  exact match.
-- `[19:29]` "green" ↔ Tier 2's `[19:30] insert: 'green'` — exact match.
-- `[9:14]`/`[9:17]` "Wall Street"/"Causes" ↔ Tier 2's
-  `[9:15] replace: "OLC... Because it's" → "the Wall Street... Causes"` — same
-  region.
-- `[7:24]` "Tho" ↔ Tier 2's `[7:24] replace: 'though' → 'Tho'` — same
-  divergence, different theory (Claude guessed a mistranscribed proper name;
-  could equally be the reverse — `2026-06-09_audio_tho-meet`'s own filename
-  already uses "tho" as a subject slug, so `large-v3`'s "Tho" might be the
-  _correct_ one and `large-v2`'s "though" the error. Neither tool says which
-  side is right, same as `compare_transcripts.py`'s own design — human judgment
-  still required.)
-- `[11:04]` "Nike" is _near_ Tier 2's
-  `[11:04] replace: 'Gabe at' → 'the agent of'` but "Nike" itself doesn't appear
-  in that diff — meaning it's possibly a word both models transcribed
-  _identically wrong_, which cross-model diffing structurally cannot see.
-  Genuinely interesting if true, but unconfirmed — would need the raw JSON words
-  checked directly, not done here.
-
-**Decision (2026-07-12):** the two engines are not actually interchangeable —
-this test is evidence they never were, the pipeline's docs just treated them
-that way. `anthropic` (Claude) becomes the default engine pipeline-wide, not
-just for this tool. `ollama` stays fully supported, reframed as the explicit
-local/privacy-focused option rather than the default — a real choice for
-sensitive recordings, not a downgrade path.
-
-**Rollout completed (2026-07-12):** default engine flipped consistently across
-code and docs. Code: `summarize-transcript.py`'s `run_pipeline`/
-`run_pipeline_merged`/CLI default, `summarize-transcript.R`'s `match.arg()`
-vectors reordered (R uses the first listed value as the default — confirmed by R
-semantics, not executed since R isn't available in this session, worth a quick
-real check), `sanity_check_transcript.py`'s CLI default. Docs: `README.md`,
-`docs/reference.md`, `docs/installation.md` — every example and section label
-reordered to present Anthropic first/as default, Ollama reframed as the
-local/private option, not a fallback.
-
-One thing caught and fixed along the way, not just relabeled: README's privacy
-framing ("your audio and transcripts never have to leave your computer") was
-accurate when Ollama was default but became a real inaccuracy once Anthropic is
-default — transcript _text_ now leaves the machine unless a user explicitly opts
-into `--engine ollama`. Rewrote to distinguish audio (always local) from
-transcript text (sent externally only under the default engine) rather than just
-swapping which option is labeled "(default)".
-
-**First precision test on unseen content (2026-07-12):** ran
-`sanity_check_transcript.py` (Anthropic, default) against
-`2026-06-09_audio_mentor-meet.json` — untouched by any tool built this session,
-unlike `tho-meet` which had been picked apart repeatedly. 5 flags, scored
-against the user's own knowledge of what was actually said:
-
-- **1 confirmed exact catch:** `[14:36]` "barbs" → correct answer "varves"
-  (tree-ring/climate-proxy discussion). Claude didn't just find a real error, it
-  supplied the right fix.
-- **2 likely real catches, context confirmed but exact wording not verified:**
-  `[5:53]` "cow patient" (confirmed as garbled mesonet-station discussion) and
-  `[14:00]` "save your million" (confirmed as the Dakota blizzard discussion).
-- **2 false positives:** `[1:50]` "plumber" and `[33:35]` "straight and to the
-  right" were both actually said — Claude flagged genuine, correct colloquial
-  phrasing about a person's character as semantically odd. Different failure
-  mode than Ollama's informal-speech false positives from the earlier test
-  (filler/backchannel) — this is unusual-but-real descriptive language, not
-  filler.
-
-**Rough precision: 3/5 real, 2/5 false positive** on a single unseen recording —
-not a large enough sample to treat as a stable rate, but the first real signal
-beyond the `tho-meet` test (which validated corroboration with
-`compare_transcripts.py`, not raw precision). Consistent with "flags are a
-signal, not a fix" — about 2 in 5 flags being dead ends here is a real cost of
-using this tool, not a defect to chase down immediately.
-
-**Flagged:** 2026-07-11
+Ranked by effort-vs-value when first triaged (2026-07-11). Tiers 1–3 have
+since been built and resolved — see Resolved/History. Only the Tier 4
+ideas below remain parked; both are speculative and carry real
+misattribution risk, so neither should start without an explicit ask.
 
 ---
 
@@ -214,8 +78,6 @@ anyone who wants the return value in a script. No decision made — found while
 fixing `docs/reference.md`'s stale references, not investigated further.
 
 **Flagged:** 2026-07-11
-
----
 
 ---
 
@@ -544,6 +406,138 @@ this; the open question it posed ("second flag type in the review tool, or a
 separate pass?") was answered in practice: separate pass,
 `sanity_check_transcript.py`.
 
+**2026-07-12 — [Tier 3] LLM plausibility/sanity pass built, validated, and
+adopted (`sanity_check_transcript.py`):** Flagged 2026-07-11, picked up
+2026-07-12 as the direct next step after Tier 2's noise-reduction ceiling,
+resolved the same day. (Moved here from Parked in a 2026-07-12 consistency
+pass — the item had stayed under "in progress" after the work completed.)
+
+Original idea: feed the plain-text transcript through the summarizer's existing
+LLM, asking it to flag anything that reads as semantically odd or out of place.
+Catches a different error category than acoustic confidence. Scoping this out
+reinforced that it shares the same false-positive risk as the spell-check idea
+(institution-specific terms and proper nouns getting flagged as "wrong" by
+something that doesn't know your vocabulary) — treated as one combined "sanity
+pass" feature, not two separate builds.
+
+**Why then:** `compare_transcripts.py` (Tier 2) hit a real ceiling — a
+hand-maintained filler-word list only cut disagreements 164 → 124 before running
+into the same false-positive risk this item already flagged. Getting further
+requires actual judgment about "is this divergence/word substantive," not more
+word-list rules — which is exactly what this item is.
+
+**Skeleton built (2026-07-12):** `sanity_check_transcript.py` reuses
+`summarize-transcript.py`'s `summarize_anthropic`/`summarize_ollama` for the LLM
+call itself (loaded via `importlib` — the hyphenated filename issue under Parked
+applies here too, worked around rather than fixed as part of this task) and
+`review_transcript.py`'s `load_segments` for parsing. A prompt asks the model to
+flag phrases that read as semantically odd, supplying a `known-terms.txt` list
+(seeded with TEA-Center, WhisperX, pyannote, OLC/Oglala Lakota College, Lakota —
+almost certainly incomplete) so legitimate vocabulary isn't flagged as error,
+per the false-positive risk already identified. Output format is a simple
+`FLAG:`/`REASON:` block per flag (chosen over JSON — more forgiving to parse if
+a smaller local model doesn't format strictly), matched back to a timestamp by
+locating the phrase in the transcript's word list.
+
+Unit-tested what can be tested without a real model: known-terms file parsing
+(comments/blanks filtered), flag-block parsing (multiple flags, `NONE FOUND`, a
+phrase that doesn't match verbatim — reported as `?:??` rather than silently
+dropped or crashing), and confirmed the `importlib` reuse of
+`summarize-transcript.py`'s functions actually resolves.
+
+**Real test run (2026-07-12), both engines, against
+`2026-06-09_audio_tho-meet_large-v3.json`:** meaningful quality gap between
+engines, not just a style difference.
+
+`ollama` (`llama3.1:8b-instruct-q6_k`): 7 flags, 1 couldn't be matched back to a
+timestamp (the model paraphrased instead of quoting verbatim, despite the
+prompt's explicit instruction — a real prompt-compliance gap for the smaller
+model). Several flags look like informal-speech false positives despite being
+told not to flag those ("Not fine.", "And actually what we'll do is about
+this."). One genuinely good catch not found by the other engine or by
+`compare_transcripts.py`: `[24:21]` flagged garbled grammar ("I haven't done a
+darn thing since like, I think it's all it is") and suggested a plausible real
+reading.
+
+`anthropic` (`claude-sonnet-4-6`): 6 flags, all matched verbatim — no
+format-compliance issue. More striking: most of Claude's flags land on
+timestamps `compare_transcripts.py` had already found suspicious, from a
+completely different signal (semantic plausibility vs. cross-model
+disagreement):
+
+- `[20:58]` "lacrosse" ↔ Tier 2's `[20:59] replace: 'no cost' → 'lacrosse'` —
+  exact match.
+- `[19:29]` "green" ↔ Tier 2's `[19:30] insert: 'green'` — exact match.
+- `[9:14]`/`[9:17]` "Wall Street"/"Causes" ↔ Tier 2's
+  `[9:15] replace: "OLC... Because it's" → "the Wall Street... Causes"` — same
+  region.
+- `[7:24]` "Tho" ↔ Tier 2's `[7:24] replace: 'though' → 'Tho'` — same
+  divergence, different theory (Claude guessed a mistranscribed proper name;
+  could equally be the reverse — `2026-06-09_audio_tho-meet`'s own filename
+  already uses "tho" as a subject slug, so `large-v3`'s "Tho" might be the
+  _correct_ one and `large-v2`'s "though" the error. Neither tool says which
+  side is right, same as `compare_transcripts.py`'s own design — human judgment
+  still required.)
+- `[11:04]` "Nike" is _near_ Tier 2's
+  `[11:04] replace: 'Gabe at' → 'the agent of'` but "Nike" itself doesn't appear
+  in that diff — meaning it's possibly a word both models transcribed
+  _identically wrong_, which cross-model diffing structurally cannot see.
+  Genuinely interesting if true, but unconfirmed — would need the raw JSON words
+  checked directly, not done here.
+
+**Decision (2026-07-12):** the two engines are not actually interchangeable —
+this test is evidence they never were, the pipeline's docs just treated them
+that way. `anthropic` (Claude) becomes the default engine pipeline-wide, not
+just for this tool. `ollama` stays fully supported, reframed as the explicit
+local/privacy-focused option rather than the default — a real choice for
+sensitive recordings, not a downgrade path.
+
+**Rollout completed (2026-07-12):** default engine flipped consistently across
+code and docs. Code: `summarize-transcript.py`'s `run_pipeline`/
+`run_pipeline_merged`/CLI default, `summarize-transcript.R`'s `match.arg()`
+vectors reordered (R uses the first listed value as the default — confirmed by R
+semantics, not executed; the suggested real check became moot later the same
+day when the R path was removed entirely — see the entry below),
+`sanity_check_transcript.py`'s CLI default. Docs: `README.md`,
+`docs/reference.md`, `docs/installation.md` — every example and section label
+reordered to present Anthropic first/as default, Ollama reframed as the
+local/private option, not a fallback.
+
+One thing caught and fixed along the way, not just relabeled: README's privacy
+framing ("your audio and transcripts never have to leave your computer") was
+accurate when Ollama was default but became a real inaccuracy once Anthropic is
+default — transcript _text_ now leaves the machine unless a user explicitly opts
+into `--engine ollama`. Rewrote to distinguish audio (always local) from
+transcript text (sent externally only under the default engine) rather than just
+swapping which option is labeled "(default)".
+
+**First precision test on unseen content (2026-07-12):** ran
+`sanity_check_transcript.py` (Anthropic, default) against
+`2026-06-09_audio_mentor-meet.json` — untouched by any tool built this session,
+unlike `tho-meet` which had been picked apart repeatedly. 5 flags, scored
+against the user's own knowledge of what was actually said:
+
+- **1 confirmed exact catch:** `[14:36]` "barbs" → correct answer "varves"
+  (tree-ring/climate-proxy discussion). Claude didn't just find a real error, it
+  supplied the right fix.
+- **2 likely real catches, context confirmed but exact wording not verified:**
+  `[5:53]` "cow patient" (confirmed as garbled mesonet-station discussion) and
+  `[14:00]` "save your million" (confirmed as the Dakota blizzard discussion).
+- **2 false positives:** `[1:50]` "plumber" and `[33:35]` "straight and to the
+  right" were both actually said — Claude flagged genuine, correct colloquial
+  phrasing about a person's character as semantically odd. Different failure
+  mode than Ollama's informal-speech false positives from the earlier test
+  (filler/backchannel) — this is unusual-but-real descriptive language, not
+  filler.
+
+**Rough precision: 3/5 real, 2/5 false positive** on a single unseen recording —
+not a large enough sample to treat as a stable rate, but the first real signal
+beyond the `tho-meet` test (which validated corroboration with
+`compare_transcripts.py`, not raw precision). Consistent with "flags are a
+signal, not a fix" — about 2 in 5 flags being dead ends here is a real cost of
+using this tool, not a defect to chase down immediately. Ongoing upkeep, not a
+task: add terms to `known-terms.txt` as false positives surface.
+
 **2026-07-12 — R path dropped, `summarize-transcript.R` removed:** Raised as an
 open question the same day (parked item, above the Tier list) — not used for any
 analysis outside this pipeline, and already the _only_ R-specific file in an
@@ -565,7 +559,7 @@ checklist), `docs/reference.md` (R Pipeline Reference section removed; Step 2
 examples, custom-prompt example, and both "In R:" backend labels converted to
 Python-only), `docs/installation.md` (R packages install step removed from all
 four platform Quick-Start sections, renumbering subsequent steps where needed;
-"Verify in R" testing step replaced with a Python equivalént — there wasn't a
+"Verify in R" testing step replaced with a Python equivalent — there wasn't a
 separate Python verify step to fall back to, so this was a real gap, not just a
 deletion; two R-specific troubleshooting entries removed/rewritten, including
 giving the `ANTHROPIC_API_KEY not set` entry an actual fix for the Python path
@@ -575,6 +569,16 @@ automatically-exported issue identified earlier the same session for
 
 Verified clean with a full-repo grep for R-specific patterns after all edits —
 no remaining references.
+
+**Correction (2026-07-12, consistency pass):** that grep had blind spots. Two
+further misses were found and fixed the same day: the `"macOS/Linux (R
+users):"` prose label in `installation.md` (caught during the Makefile rollout,
+noted below) and `summarize-transcript.py`'s `ANTHROPIC_API_KEY` error message,
+which still told users to "Add it to ~/.Renviron (R)" — the same non-fix the
+docs pass had removed from `installation.md`'s troubleshooting. The error
+message now gives the shell-export fix, matching the docs. Lesson consistent
+with the Makefile entry's finding: pattern greps catch code/file references,
+not prose and string literals.
 
 **2026-07-12 — [Tier 2] `compare_transcripts.py` second hardening test,
 `mentor-meet` large-v2/v3:** Backed up existing `mentor-meet.json` to

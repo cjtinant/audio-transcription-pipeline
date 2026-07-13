@@ -601,10 +601,12 @@ to PATH after activation. The full path always works.
 source .venv/bin/activate
 ```
 
-**`GatedRepoError: 403`** You haven't accepted the pyannote model licenses, or
+**`GatedRepoError: 403`** You haven't accepted the pyannote model license, or
 your HF token is wrong.
 
-- Visit the two model pages and click Agree (must be logged in)
+- Visit the model page and click Agree (must be logged in) — see
+  [HuggingFace Setup](#huggingface-setup); `speaker-diarization-community-1`
+  is the only gated model this pipeline uses
 - Verify your token: `grep HF_TOKEN ~/.Renviron`
 
 **`ANTHROPIC_API_KEY not set`** Nothing in the Python path reads `~/.Renviron`
