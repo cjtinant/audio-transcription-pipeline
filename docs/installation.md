@@ -112,7 +112,7 @@ brew install uv ffmpeg git
 **Step 3 — Clone this repo and set up the environment**
 
 ```bash
-git clone https://github.com/your-username/audio-transcription-pipeline.git
+git clone https://github.com/cjtinant/audio-transcription-pipeline.git
 cd audio-transcription-pipeline
 uv venv --python 3.11 .venv
 source .venv/bin/activate
@@ -206,7 +206,7 @@ source ~/.bashrc
 **Step 4 — Clone repo and set up environment**
 
 ```bash
-git clone https://github.com/your-username/audio-transcription-pipeline.git
+git clone https://github.com/cjtinant/audio-transcription-pipeline.git
 cd audio-transcription-pipeline
 uv venv --python 3.11 .venv
 source .venv/bin/activate
@@ -244,7 +244,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.bashrc
 
 # Clone and set up
-git clone https://github.com/your-username/audio-transcription-pipeline.git
+git clone https://github.com/cjtinant/audio-transcription-pipeline.git
 cd audio-transcription-pipeline
 uv venv --python 3.11 .venv
 source .venv/bin/activate
@@ -379,7 +379,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.bashrc
 
 # Clone
-git clone https://github.com/your-username/audio-transcription-pipeline.git
+git clone https://github.com/cjtinant/audio-transcription-pipeline.git
 cd audio-transcription-pipeline
 
 # Venv
@@ -446,7 +446,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.bashrc
 
 # Clone and set up
-git clone https://github.com/your-username/audio-transcription-pipeline.git
+git clone https://github.com/cjtinant/audio-transcription-pipeline.git
 cd audio-transcription-pipeline
 uv venv --python 3.11 .venv
 source .venv/bin/activate
@@ -663,10 +663,11 @@ transcribe meeting.m4a --min_speakers 3 --max_speakers 3
 transcribe interview.m4a --min_speakers 2 --max_speakers 2
 ```
 
-When auto-detection is left on (no flags), pyannote guesses the speaker count
-from audio energy patterns — it works for 1–2 speakers but becomes unreliable
-for 3+ speakers or when voices are similar. Pinning both values is low-effort
-and high-impact. If you're unsure of the exact count, set a narrow range:
+When auto-detection is left on (no flags), pyannote estimates the speaker
+count itself, by clustering speaker embeddings. In this pipeline's own
+recordings it has been reliable for 1–2 speakers and less so for 3+ or
+similar voices — anecdotal, from limited use, not benchmarked. Pinning both
+values is low-effort and high-impact. If you're unsure of the exact count, set a narrow range:
 `--min_speakers 2 --max_speakers 4`.
 
 **Slow transcription**

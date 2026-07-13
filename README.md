@@ -236,9 +236,11 @@ Output saved to:
 
 ### Speaker count tuning (diarization quality)
 
-By default, pyannote auto-detects how many speakers are present. Auto-detection
-works well for 1–2 speakers but degrades with 3 or more speakers, or when
-speakers have similar voices or talk over each other.
+By default, pyannote estimates how many speakers are present. In this
+pipeline's own recordings (small meetings, 2–4 speakers), auto-detection has
+worked well for 1–2 speakers but degraded with 3 or more, or when speakers
+have similar voices or talk over each other — an observation from limited
+use, not a benchmark.
 
 **When you know the speaker count, always pin it.** This is the single highest-
 impact change you can make to diarization quality:
