@@ -371,6 +371,8 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default (the
   presets, LLM backend options
 - [docs/noise-reduction.md](docs/noise-reduction.md) — Pre-processing options
   for poor-quality audio
+- [docs/makefiles-and-symlinks-explained.md](docs/makefiles-and-symlinks-explained.md)
+  — Plain-language primer on the `Makefile`/symlink install mechanism
 
 ---
 
@@ -383,6 +385,7 @@ audio-transcription-pipeline/
 │   ├── noise-reduction.md            # Pre-processing options for poor audio
 │   ├── reference.md                  # Python API reference and LLM options
 │   ├── cowork-folder-access.md       # Connecting a local folder in Cowork
+│   ├── makefiles-and-symlinks-explained.md  # Makefile/symlink primer
 │   └── YYYY-MM-DD_session-notes.md   # Dated log per working session
 ├── .gitignore                   # Excludes credentials and audio files
 ├── .prettierrc                  # Markdown formatting (80-col prose wrap)
