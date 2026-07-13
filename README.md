@@ -466,6 +466,7 @@ audio-transcription-pipeline/
 │   └── YYYY-MM-DD_session-notes.md   # Dated log per working session
 ├── .gitignore                   # Excludes credentials and audio files
 ├── .prettierrc                  # Markdown formatting (80-col prose wrap)
+├── LICENSE.md                   # PolyForm Noncommercial 1.0.0
 ├── Makefile                     # `make install` — symlinks transcribe.sh into ~/bin
 ├── README.md                    # This file — daily use
 ├── transcribe.sh                # Bash wrapper for WhisperX (Step 1)
@@ -483,6 +484,17 @@ here — they're gitignored and stay local, not part of the tracked structure.
 There is no `output/` folder in this repo. All transcription output lives in a
 separate, private, local-git folder — see
 [Where output goes](#where-output-goes) above.
+
+---
+
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE.md) — free to use, modify, and share
+for any noncommercial purpose, including use by educational institutions and
+public research organizations regardless of funding source. Commercial use
+requires separate permission from the author.
+
+Required Notice: Copyright (c) 2026 C. Jason Tinant
 
 ---
 
