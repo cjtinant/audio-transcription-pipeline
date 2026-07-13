@@ -37,3 +37,4 @@ models/
 # ── Scratch files ───────────────────────────────────────────────────────
 scratch.md
 quickstart.md
+tmp_*

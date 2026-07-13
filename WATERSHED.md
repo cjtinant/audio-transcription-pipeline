@@ -722,3 +722,24 @@ Verified: `bash -n` + `py_compile` clean; env override observed in both
 the module default and `--help` text; sidecar written to a custom
 `TRANSCRIBE_OUTPUT_DIR` with an apostrophe-containing audio path (the
 quoting fix from earlier today still holds through the new argv).
+
+**2026-07-12 — Unit tests committed (`tests/`, 48 tests):** Closes the
+last deliberately-not-done item from the readiness evaluation. Prior
+sessions' tests lived only in throwaway sandboxes; WATERSHED described
+testing that a reader of the repo couldn't find. Now committed as four
+stdlib-`unittest` files (no pytest — zero new dependencies, matching
+the tools' own stdlib-only design), covering the pure functions of all
+four Python tools; no LLM call or audio needed. Run with
+`python3 -m unittest discover tests` from the repo root (documented in
+`docs/reference.md`; `tests/` added to README's structure tree).
+
+Regression cases encode this repo's actual bug history, not generic
+coverage: the `--report` word-level-timestamp fix (a word 19s into a
+0-start segment must report `[0:19]`), the unaligned-punctuation
+fallback, `?:??` for unlocatable sanity flags, filler-only differences
+excluded from `compare_transcripts.py`'s shown disagreements, the
+`grant_planning` `--list-types` omission (as a prompts-vs-descriptions
+consistency check), the `save_outputs` skip-transcript-for-`.txt`
+behavior, and the `TRANSCRIBE_OUTPUT_DIR` override (tested in a fresh
+interpreter, since the default is read at import). All 48 passed on
+first run in the sandbox.

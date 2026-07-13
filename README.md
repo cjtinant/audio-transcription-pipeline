@@ -468,6 +468,7 @@ audio-transcription-pipeline/
 │   ├── cowork-folder-access.md       # Connecting a local folder in Cowork
 │   ├── makefiles-and-symlinks-explained.md  # Makefile/symlink primer
 │   └── YYYY-MM-DD_session-notes.md   # Dated log per working session
+├── tests/                       # Unit tests — python3 -m unittest discover tests
 ├── .gitignore                   # Excludes credentials and audio files
 ├── .prettierrc                  # Markdown formatting (80-col prose wrap)
 ├── LICENSE.md                   # PolyForm Noncommercial 1.0.0

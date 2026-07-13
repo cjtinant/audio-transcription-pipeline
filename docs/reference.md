@@ -146,6 +146,19 @@ result["paths"]       # dict of saved file paths (if save=True)
 
 ---
 
+## Running the Tests
+
+Unit tests cover the pure functions (parsing, report building, timestamp
+matching) across all four Python tools. No LLM is called and no audio is
+needed — standard library `unittest` only, nothing extra to install:
+
+```bash
+cd ~/PROJECTS/audio-transcription-pipeline
+python3 -m unittest discover tests
+```
+
+---
+
 ## Meeting Type Presets
 
 | Type        | Best for                             | Output includes                                    |
