@@ -666,7 +666,8 @@ replacing the `your-username` placeholder clone URLs, pruning
 `.gitignore`'s vestigial R section, and softening the "auto-detection
 degrades with 3+ speakers" diarization claim to explicitly anecdotal.
 (The last three were done later the same day as follow-up polish; the
-first two remain undone.)
+env-var archive path followed the same day — see entry below. Only the
+unit tests remain undone.)
 
 **2026-07-12 — Hyphenated filename resolved: `summarize-transcript.py`
 renamed to `summarize_transcript.py`:** Parked 2026-07-11 with two
@@ -694,3 +695,30 @@ Verified: both files `py_compile` clean, `import sanity_check_transcript`
 resolves the new import chain end-to-end, `--list-types` runs, and a
 repo-wide grep confirms no live references to the hyphenated name
 outside history documents.
+
+**2026-07-12 — Archive path made overridable via `TRANSCRIBE_OUTPUT_DIR`:**
+Closed the "hardcoded `~/PROJECTS` archive path" item from the readiness
+evaluation's deliberately-not-done list — prioritized ahead of Tier 4
+work because anyone cloning the now-shared repo hits the hardcoded path
+first. Precedence: explicit `--output_dir`/`--output-dir`/`output_dir`
+argument > `TRANSCRIBE_OUTPUT_DIR` env var > the unchanged default.
+
+Implementation: `transcribe.sh` resolves `$output_dir` once (with
+`mkdir -p` for robustness) and uses it for both whisperx's
+`--output_dir` and the sidecar write — the sidecar previously hardcoded
+the archive path inside its Python snippet, and now receives the dir as
+a third argv. One documented nuance: a `--output_dir` passed on the
+`transcribe` command line overrides whisperx's output but not the
+sidecar location, which always follows the env/default archive.
+`summarize_transcript.py` gets a module-level `DEFAULT_OUTPUT_DIR`
+(reads the env var at import) used by `save_outputs`, `run_pipeline`,
+`run_pipeline_merged`, and the CLI default. `review_transcript.py`
+needed no change — all its outputs and sidecar reads are input-relative
+by design, so it follows the archive wherever it lives. Docs: custom-
+location subsection in `installation.md`'s archive setup; one-line
+note in README's "Where output goes."
+
+Verified: `bash -n` + `py_compile` clean; env override observed in both
+the module default and `--help` text; sidecar written to a custom
+`TRANSCRIBE_OUTPUT_DIR` with an apostrophe-containing audio path (the
+quoting fix from earlier today still holds through the new argv).

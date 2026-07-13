@@ -36,6 +36,14 @@ if [ -z "$hf_token" ]; then
     exit 1
 fi
 
+# Output archive (see README "Where output goes"). Override the default
+# location by exporting TRANSCRIBE_OUTPUT_DIR (the Python summarizer
+# honors the same variable). A --output_dir passed on the command line
+# still wins for whisperx's own output ("$@" comes last below), but the
+# sidecar written here always follows the archive location.
+output_dir="${TRANSCRIBE_OUTPUT_DIR:-$HOME/PROJECTS/audio-transcription-output}"
+mkdir -p "$output_dir"
+
 # Record the source audio path in a sidecar file, keyed by the output JSON's
 # stem. The archive deliberately keeps audio out (private-archive design),
 # but review-tooling (audio-linked spot-checking) needs a way to find the
@@ -50,7 +58,7 @@ audio_stem="${audio_stem%.*}"
 python3 -c '
 import json, sys
 from pathlib import Path
-sidecar = Path.home() / "PROJECTS/audio-transcription-output/.source-audio.json"
+sidecar = Path(sys.argv[3]) / ".source-audio.json"
 data = {}
 if sidecar.exists():
     try:
@@ -59,7 +67,7 @@ if sidecar.exists():
         data = {}
 data[sys.argv[1]] = sys.argv[2]
 sidecar.write_text(json.dumps(data, indent=2, sort_keys=True))
-' "$audio_stem" "$audio_path"
+' "$audio_stem" "$audio_path" "$output_dir"
 
 # Run WhisperX — full path avoids PATH issues after venv activation.
 # All arguments passed to this script are forwarded to whisperx.
@@ -76,6 +84,6 @@ exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx \
     --device cpu \
     --compute_type int8 \
     --output_format json \
-    --output_dir ~/PROJECTS/audio-transcription-output \
+    --output_dir "$output_dir" \
     --language en \
     "$@"

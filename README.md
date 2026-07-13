@@ -141,7 +141,9 @@ redacted summary — that's a deliberate, manual step you do yourself: edit a co
 down to what's safe to share, then move only that copy into wherever it actually
 needs to go. The original stays in the archive.
 
-See `docs/installation.md` for one-time setup of this folder.
+The location is a default, not a requirement — export `TRANSCRIBE_OUTPUT_DIR`
+to put the archive somewhere else (both `transcribe` and the summarizer honor
+it). See `docs/installation.md` for one-time setup of this folder.
 
 ---
 

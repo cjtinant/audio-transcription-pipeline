@@ -27,6 +27,13 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# Output archive default — override by exporting TRANSCRIBE_OUTPUT_DIR
+# (the same variable transcribe.sh honors). An explicit --output-dir /
+# output_dir argument always wins over both.
+DEFAULT_OUTPUT_DIR = os.environ.get(
+    "TRANSCRIBE_OUTPUT_DIR", "~/PROJECTS/audio-transcription-output"
+)
+
 
 # ── 1. Meeting type prompt presets ────────────────────────────────────
 
@@ -279,7 +286,7 @@ def save_outputs(
     transcript: str,
     summary: str,
     input_path: str,
-    output_dir: str = "~/PROJECTS/audio-transcription-output",
+    output_dir: str = DEFAULT_OUTPUT_DIR,
 ) -> dict[str, str]:
     """
     Save summary to disk. Transcript copy is skipped when input is already
@@ -329,7 +336,7 @@ def run_pipeline(
     meeting_type: str = "general",
     custom_prompt: str | None = None,
     save: bool = True,
-    output_dir: str = "~/PROJECTS/audio-transcription-output",
+    output_dir: str = DEFAULT_OUTPUT_DIR,
     model: str | None = None,
 ) -> dict:
     """
@@ -491,7 +498,7 @@ def run_pipeline_merged(
     meeting_type: str = "general",
     custom_prompt: str | None = None,
     save: bool = True,
-    output_dir: str = "~/PROJECTS/audio-transcription-output",
+    output_dir: str = DEFAULT_OUTPUT_DIR,
     model: str | None = None,
 ) -> dict:
     """
@@ -613,8 +620,12 @@ examples:
     )
     parser.add_argument(
         "--output-dir",
-        default="~/PROJECTS/audio-transcription-output",
-        help="Directory for saved outputs (default: ~/PROJECTS/audio-transcription-output)",
+        default=DEFAULT_OUTPUT_DIR,
+        help=(
+            "Directory for saved outputs (default: "
+            "~/PROJECTS/audio-transcription-output, or TRANSCRIBE_OUTPUT_DIR "
+            "if that env var is set)"
+        ),
     )
     parser.add_argument(
         "--merge",

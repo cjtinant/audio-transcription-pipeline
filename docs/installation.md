@@ -59,6 +59,18 @@ never end up in git history here, even by accident — a stronger guarantee
 than relying on `.gitignore` alone. Full design reasoning is in
 [WATERSHED.md](../WATERSHED.md).
 
+**Custom location:** `~/PROJECTS/audio-transcription-output` is only the
+default. To keep the archive somewhere else, export `TRANSCRIBE_OUTPUT_DIR`
+in your shell profile (`~/.zshrc` / `~/.bashrc`) — both the `transcribe`
+script and the Python summarizer honor it:
+
+```bash
+export TRANSCRIBE_OUTPUT_DIR="$HOME/my/archive/location"
+```
+
+If you set this, run the `git init` steps above in that folder instead, and
+read the default paths in this repo's examples as your custom location.
+
 ---
 
 ## Exact Versions (Reproducibility)
