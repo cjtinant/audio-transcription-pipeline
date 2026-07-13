@@ -88,6 +88,7 @@ MEETING_TYPE_DESCRIPTIONS = {
     "interview": "Research/user interviews — themes, insights, notable quotes, follow-ups",
     "research":  "Academic discussions — research question, findings, methods, next steps",
     "lecture":   "Lectures/presentations — topics, key concepts with timestamps, study notes",
+    "grant_planning": "Grant/funding meetings — opportunities, decisions, risks, action items, timeline",
     "custom":    "Provide your own prompt via --prompt or custom_prompt argument",
 }
 
@@ -637,7 +638,7 @@ examples:
     if args.list_types:
         print("\nAvailable meeting types:\n")
         for name, desc in MEETING_TYPE_DESCRIPTIONS.items():
-            print(f"  {name:<12} {desc}")
+            print(f"  {name:<16} {desc}")
         print()
         sys.exit(0)
 

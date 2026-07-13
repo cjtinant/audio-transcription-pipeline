@@ -164,6 +164,7 @@ result["paths"]       # dict of saved file paths (if save=True)
 | `interview` | Research interviews, user interviews | Themes, insights, notable quotes, follow-ups       |
 | `research`  | Academic discussions, lab meetings   | Research question, findings, methods, next steps   |
 | `lecture`   | Lectures, presentations, webinars    | Topics, key concepts with timestamps, study notes  |
+| `grant_planning` | Grant proposals, funding conversations | Opportunities, decisions, risks, action items, timeline |
 | `custom`    | Anything else                        | Whatever your prompt specifies                     |
 
 **Custom prompt example:**
