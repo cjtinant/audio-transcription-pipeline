@@ -1,9 +1,9 @@
 # Audio Transcription Pipeline
 
 A pipeline for transcribing multi-speaker audio recordings and generating AI
-summaries. Built on WhisperX + pyannote for speaker-aware transcription
-(always local), with Claude (Anthropic API) as the default summarization
-engine and a fully local Ollama option for sensitive recordings.
+summaries. Built on WhisperX + pyannote for speaker-aware transcription (always
+local), with Claude (Anthropic API) as the default summarization engine and a
+fully local Ollama option for sensitive recordings.
 
 **What it does:**
 
@@ -18,28 +18,27 @@ conversation, lecture, or custom prompt
 **Supported platforms:** macOS (Apple Silicon), macOS (Intel), Windows (WSL2),
 Linux
 
-**Privacy:** The transcription step (WhisperX + pyannote) runs entirely
-locally — no audio is ever uploaded anywhere, regardless of which
-summarization option you use.
+**Privacy:** The transcription step (WhisperX + pyannote) runs entirely locally
+— no audio is ever uploaded anywhere, regardless of which summarization option
+you use.
 
-The summarization step is where your choice of engine matters, since this
-step sends the text transcript (never the audio) to whichever backend you
-pick:
+The summarization step is where your choice of engine matters, since this step
+sends the text transcript (never the audio) to whichever backend you pick:
 
-- **Anthropic API (default)** — sends the transcript text to Anthropic's
-  servers for summarization. Faster and noticeably more reliable in testing
-  (see `WATERSHED.md`'s 2026-07-12 engine comparison). Review
-  [Anthropic's privacy policy](https://www.anthropic.com/privacy) before
-  using this on sensitive material.
+- **Anthropic API (default)** — sends the transcript text to Anthropic's servers
+  for summarization. Faster and noticeably more reliable in testing (see
+  `WATERSHED.md`'s 2026-07-12 engine comparison). Review
+  [Anthropic's privacy policy](https://www.anthropic.com/privacy) before using
+  this on sensitive material.
 
 - **Ollama (local/private)** — runs a local AI model on your own machine.
-  Nothing leaves your computer. Free, private, and works offline. Use this
-  for sensitive recordings: interviews, clinical conversations, confidential
-  meetings, or anything you would not want processed by a third-party
-  server. Pass `--engine ollama` to use it.
+  Nothing leaves your computer. Free, private, and works offline. Use this for
+  sensitive recordings: interviews, clinical conversations, confidential
+  meetings, or anything you would not want processed by a third-party server.
+  Pass `--engine ollama` to use it.
 
-In both cases, your audio file stays on your machine — only the transcript
-text is ever sent externally, and only if you use the Anthropic option.
+In both cases, your audio file stays on your machine — only the transcript text
+is ever sent externally, and only if you use the Anthropic option.
 
 ---
 
@@ -74,8 +73,8 @@ Step 2 — Summarize
   ~/PROJECTS/audio-transcription-output/meeting_clean_summary_20260502.txt
 ```
 
-All output lands in one flat, private, local-git-backed folder outside this
-repo — see [Where output goes](#where-output-goes) below.
+All output lands in one flat, private, local-git-backed folder outside this repo
+— see [Where output goes](#where-output-goes) below.
 
 **Why two steps instead of one?**
 
@@ -88,8 +87,8 @@ repo — see [Where output goes](#where-output-goes) below.
   prompts in seconds — without touching the audio again.
 
 - **They are independent by design.** The terminal step (WhisperX) and the
-  summarization step do not depend on each other being open or running. If
-  one fails, the other is unaffected.
+  summarization step do not depend on each other being open or running. If one
+  fails, the other is unaffected.
 
 **Why JSON as the intermediate format?**
 
@@ -105,43 +104,42 @@ permanently, in the private output archive (see below).
 
 **The files and what they do:**
 
-| File                                                        | Role                                          | When you touch it                    |
-| ------------------------------------------------------------ | --------------------------------------------- | ------------------------------------ |
-| `transcribe.sh`                                             | Runs WhisperX on any audio file               | Step 1 — once per recording          |
-| `review_transcript.py`                                      | JSON → interactive HTML for reviewing output  | Optional — between Step 1 and Step 2 |
-| `summarize-transcript.py`                                   | Reads JSON, generates LLM summary             | Step 2                               |
-| `~/PROJECTS/audio-transcription-output/*.json`              | WhisperX output — permanent original record   | Created in Step 1, read in Step 2    |
-| `~/PROJECTS/audio-transcription-output/*_transcript_*.txt`  | Clean readable transcript                     | Created in Step 2                    |
-| `~/PROJECTS/audio-transcription-output/*_summary_*.txt`     | LLM summary                                   | Created in Step 2                    |
-| `~/PROJECTS/audio-transcription-output/*_review.html`       | Interactive reviewed transcript               | Created by `review_transcript.py`    |
+| File                                                       | Role                                         | When you touch it                    |
+| ---------------------------------------------------------- | -------------------------------------------- | ------------------------------------ |
+| `transcribe.sh`                                            | Runs WhisperX on any audio file              | Step 1 — once per recording          |
+| `review_transcript.py`                                     | JSON → interactive HTML for reviewing output | Optional — between Step 1 and Step 2 |
+| `summarize-transcript.py`                                  | Reads JSON, generates LLM summary            | Step 2                               |
+| `~/PROJECTS/audio-transcription-output/*.json`             | WhisperX output — permanent original record  | Created in Step 1, read in Step 2    |
+| `~/PROJECTS/audio-transcription-output/*_transcript_*.txt` | Clean readable transcript                    | Created in Step 2                    |
+| `~/PROJECTS/audio-transcription-output/*_summary_*.txt`    | LLM summary                                  | Created in Step 2                    |
+| `~/PROJECTS/audio-transcription-output/*_review.html`      | Interactive reviewed transcript              | Created by `review_transcript.py`    |
 
 ### Where output goes
 
 Every artifact from every recording — raw JSON, cleaned transcript, summary,
 reviewed HTML — is written directly to a single folder outside this repo:
-`~/PROJECTS/audio-transcription-output/`. Nothing lands inside this repo's
-own directory at any point.
+`~/PROJECTS/audio-transcription-output/`. Nothing lands inside this repo's own
+directory at any point.
 
 That folder is:
 
 - **Flat.** No `raw/`/`processed/` subfolders. The `yyyy-mm-dd_subject-name`
-  naming convention (below) already makes files findable by subject via sort
-  or search — a folder hierarchy would just duplicate that.
-- **Local git, no remote.** Gives version history — recover a file after a
-  bad edit, an accidental deletion, or a script bug — without the data ever
-  leaving your machine. It is not a substitute for disk-level backup (Time
-  Machine, an external drive, etc.); local git history doesn't survive a dead
-  drive.
-- **Permanent.** No script in this pipeline ever deletes or moves files out
-  of this folder. It is the private original record.
-- **Private by design.** This repo is public; keeping every output artifact
-  in a sibling folder entirely outside it means research transcripts can
-  never end up in this repo's git history, even by accident.
+  naming convention (below) already makes files findable by subject via sort or
+  search — a folder hierarchy would just duplicate that.
+- **Local git, no remote.** Gives version history — recover a file after a bad
+  edit, an accidental deletion, or a script bug — without the data ever leaving
+  your machine. It is not a substitute for disk-level backup (Time Machine, an
+  external drive, etc.); local git history doesn't survive a dead drive.
+- **Permanent.** No script in this pipeline ever deletes or moves files out of
+  this folder. It is the private original record.
+- **Private by design.** This repo is public; keeping every output artifact in a
+  sibling folder entirely outside it means research transcripts can never end up
+  in this repo's git history, even by accident.
 
-If you need to share something derived from a recording — meeting notes,
-a redacted summary — that's a deliberate, manual step you do yourself:
-edit a copy down to what's safe to share, then move only that copy into
-wherever it actually needs to go. The original stays in the archive.
+If you need to share something derived from a recording — meeting notes, a
+redacted summary — that's a deliberate, manual step you do yourself: edit a copy
+down to what's safe to share, then move only that copy into wherever it actually
+needs to go. The original stays in the archive.
 
 See `docs/installation.md` for one-time setup of this folder.
 
@@ -183,11 +181,11 @@ Rename the recording before transcribing:
 
 _Example:_ `2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a`
 
-This isn't just tidiness. WhisperX names its output by swapping the extension
-on the input filename, and the summarizer scripts carry that same basename
-forward. Rename once, and the raw JSON, the cleaned transcript, and the
-summary all inherit a consistent, dated name automatically — no separate
-renaming step anywhere downstream.
+This isn't just tidiness. WhisperX names its output by swapping the extension on
+the input filename, and the summarizer scripts carry that same basename forward.
+Rename once, and the raw JSON, the cleaned transcript, and the summary all
+inherit a consistent, dated name automatically — no separate renaming step
+anywhere downstream.
 
 ---
 
@@ -222,10 +220,10 @@ source .venv/bin/activate
 **For Zoom recordings on macOS**, Zoom's own default save location is
 `~/Documents/Zoom/` — but that folder is iCloud-synced, which causes access
 problems without an internet connection. Recordings here live in `~/Zoom/`
-instead, moved there for that reason. Copy the path in Finder (right-click
-the file → Copy "audio.m4a" as Pathname), then rename the folder and file to
-the convention above before transcribing. Zoom folder names always contain
-spaces — always wrap the path in quotes:
+instead, moved there for that reason. Copy the path in Finder (right-click the
+file → Copy "audio.m4a" as Pathname), then rename the folder and file to the
+convention above before transcribing. Zoom folder names always contain spaces —
+always wrap the path in quotes:
 
 ```bash
 transcribe "~/Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
@@ -347,8 +345,8 @@ cd ~/PROJECTS/audio-transcription-pipeline
   --engine ollama --type general
 ```
 
-Output is written to `~/PROJECTS/audio-transcription-output/` by default
-(the `--output-dir` flag exists only to override this).
+Output is written to `~/PROJECTS/audio-transcription-output/` by default (the
+`--output-dir` flag exists only to override this).
 
 ---
 
@@ -369,8 +367,8 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default
 
 - [docs/installation.md](docs/installation.md) — Security, platform setup,
   HuggingFace tokens, testing your install, troubleshooting
-- [docs/reference.md](docs/reference.md) — Python API reference, meeting
-  type presets, LLM backend options
+- [docs/reference.md](docs/reference.md) — Python API reference, meeting type
+  presets, LLM backend options
 - [docs/noise-reduction.md](docs/noise-reduction.md) — Pre-processing options
   for poor-quality audio
 
@@ -402,8 +400,8 @@ audio-transcription-pipeline/
 `00_admin/`, `scratch.md`, and personal draft files are intentionally excluded
 here — they're gitignored and stay local, not part of the tracked structure.
 
-There is no `output/` folder in this repo. All transcription output lives in
-a separate, private, local-git folder — see
+There is no `output/` folder in this repo. All transcription output lives in a
+separate, private, local-git folder — see
 [Where output goes](#where-output-goes) above.
 
 ---
@@ -421,15 +419,8 @@ a separate, private, local-git folder — see
 
 ## A note on authorship
 
-In the interest of transparency about how the project was built, and flagging
-the AI-assisted authorship as relevant context for anyone who wants to
-contribute, extend, or evaluate the work:
-
-This project was written by
-[Claude Sonnet 4.6](https://www.anthropic.com/claude) (Anthropic) in
-collaboration with a non-software developer. The architecture, use case, and
-design decisions are human-originated; the code is AI-generated.
-
-The intended user is a researcher or practitioner who works with recorded
-conversations — interviews, meetings, lectures — and wants a local, private
-transcription workflow.
+This project was written by someone who wanted to tackle a problem that needed
+solving and decided to be FAIR and CARE using
+[Claude models](https://www.anthropic.com/claude) (Anthropic) e.g. the general
+architecture, use case, and design decisions are human-originated; the code and
+docs are AI-generated.
