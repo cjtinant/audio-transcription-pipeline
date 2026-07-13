@@ -187,6 +187,17 @@ def save_speaker_cache(cache_path: Path, cache: dict) -> None:
 SOURCE_AUDIO_FILENAME = ".source-audio.json"
 
 
+def open_with_default_app(path: Path) -> None:
+    """
+    Open a file with the platform's default application: `open` on macOS,
+    `xdg-open` elsewhere (standard on Linux desktops; WSL2 users may need
+    the wslu package for it, or can pass --no-open and open files from
+    Windows instead).
+    """
+    opener = "open" if sys.platform == "darwin" else "xdg-open"
+    subprocess.run([opener, str(path)], check=False)
+
+
 def parse_timestamp(ts: str) -> float:
     """
     Parse a timestamp given as M:SS, H:MM:SS, or a plain number of seconds
@@ -268,7 +279,7 @@ def clip_audio(json_path: Path, timestamp: str, padding: float, no_open: bool) -
 
     print(f"Written: {out_path}")
     if not no_open:
-        subprocess.run(["open", str(out_path)], check=False)
+        open_with_default_app(out_path)
 
 
 # ---------------------------------------------------------------------------
@@ -643,7 +654,7 @@ def main():
         print(report)
 
     if not args.no_open:
-        subprocess.run(["open", str(out_path)], check=False)
+        open_with_default_app(out_path)
         print("Opened in browser.")
 
 
