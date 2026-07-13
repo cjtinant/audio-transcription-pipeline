@@ -328,6 +328,56 @@ python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_so
 
 ---
 
+### Harden your transcript (optional)
+
+Two more optional tools sit between Step 1 and Step 2, aimed at catching
+transcription errors before they reach a summary. Neither is required for
+daily use — reach for them when a recording matters enough to double-check.
+
+**Cross-model agreement (`compare_transcripts.py`)** — only useful if you
+transcribed the same recording twice with different models (e.g. re-running
+`transcribe --model large-v2` after your usual `large-v3` pass). Diffs the
+two transcripts word-by-word and reports every disagreement with a
+timestamp:
+
+```bash
+python3 compare_transcripts.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio_large-v2.json \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio_large-v3.json \
+  --out ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_compare.txt
+```
+
+The agreement percentage it reports is a confidence signal, not a
+correctness score — high agreement means the models mostly heard the same
+thing, not that either is right. Where they disagree is where to actually
+look.
+
+**LLM plausibility pass (`sanity_check_transcript.py`)** — reads the
+transcript and flags phrases that sound semantically odd, checked against
+`known-terms.txt` so real vocabulary (institution names, technical terms)
+isn't flagged as an error:
+
+```bash
+python3 sanity_check_transcript.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json
+
+# Local/private option (no transcript text leaves your machine)
+python3 sanity_check_transcript.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
+  --engine ollama
+
+# Use a custom vocabulary list instead of known-terms.txt
+python3 sanity_check_transcript.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
+  --known-terms my-terms.txt
+```
+
+As with `--report` above, flags are a signal to check manually, not
+automatic corrections — expect some false positives on genuinely unusual
+but correct phrasing.
+
+---
+
 ### Choosing a meeting type
 
 | Preset           | Best for                                       |

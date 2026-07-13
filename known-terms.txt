@@ -16,3 +16,5 @@ pyannote
 OLC
 Oglala Lakota College
 Lakota
+PEDON
+polypedon
