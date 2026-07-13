@@ -301,6 +301,31 @@ the browser — the JSON is not modified. Export the labeled text, then clean it
 manually (fix mishears, proper nouns, anything the model got wrong). The cleaned
 `.txt` is the recommended input to Step 2.
 
+**Find and spot-check low-confidence words:** `--report` writes a compact text
+file listing words below a confidence threshold, with timestamps:
+
+```bash
+python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
+  --report
+
+# Lower the threshold to flag more words (default: 0.2)
+python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
+  --report --threshold 0.15
+```
+
+To hear the actual audio around a flagged timestamp instead of guessing from
+context, use `--clip` (requires the `.source-audio.json` sidecar `transcribe`
+writes alongside the transcript):
+
+```bash
+python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
+  --clip 14:32
+
+# Adjust how much context is clipped around the timestamp (default: 3.0s)
+python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
+  --clip 14:32 --clip-padding 5
+```
+
 ---
 
 ### Choosing a meeting type
@@ -373,6 +398,8 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default (the
   for poor-quality audio
 - [docs/makefiles-and-symlinks-explained.md](docs/makefiles-and-symlinks-explained.md)
   — Plain-language primer on the `Makefile`/symlink install mechanism
+- [docs/cowork-folder-access.md](docs/cowork-folder-access.md) — Connecting a
+  local folder in Cowork
 
 ---
 
