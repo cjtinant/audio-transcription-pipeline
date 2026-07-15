@@ -79,3 +79,62 @@ python3 review_transcript.py \
 
 Also still queued: Tier 4 #1 scoping run (probe ready, two commands in
 the 07-12 notes era); Thomas's reply.
+
+## Later the same day — summary run, retry fix, results
+
+**429 crash and fix:** the first `--merge` run on the ESIIL transcript
+died with a 429 on Run 2 — two ~30k-token requests back-to-back exceed
+a per-minute token window, a failure mode invisible at ~25-minute
+meeting scale. Added `_post_with_retry` to `summarize_transcript.py`
+(honors Retry-After capped at 120s, waits one TPM window for 429, fails
+fast on 401-class errors; Ollama paths deliberately unchanged; 5 new
+unit tests, 53 total). Committed, then validated in production within
+the hour: the rerun absorbed four 429s (including API-supplied 120s and
+101s Retry-After values) and completed.
+
+**Lecture summary quality read** (`--type lecture --merge`, saved to
+the private archive):
+
+- Content and structure solid — the study-notes section is close to
+  shareable with light edits.
+- **Timestamps unreliable:** mixed formats, some internally
+  contradictory (a "~140:00" exceeding the 2h09m recording, paired with
+  a non-matching seconds value). Treat all summary timestamps as
+  approximate; the JSON stays the source of truth.
+- **The surprise: correct participant attribution without diarization's
+  help.** The summary named live-demo participants correctly (verified
+  against Zoom's roster) despite the merged SPEAKER_XX labels — the LLM
+  inferred identity from vocatives in the content, unprompted. That is
+  the Tier 4 "speaker inference from transcript content" pattern
+  occurring in the wild, and it answers the scoping question for
+  instructional sessions; whether OLC meeting types talk the same way
+  is still open (probe queued). Logged as evidence in WATERSHED.
+
+**ESIIL naming — a correction to the quality read, and a lesson:** the
+summary's "Environmental Data Science Innovation and Impact Lab" was
+flagged as an error against the course director's email signature
+("Innovation and Inclusion Lab"). Jason's correction: both are real —
+the lab was originally the Innovation and *Inclusion* Lab and was
+renamed to Innovation and *Impact* Lab in recent years. So the
+transcript/summary was right and the "ground truth" signature was the
+stale artifact. Lesson for verification tooling generally: reference
+data ages; institutional names can legitimately vary by era, and a
+sanity-check false positive can come from the *checker's* side of the
+comparison.
+
+**WATERSHED additions:** speaker-identity reference-signal taxonomy
+(five options, cheapest-first: named VTT transfer → roster seeding →
+roll-call protocol → video-frame OCR → voice embeddings) parked next to
+the Tier 4 cluster, folding in Jason's seeding and mp4-frame ideas.
+
+**Day's results in one paragraph:** the pipeline survived first contact
+with a 2h09m, 11-speaker, real-world recording — one real bug found and
+fixed in the API path (429 retry), one guidance miscalibration found
+and logged (`--max_speakers` pinning on large sessions), the deferred
+Zoom-baseline comparison run and scored (93.5% content agreement;
+science-word claim supported but narrow; both systems mangled spoken
+"ESIIL"), speaker-name transfer proven at ~99.7% vote share with
+self-flagging, a usable lecture summary produced, and unexpected
+in-the-wild evidence for the Tier 4 LLM-inference idea. The repo also
+gained the retry fix, five tests, and three known-terms entries along
+the way.

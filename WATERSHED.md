@@ -37,6 +37,53 @@ its own session; input from the pyannoteAI thread may also land first.
 
 ---
 
+### Speaker-identity reference signals — a taxonomy for the Tier 4 decision
+
+**Status:** parked — design map, not a build item; feeds the same decision
+as the probe-promotion item above and the two Tier 4 items below
+
+Diarization yields anonymous clusters; naming them requires a reference
+signal that carries names. Five options, cheapest-first, each covering a
+case the previous one can't (raised 2026-07-14, prompted by Jason's
+seeding and video-frame ideas):
+
+1. **Named reference transcript** (Zoom cloud `.transcript.vtt`) —
+   proven 2026-07-14: text-alignment name transfer at ~99.7% vote share
+   with self-flagging of merged labels. Only exists for cloud
+   recordings on platforms that emit named transcripts.
+2. **Roster seeding** (supply expected names upfront — from calendar,
+   chat log, or a `--speakers` flag). Cannot bind names to voices by
+   itself (clustering never sees names), but: pins the speaker count
+   exactly (would have prevented the `--max_speakers 4` miscalibration
+   on the 11-voice ESIIL session), feeds `--hotwords` so spoken names
+   transcribe correctly, and gives the LLM-inference idea below a
+   closed vocabulary — a large cut to its misattribution risk.
+3. **Roll-call protocol** (meetings Jason controls): a brief go-around
+   at the start binds names to clusters directly via self-introduction.
+   Zero engineering; useless for meetings he merely attends.
+4. **Video-frame OCR of name tags** (Zoom `.mp4` active-speaker view):
+   name-at-time-t aligned to diarization segments. Only earns its
+   complexity where no named VTT exists (Zoom *local* recordings, other
+   platforms, handed-over videos) — the pixels carry the same account
+   metadata the VTT gets for free. Heaviest option short of embeddings.
+5. **Voice embeddings** (Tier 4 item below): the general solution that
+   needs no per-recording reference — enrollment cost, cold-start, and
+   confidently-wrong risk as already flagged; input awaited from the
+   pyannoteAI thread.
+
+**New evidence for the LLM-inference item (2026-07-14):** the ESIIL
+lecture summary spontaneously attributed live-demo participants by
+name, correctly (verified against Zoom's roster) — the LLM inferred
+identity from vocatives in the content, unprompted, despite the merged
+diarization labels. The name-address pattern is clearly common in
+instructional/live-demo sessions; whether it holds for OLC meeting
+types is still the open question the queued scoping probe exists to
+answer.
+
+**Flagged:** 2026-07-14
+
+---
+
 ### [Tier 4] Speaker inference from transcript content (LLM pass)
 
 **Status:** idea — speculative, not started
