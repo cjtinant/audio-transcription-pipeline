@@ -32,9 +32,14 @@ __pycache__/
 # ── Model cache ───────────────────────────────────────────────────────
 .cache/
 models/
-00_admin/
+
 
 # ── Scratch files ───────────────────────────────────────────────────────
 scratch.md
 quickstart.md
 tmp_*
+
+# ── Admin and archive files ──────────────────────────────────────────────
+00_admin/
+99_archive
+
