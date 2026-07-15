@@ -16,6 +16,27 @@ misattribution risk, so neither should start without an explicit ask.
 
 ---
 
+### Promote the Zoom-comparison probes into committed tools?
+
+**Status:** parked — decision, not started
+
+Two `tmp_`-prefixed, gitignored one-offs earned their keep on first use
+(2026-07-14, ESIIL session — see Resolved/History): `tmp_vtt_to_json.py`
+(Zoom WebVTT → WhisperX-shaped JSON, enabling `compare_transcripts.py`
+and `review_transcript.py` against Zoom's output) and
+`tmp_map_speakers.py` (text-alignment speaker-name transfer from a
+named reference transcript, with self-flagging vote shares). Zoom VTTs
+will recur (the ESIIL course alone runs for weeks), so the case for
+promoting both — proper names, tests, README/reference documentation —
+is real. Costs: two more tools to maintain, and the name-transfer
+probe's framing overlaps the Tier 4 items below, so promoting it should
+be decided together with (or instead of) those, not in addition. Worth
+its own session; input from the pyannoteAI thread may also land first.
+
+**Flagged:** 2026-07-14
+
+---
+
 ### [Tier 4] Speaker inference from transcript content (LLM pass)
 
 **Status:** idea — speculative, not started
@@ -760,7 +781,7 @@ approximate by design), then diffed with the existing
 The "pipeline is a little better on tricky science words" claim (made in
 writing to UC Boulder colleagues the same day) is supported but narrow:
 pipeline won `CIRES` (Zoom: "CERES"), `Corps` (Zoom: "Board,"), and
-nearly-correct participant surname "Chakrabarti" — but _both_ systems
+came closer on a participant's surname — but _both_ systems
 mangled the spoken word "ESIIL" (Zoom: "easel"/"ESO"; pipeline:
 "ESL"/"ESOL"), despite ESIIL being in `--hotwords`. Hotwords hint, they
 don't guarantee. `known-terms.txt` gained ESIIL, CIRES, Earth Lab so
