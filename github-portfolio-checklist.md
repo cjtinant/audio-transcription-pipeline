@@ -84,7 +84,7 @@ open-source software. Increasingly, I'm exploring how AI-assisted workflows,
 cloud computing, and cyberinfrastructure can expand access to research while
 respecting Indigenous data sovereignty and community priorities.
 
-My approach is systems-oriented, place-based and collaborative. I work with
+My approach is systems-oriented, place-based, and collaborative. I work with
 students, faculty, tribal programs, and research partners to connect technical
 methods with local knowledge and community needs—which means thinking carefully
 about who controls data, who benefits from its use, and how open-science
@@ -94,12 +94,10 @@ practices can support, rather than override, tribal data governance.
 
 - Watershed hydrology in the Northern Great Plains—drought, flood frequency,
   intermittent streams, and semi-arid systems
-
 - Environmental data science, GIS, and remote sensing—geospatial analytics and
   spatial data infrastructure
-
 - Indigenous data sovereignty—CARE, FAIR, and community-centered data governance
-- Open, reproducible workflows in R, Python, and GitHub— including turning
+- Open, reproducible workflows in R, Python, and GitHub—including turning
   one-off research scripts into documented, reusable software, most recently an
   [audio transcription pipeline](https://github.com/cjtinant/audio-transcription-pipeline)
   using WhisperX and pyannote
@@ -115,14 +113,14 @@ practices can support, rather than override, tribal data governance.
 
 ## What You Will Find Here
 
-This site, and the repositories behind it, prototype, and share community-facing
-work. Many projects begin as practical solutions—automating an analysis,
-documenting a workflow, making environmental data easier to use—and gradually
-evolve into reusable tools for students, collaborators, and other educators.
-This site, and the repositories behind it, are rapidly evolving. In the next few
-months, I will be moving several private repos into public view-- prioritizing
-moving lesson plans from courses I have taught for others to improve and fork to
-meet thier own goals.
+This site, and the repositories behind it, are where I teach, prototype, and
+share community-facing work. Many projects begin as practical
+solutions—automating an analysis, documenting a workflow, making environmental
+data easier to use—and gradually evolve into reusable tools for students,
+collaborators, and other educators. Everything here is rapidly evolving: over
+the next few months I'll be moving several private repos into public view,
+prioritizing lesson plans from courses I've taught, so others can fork and
+improve them to meet their own goals.
 
 ## Working Philosophy
 
@@ -131,7 +129,7 @@ Whether I'm writing code, designing curriculum, or developing research
 workflows, the goal is _subtraction_: reduce unnecessary complexity so others
 can build on the work—and so it stays useful long after the original project has
 ended. There's a Zen quality to engineering done well—keeping a beginner's mind,
-giving full attention to the task at hand, and keeping with the circle of
+giving full attention to the task at hand, and staying with the circle of
 creation by letting go of a design the evidence has outgrown.
 
 I think about knowledge the way constructivists do, and I update it the way
@@ -150,8 +148,8 @@ interconnects all living beings, Mitákuye. Knowledge behaves the same way: it
 doesn't sit still, it moves through long-term relationships with the land,
 communities, educators, practitioners, and students who understand the
 landscapes, histories, and priorities of the places where the work happens.
-Macrosystems ecology says something similar in its own dialect— nothing exists
-at one scale, and what matters moves across them. A stream gauge is nested in a
+Macrosystems ecology says something similar in its own dialect—nothing exists at
+one scale, and what matters moves across them. A stream gauge is nested in a
 watershed, a watershed in a climate system; a classroom in an institution, an
 institution in a policy environment. Durable solutions respect both the nesting
 and the relations.
@@ -162,14 +160,14 @@ I welcome collaboration on environmental data tools, hydrologic research,
 geospatial science, tribal-college STEM education, Indigenous data governance,
 and AI-assisted scientific workflows—and I'm always glad to share ideas with
 educators building reproducible, locally relevant data-science curricula and
-open educational resources. And, **most of all** to collaborate on fun and
-interesting projects that serve no purpose other than _spark joy!_
+open educational resources. And, **most of all**, I welcome collaboration on fun
+and interesting projects that serve no purpose other than to _spark joy_.
 
 ## Beyond Work
 
 Outside the classroom and the lab, I enjoy hands-on craft traditions: textile
 dyeing and batik, woodworking, musical instrument building, essential oil
 blending, and other bespoke work that rewards careful observation,
-experimentation, and iteration. _Next stop in putting ideas into objects is_
-_putting a small blacksmithing forge to use._ Those same habits shape how I
+experimentation, and iteration. _The next stop in turning ideas into objects:
+putting a small blacksmithing forge to use._ Those same habits shape how I
 approach teaching, software, and research.
