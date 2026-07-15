@@ -743,3 +743,48 @@ consistency check), the `save_outputs` skip-transcript-for-`.txt`
 behavior, and the `TRANSCRIBE_OUTPUT_DIR` override (tested in a fresh
 interpreter, since the default is read at import). All 48 passed on
 first run in the sandbox.
+
+**2026-07-14 — Zoom-baseline comparison run (deferred since 2026-07-11),
+plus a text-alignment speaker-name-transfer probe:** Real subject: the
+ESIIL Data Short Course session recording (2026-07-13, 2h09m, 11
+speakers per Zoom's roster), transcribed with `large-v3`,
+`--min_speakers 1 --max_speakers 4`, and `--hotwords` including ESIIL
+and CIRES. Zoom's own artifacts (`.transcript.vtt` with account-name
+speaker attribution, `.cc.vtt` without) converted to WhisperX-shaped
+JSON via `tmp_vtt_to_json.py` (a `tmp_`-prefixed, gitignored one-off;
+Zoom-side word timestamps are interpolated from cue timing, so
+approximate by design), then diffed with the existing
+`compare_transcripts.py`.
+
+**Text results:** 93.2% raw / 93.5% content agreement, 725 divergences.
+The "pipeline is a little better on tricky science words" claim (made in
+writing to UC Boulder colleagues the same day) is supported but narrow:
+pipeline won `CIRES` (Zoom: "CERES"), `Corps` (Zoom: "Board,"), and
+nearly-correct participant surname "Chakrabarti" — but _both_ systems
+mangled the spoken word "ESIIL" (Zoom: "easel"/"ESO"; pipeline:
+"ESL"/"ESOL"), despite ESIIL being in `--hotwords`. Hotwords hint, they
+don't guarantee. `known-terms.txt` gained ESIIL, CIRES, Earth Lab so
+the sanity pass can flag these next time.
+
+**Speaker results — the more interesting half.** The `--max_speakers 4`
+pin (suggested per README's lecture guidance, miscalibrated for an
+11-voice session) forced ~9 participants into 2 labels.
+`tmp_map_speakers.py` (second gitignored one-off) aligned the two
+transcripts word-by-word and majority-voted Zoom's account names onto
+the pipeline's `SPEAKER_XX` labels: SPEAKER_00 and SPEAKER_02 both
+mapped to the lecturer at ~99.7% (diarization split one voice into two
+labels — harmless, votes unambiguous), while SPEAKER_01/SPEAKER_03
+had no majority (42%/29% top shares) — exactly the merged buckets, and
+the vote share self-flags them. Direct evidence for the Tier 4
+discussion: text-alignment name transfer works where diarization is
+right and announces where it isn't, at zero voice-embedding cost —
+though it only exists when a named reference transcript (here, Zoom's)
+exists at all. Also noted plainly: for multi-participant Zoom sessions,
+Zoom's speaker attribution is structurally better (exact names, free,
+from per-account audio streams); this pipeline's edge is vocabulary,
+word-level confidence, and the JSON structure downstream tools need.
+
+Process note: Jason established `99_archive/` (gitignored) inside the
+repo as the place for non-sensitive test materials like this session —
+distinct from the private output archive, which remains for real
+recordings.
