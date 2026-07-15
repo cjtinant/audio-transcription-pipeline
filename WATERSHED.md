@@ -84,6 +84,30 @@ answer.
 
 ---
 
+### Summarizer ignores saved speaker names (cache → summary injection)
+
+**Status:** parked — small feature; sweep into the probe-promotion
+session rather than building piecemeal
+
+Noticed 2026-07-14 when the ESIIL `--save-speakers` write happened
+after the summary run and it turned out order couldn't matter:
+`summarize_transcript.py` never reads `.speaker-cache.json`, so
+summaries always say `SPEAKER_XX` even when real names are cached. The
+cache currently serves only `review_transcript.py`'s HTML pre-fill.
+
+**Feature sketch:** look up the transcript's subject in the cache and
+substitute names into the formatted transcript before the LLM call.
+Mechanically a lookup plus string substitution; the ESIIL summary would
+have attributed content to "Nate Quarderer" instead of
+"SPEAKER_00/02", and the merged buckets would have carried their honest
+"Participants (mixed)" label instead of two anonymous IDs. Natural
+companion to roster seeding (option 2 in the taxonomy above) — both are
+"get names the pipeline already has into the places that need them."
+
+**Flagged:** 2026-07-14
+
+---
+
 ### [Tier 4] Speaker inference from transcript content (LLM pass)
 
 **Status:** idea — speculative, not started
