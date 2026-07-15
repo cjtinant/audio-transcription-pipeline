@@ -24,6 +24,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -184,6 +185,43 @@ def format_transcript(segments: list[dict]) -> str:
 
 # ── 4. LLM backends ───────────────────────────────────────────────────
 
+# Retryable statuses: 429 (rate limit — token-per-minute windows reset
+# each minute, so the default wait is 60s), plus transient server errors.
+# Found the hard way on a 2h09m transcript (2026-07-14): --merge fires
+# two ~30k-token requests back-to-back and the second gets a 429.
+_RETRYABLE_STATUSES = {429, 500, 502, 503, 529}
+
+
+def _post_with_retry(url, *, headers=None, json=None, timeout=60,
+                     max_attempts=4, _post=None, _sleep=time.sleep):
+    """
+    httpx.post with retry on rate limits and transient server errors.
+    Honors the Retry-After header when present (capped at 120s);
+    otherwise waits 60s for 429 and briefly for 5xx. Raises via
+    raise_for_status() once attempts are exhausted, same as before.
+    (_post/_sleep are injection points for unit tests only.)
+    """
+    if _post is None:
+        import httpx
+        _post = httpx.post
+
+    for attempt in range(1, max_attempts + 1):
+        response = _post(url, headers=headers, json=json, timeout=timeout)
+        if response.status_code in _RETRYABLE_STATUSES and attempt < max_attempts:
+            retry_after = response.headers.get("retry-after", "")
+            if retry_after.isdigit():
+                wait = min(int(retry_after), 120)
+            elif response.status_code == 429:
+                wait = 60
+            else:
+                wait = 5 * attempt
+            print(f"  API returned {response.status_code}; waiting {wait}s "
+                  f"before retry ({attempt}/{max_attempts - 1} retries)...")
+            _sleep(wait)
+            continue
+        response.raise_for_status()
+        return response
+
 def summarize_anthropic(
     transcript: str,
     prompt: str,
@@ -222,7 +260,7 @@ def summarize_anthropic(
 
     full_prompt = prompt + "Transcript:\n" + transcript
 
-    response = httpx.post(
+    response = _post_with_retry(
         "https://api.anthropic.com/v1/messages",
         headers={
             "x-api-key":         api_key,
@@ -236,7 +274,6 @@ def summarize_anthropic(
         },
         timeout=60,
     )
-    response.raise_for_status()
     return response.json()["content"][0]["text"]
 
 
@@ -457,7 +494,7 @@ def merge_summaries(
         api_key = api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         if not api_key:
             raise EnvironmentError("ANTHROPIC_API_KEY not set.")
-        response = httpx.post(
+        response = _post_with_retry(
             "https://api.anthropic.com/v1/messages",
             headers={
                 "x-api-key":         api_key,
@@ -471,7 +508,6 @@ def merge_summaries(
             },
             timeout=60,
         )
-        response.raise_for_status()
         return response.json()["content"][0]["text"]
     else:
         try:

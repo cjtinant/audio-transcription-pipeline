@@ -809,3 +809,18 @@ Process note: Jason established `99_archive/` (gitignored) inside the
 repo as the place for non-sensitive test materials like this session —
 distinct from the private output archive, which remains for real
 recordings.
+
+**2026-07-14 — Rate-limit retry added to the Anthropic path:** The
+ESIIL summary run crashed with a 429: `--merge` fires two ~30k-token
+requests back-to-back, and the second exceeded a per-minute token
+window — a failure mode that never surfaced on ~25-minute meeting
+transcripts and only appeared at 2h09m scale. Run 1's completed summary
+was also lost in the crash (the merged pipeline only saves at the end)
+— the retry prevents the crash rather than adding partial-save
+plumbing. New `_post_with_retry` in `summarize_transcript.py`, used by
+both Anthropic call sites (`summarize_anthropic`, `merge_summaries`):
+retries 429/5xx up to 3 times, honors `Retry-After` (capped 120s),
+defaults to 60s for 429 (one TPM window), fails fast on client errors
+like 401. Ollama call sites deliberately unchanged (local server, no
+rate limits, connection errors already handled). Five unit tests added
+via injection points — 53 total, all green.

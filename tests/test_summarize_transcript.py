@@ -18,11 +18,78 @@ sys.path.insert(0, str(REPO_ROOT))
 from summarize_transcript import (  # noqa: E402
     MEETING_PROMPTS,
     MEETING_TYPE_DESCRIPTIONS,
+    _post_with_retry,
     format_transcript,
     get_prompt,
     read_whisperx,
     save_outputs,
 )
+
+
+class _FakeResponse:
+    def __init__(self, status_code, retry_after=None):
+        self.status_code = status_code
+        self.headers = {}
+        if retry_after is not None:
+            self.headers["retry-after"] = retry_after
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+
+def _fake_post_sequence(statuses):
+    """Return a fake httpx.post yielding the given statuses in order."""
+    responses = [_FakeResponse(*s) if isinstance(s, tuple) else _FakeResponse(s)
+                 for s in statuses]
+    calls = []
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        calls.append(url)
+        return responses[len(calls) - 1]
+
+    return fake_post, calls
+
+
+class TestPostWithRetry(unittest.TestCase):
+    def test_success_first_try_no_sleep(self):
+        post, calls = _fake_post_sequence([200])
+        sleeps = []
+        r = _post_with_retry("u", _post=post, _sleep=sleeps.append)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(sleeps, [])
+
+    def test_429_retries_then_succeeds(self):
+        # The failure mode that motivated this (2026-07-14): --merge's
+        # second back-to-back large request hits a rate limit.
+        post, calls = _fake_post_sequence([429, 200])
+        sleeps = []
+        r = _post_with_retry("u", _post=post, _sleep=sleeps.append)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(sleeps, [60])  # default 429 wait: one TPM window
+
+    def test_retry_after_header_honored_and_capped(self):
+        post, _ = _fake_post_sequence([(429, "15"), (429, "999"), 200])
+        sleeps = []
+        r = _post_with_retry("u", _post=post, _sleep=sleeps.append)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(sleeps, [15, 120])  # header used; capped at 120
+
+    def test_exhausted_attempts_raise(self):
+        post, calls = _fake_post_sequence([429, 429, 429, 429])
+        with self.assertRaises(RuntimeError):
+            _post_with_retry("u", max_attempts=4, _post=post,
+                             _sleep=lambda s: None)
+        self.assertEqual(len(calls), 4)
+
+    def test_client_error_not_retried(self):
+        # A 401 (bad key) must fail immediately, not loop for minutes.
+        post, calls = _fake_post_sequence([401])
+        with self.assertRaises(RuntimeError):
+            _post_with_retry("u", _post=post, _sleep=lambda s: None)
+        self.assertEqual(len(calls), 1)
 
 
 class TestGetPrompt(unittest.TestCase):
