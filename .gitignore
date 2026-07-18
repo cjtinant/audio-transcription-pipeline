@@ -41,7 +41,8 @@ cspell.json
 scratch.md
 tmp_*
 
-# ── Admin and archive files ────────────────────────────────────────────
+# ── Admin, archive, and personal reference files ───────────────────────
 00_admin/
 99_archive
 docs/references/
+CLAUDE.md
