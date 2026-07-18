@@ -54,8 +54,8 @@ python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.jso
 python summarize_transcript.py --list-types
 ```
 
-Outputs saved automatically to `~/PROJECTS/audio-transcription-output/`
-(the default `output_dir` — no need to pass it explicitly):
+Outputs saved automatically to `~/PROJECTS/audio-transcription-output/` (the
+default `output_dir` — no need to pass it explicitly):
 
 - `meeting_transcript_20260502_175200.txt`
 - `meeting_summary_20260502_175200.txt`
@@ -107,8 +107,8 @@ python summarize_transcript.py --list-types
 
 ### Interactive / script usage
 
-Import it like any module — run Python from the repo folder (or add the repo
-to `sys.path` first):
+Import it like any module — run Python from the repo folder (or add the repo to
+`sys.path` first):
 
 ```python
 from summarize_transcript import run_pipeline
@@ -131,9 +131,9 @@ result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
                       model="llama3.1:8b-instruct-q8_0")
 ```
 
-For most interactive use, the CLI usage above is simpler — this is only
-needed if you want `run_pipeline`'s return value (segments, transcript,
-summary) available directly in a Python session or another script.
+For most interactive use, the CLI usage above is simpler — this is only needed
+if you want `run_pipeline`'s return value (segments, transcript, summary)
+available directly in a Python session or another script.
 
 **Access results programmatically:**
 
@@ -149,8 +149,8 @@ result["paths"]       # dict of saved file paths (if save=True)
 ## Running the Tests
 
 Unit tests cover the pure functions (parsing, report building, timestamp
-matching) across all four Python tools. No LLM is called and no audio is
-needed — standard library `unittest` only, nothing extra to install:
+matching) across all four Python tools. No LLM is called and no audio is needed
+— standard library `unittest` only, nothing extra to install:
 
 ```bash
 cd ~/PROJECTS/audio-transcription-pipeline
@@ -161,15 +161,15 @@ python3 -m unittest discover tests
 
 ## Meeting Type Presets
 
-| Type        | Best for                             | Output includes                                    |
-| ----------- | ------------------------------------ | -------------------------------------------------- |
-| `general`   | Team meetings, calls                 | Overview, decisions, action items, open questions  |
-| `standup`   | Daily standups                       | Completed work, today's plan, blockers per speaker |
-| `interview` | Research interviews, user interviews | Themes, insights, notable quotes, follow-ups       |
-| `research`  | Academic discussions, lab meetings   | Research question, findings, methods, next steps   |
-| `lecture`   | Lectures, presentations, webinars    | Topics, key concepts with timestamps, study notes  |
+| Type             | Best for                               | Output includes                                         |
+| ---------------- | -------------------------------------- | ------------------------------------------------------- |
+| `general`        | Team meetings, calls                   | Overview, decisions, action items, open questions       |
+| `standup`        | Daily standups                         | Completed work, today's plan, blockers per speaker      |
+| `interview`      | Research interviews, user interviews   | Themes, insights, notable quotes, follow-ups            |
+| `research`       | Academic discussions, lab meetings     | Research question, findings, methods, next steps        |
+| `lecture`        | Lectures, presentations, webinars      | Topics, key concepts with timestamps, study notes       |
 | `grant_planning` | Grant proposals, funding conversations | Opportunities, decisions, risks, action items, timeline |
-| `custom`    | Anything else                        | Whatever your prompt specifies                     |
+| `custom`         | Anything else                          | Whatever your prompt specifies                          |
 
 **Custom prompt example:**
 
@@ -187,12 +187,12 @@ python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.jso
 
 Requires an [Anthropic account](https://console.anthropic.com) and API key.
 Transcript text (not audio) is sent to Anthropic's servers — do not use for
-sensitive/confidential recordings without reviewing their data policy, or
-use the Ollama option below instead. Chosen as the default after a real
-engine comparison (2026-07-12, logged in `WATERSHED.md`) found it
-noticeably more reliable than Ollama's local model for LLM-based
-transcript review — not just faster, but more likely to follow output-format
-instructions exactly and less prone to false-positive flags.
+sensitive/confidential recordings without reviewing their data policy, or use
+the Ollama option below instead. Chosen as the default after a real engine
+comparison (2026-07-12, logged in `WATERSHED.md`) found it noticeably more
+reliable than Ollama's local model for LLM-based transcript review — not just
+faster, but more likely to follow output-format instructions exactly and less
+prone to false-positive flags.
 
 **Pricing (May 2026, per million tokens):**
 
@@ -214,9 +214,9 @@ Default — no `--engine` flag needed.
 ### Ollama (Local — Free, Private)
 
 Runs entirely on your machine. No data leaves your computer. Requires
-[Ollama](https://ollama.com) to be installed and running. Use this for
-sensitive recordings you don't want processed by a third-party server —
-the tradeoff is lower reliability, per the same engine comparison above.
+[Ollama](https://ollama.com) to be installed and running. Use this for sensitive
+recordings you don't want processed by a third-party server — the tradeoff is
+lower reliability, per the same engine comparison above.
 
 ```bash
 # Install Ollama
