@@ -1,7 +1,9 @@
 # Watershed
 
-Next steps, open questions, and unresolved decisions. Move items to a commit or
-close them when resolved.
+<!--
+Open questions, and unresolved decisions.
+Move items to a commit and add to Resolved/History when resolved.
+-->
 
 ---
 
@@ -9,10 +11,10 @@ close them when resolved.
 
 ### Review tooling ideas — priority order
 
-Ranked by effort-vs-value when first triaged (2026-07-11). Tiers 1–3 have
-since been built and resolved — see Resolved/History. Only the Tier 4
-ideas below remain parked; both are speculative and carry real
-misattribution risk, so neither should start without an explicit ask.
+Ranked by effort-vs-value when first triaged (2026-07-11). Tiers 1–3 have since
+been built and resolved — see Resolved/History. Only the Tier 4 ideas below
+remain parked; both are speculative and carry real misattribution risk, so
+neither should start without an explicit ask.
 
 ---
 
@@ -21,16 +23,15 @@ misattribution risk, so neither should start without an explicit ask.
 **Status:** parked — decision, not started
 
 Two `tmp_`-prefixed, gitignored one-offs earned their keep on first use
-(2026-07-14, ESIIL session — see Resolved/History): `tmp_vtt_to_json.py`
-(Zoom WebVTT → WhisperX-shaped JSON, enabling `compare_transcripts.py`
-and `review_transcript.py` against Zoom's output) and
-`tmp_map_speakers.py` (text-alignment speaker-name transfer from a
-named reference transcript, with self-flagging vote shares). Zoom VTTs
-will recur (the ESIIL course alone runs for weeks), so the case for
-promoting both — proper names, tests, README/reference documentation —
-is real. Costs: two more tools to maintain, and the name-transfer
-probe's framing overlaps the Tier 4 items below, so promoting it should
-be decided together with (or instead of) those, not in addition. Worth
+(2026-07-14, ESIIL session — see Resolved/History): `tmp_vtt_to_json.py` (Zoom
+WebVTT → WhisperX-shaped JSON, enabling `compare_transcripts.py` and
+`review_transcript.py` against Zoom's output) and `tmp_map_speakers.py`
+(text-alignment speaker-name transfer from a named reference transcript, with
+self-flagging vote shares). Zoom VTTs will recur (the ESIIL course alone runs
+for weeks), so the case for promoting both — proper names, tests,
+README/reference documentation — is real. Costs: two more tools to maintain, and
+the name-transfer probe's framing overlaps the Tier 4 items below, so promoting
+it should be decided together with (or instead of) those, not in addition. Worth
 its own session; input from the pyannoteAI thread may also land first.
 
 **Flagged:** 2026-07-14
@@ -39,46 +40,44 @@ its own session; input from the pyannoteAI thread may also land first.
 
 ### Speaker-identity reference signals — a taxonomy for the Tier 4 decision
 
-**Status:** parked — design map, not a build item; feeds the same decision
-as the probe-promotion item above and the two Tier 4 items below
+**Status:** parked — design map, not a build item; feeds the same decision as
+the probe-promotion item above and the two Tier 4 items below
 
-Diarization yields anonymous clusters; naming them requires a reference
-signal that carries names. Five options, cheapest-first, each covering a
-case the previous one can't (raised 2026-07-14, prompted by Jason's
-seeding and video-frame ideas):
+Diarization yields anonymous clusters; naming them requires a reference signal
+that carries names. Five options, cheapest-first, each covering a case the
+previous one can't (raised 2026-07-14, prompted by Jason's seeding and
+video-frame ideas):
 
-1. **Named reference transcript** (Zoom cloud `.transcript.vtt`) —
-   proven 2026-07-14: text-alignment name transfer at ~99.7% vote share
-   with self-flagging of merged labels. Only exists for cloud
-   recordings on platforms that emit named transcripts.
-2. **Roster seeding** (supply expected names upfront — from calendar,
-   chat log, or a `--speakers` flag). Cannot bind names to voices by
-   itself (clustering never sees names), but: pins the speaker count
-   exactly (would have prevented the `--max_speakers 4` miscalibration
-   on the 11-voice ESIIL session), feeds `--hotwords` so spoken names
-   transcribe correctly, and gives the LLM-inference idea below a
-   closed vocabulary — a large cut to its misattribution risk.
-3. **Roll-call protocol** (meetings Jason controls): a brief go-around
-   at the start binds names to clusters directly via self-introduction.
-   Zero engineering; useless for meetings he merely attends.
+1. **Named reference transcript** (Zoom cloud `.transcript.vtt`) — proven
+   2026-07-14: text-alignment name transfer at ~99.7% vote share with
+   self-flagging of merged labels. Only exists for cloud recordings on platforms
+   that emit named transcripts.
+2. **Roster seeding** (supply expected names upfront — from calendar, chat log,
+   or a `--speakers` flag). Cannot bind names to voices by itself (clustering
+   never sees names), but: pins the speaker count exactly (would have prevented
+   the `--max_speakers 4` miscalibration on the 11-voice ESIIL session), feeds
+   `--hotwords` so spoken names transcribe correctly, and gives the
+   LLM-inference idea below a closed vocabulary — a large cut to its
+   misattribution risk.
+3. **Roll-call protocol** (meetings Jason controls): a brief go-around at the
+   start binds names to clusters directly via self-introduction. Zero
+   engineering; useless for meetings he merely attends.
 4. **Video-frame OCR of name tags** (Zoom `.mp4` active-speaker view):
-   name-at-time-t aligned to diarization segments. Only earns its
-   complexity where no named VTT exists (Zoom *local* recordings, other
-   platforms, handed-over videos) — the pixels carry the same account
-   metadata the VTT gets for free. Heaviest option short of embeddings.
-5. **Voice embeddings** (Tier 4 item below): the general solution that
-   needs no per-recording reference — enrollment cost, cold-start, and
-   confidently-wrong risk as already flagged; input awaited from the
-   pyannoteAI thread.
+   name-at-time-t aligned to diarization segments. Only earns its complexity
+   where no named VTT exists (Zoom _local_ recordings, other platforms,
+   handed-over videos) — the pixels carry the same account metadata the VTT gets
+   for free. Heaviest option short of embeddings.
+5. **Voice embeddings** (Tier 4 item below): the general solution that needs no
+   per-recording reference — enrollment cost, cold-start, and confidently-wrong
+   risk as already flagged; input awaited from the pyannoteAI thread.
 
-**New evidence for the LLM-inference item (2026-07-14):** the ESIIL
-lecture summary spontaneously attributed live-demo participants by
-name, correctly (verified against Zoom's roster) — the LLM inferred
-identity from vocatives in the content, unprompted, despite the merged
-diarization labels. The name-address pattern is clearly common in
-instructional/live-demo sessions; whether it holds for OLC meeting
-types is still the open question the queued scoping probe exists to
-answer.
+**New evidence for the LLM-inference item (2026-07-14):** the ESIIL lecture
+summary spontaneously attributed live-demo participants by name, correctly
+(verified against Zoom's roster) — the LLM inferred identity from vocatives in
+the content, unprompted, despite the merged diarization labels. The name-address
+pattern is clearly common in instructional/live-demo sessions; whether it holds
+for OLC meeting types is still the open question the queued scoping probe exists
+to answer.
 
 **Flagged:** 2026-07-14
 
@@ -86,22 +85,21 @@ answer.
 
 ### Summarizer ignores saved speaker names (cache → summary injection)
 
-**Status:** parked — small feature; sweep into the probe-promotion
-session rather than building piecemeal
+**Status:** parked — small feature; sweep into the probe-promotion session
+rather than building piecemeal
 
-Noticed 2026-07-14 when the ESIIL `--save-speakers` write happened
-after the summary run and it turned out order couldn't matter:
-`summarize_transcript.py` never reads `.speaker-cache.json`, so
-summaries always say `SPEAKER_XX` even when real names are cached. The
-cache currently serves only `review_transcript.py`'s HTML pre-fill.
+Noticed 2026-07-14 when the ESIIL `--save-speakers` write happened after the
+summary run and it turned out order couldn't matter: `summarize_transcript.py`
+never reads `.speaker-cache.json`, so summaries always say `SPEAKER_XX` even
+when real names are cached. The cache currently serves only
+`review_transcript.py`'s HTML pre-fill.
 
-**Feature sketch:** look up the transcript's subject in the cache and
-substitute names into the formatted transcript before the LLM call.
-Mechanically a lookup plus string substitution; the ESIIL summary would
-have attributed content to "Nate Quarderer" instead of
-"SPEAKER_00/02", and the merged buckets would have carried their honest
-"Participants (mixed)" label instead of two anonymous IDs. Natural
-companion to roster seeding (option 2 in the taxonomy above) — both are
+**Feature sketch:** look up the transcript's subject in the cache and substitute
+names into the formatted transcript before the LLM call. Mechanically a lookup
+plus string substitution; the ESIIL summary would have attributed content to
+"Nate Quarderer" instead of "SPEAKER_00/02", and the merged buckets would have
+carried their honest "Participants (mixed)" label instead of two anonymous IDs.
+Natural companion to roster seeding (option 2 in the taxonomy above) — both are
 "get names the pipeline already has into the places that need them."
 
 **Flagged:** 2026-07-14
@@ -473,8 +471,8 @@ separate pass?") was answered in practice: separate pass,
 **2026-07-12 — [Tier 3] LLM plausibility/sanity pass built, validated, and
 adopted (`sanity_check_transcript.py`):** Flagged 2026-07-11, picked up
 2026-07-12 as the direct next step after Tier 2's noise-reduction ceiling,
-resolved the same day. (Moved here from Parked in a 2026-07-12 consistency
-pass — the item had stayed under "in progress" after the work completed.)
+resolved the same day. (Moved here from Parked in a 2026-07-12 consistency pass
+— the item had stayed under "in progress" after the work completed.)
 
 Original idea: feed the plain-text transcript through the summarizer's existing
 LLM, asking it to flag anything that reads as semantically odd or out of place.
@@ -560,8 +558,8 @@ sensitive recordings, not a downgrade path.
 code and docs. Code: `summarize-transcript.py`'s `run_pipeline`/
 `run_pipeline_merged`/CLI default, `summarize-transcript.R`'s `match.arg()`
 vectors reordered (R uses the first listed value as the default — confirmed by R
-semantics, not executed; the suggested real check became moot later the same
-day when the R path was removed entirely — see the entry below),
+semantics, not executed; the suggested real check became moot later the same day
+when the R path was removed entirely — see the entry below),
 `sanity_check_transcript.py`'s CLI default. Docs: `README.md`,
 `docs/reference.md`, `docs/installation.md` — every example and section label
 reordered to present Anthropic first/as default, Ollama reframed as the
@@ -635,14 +633,14 @@ Verified clean with a full-repo grep for R-specific patterns after all edits —
 no remaining references.
 
 **Correction (2026-07-12, consistency pass):** that grep had blind spots. Two
-further misses were found and fixed the same day: the `"macOS/Linux (R
-users):"` prose label in `installation.md` (caught during the Makefile rollout,
-noted below) and `summarize-transcript.py`'s `ANTHROPIC_API_KEY` error message,
-which still told users to "Add it to ~/.Renviron (R)" — the same non-fix the
-docs pass had removed from `installation.md`'s troubleshooting. The error
-message now gives the shell-export fix, matching the docs. Lesson consistent
-with the Makefile entry's finding: pattern greps catch code/file references,
-not prose and string literals.
+further misses were found and fixed the same day: the `"macOS/Linux (R users):"`
+prose label in `installation.md` (caught during the Makefile rollout, noted
+below) and `summarize-transcript.py`'s `ANTHROPIC_API_KEY` error message, which
+still told users to "Add it to ~/.Renviron (R)" — the same non-fix the docs pass
+had removed from `installation.md`'s troubleshooting. The error message now
+gives the shell-export fix, matching the docs. Lesson consistent with the
+Makefile entry's finding: pattern greps catch code/file references, not prose
+and string literals.
 
 **2026-07-12 — [Tier 2] `compare_transcripts.py` second hardening test,
 `mentor-meet` large-v2/v3:** Backed up existing `mentor-meet.json` to
@@ -664,234 +662,214 @@ run-ons) — no other clear correctness win either direction found on a skim.
 **Open, not decided:** whether this settles `large-v2` vs `large-v3` as
 canonical for `mentor-meet`. Not started without explicit ask.
 
-**2026-07-12 — `transcribe` wrapper sync fixed (symlink + Makefile), rolled
-out across all platform docs:** Resolved the "keep `~/bin/transcribe` in
-sync" item scoped earlier the same day. Both open design questions decided:
-Positron does *not* need to become the documented default (Jason confirmed
-platform-general docs are fine as written); the symlink + Makefile approach
-*is* feasible for the Windows-Simple audience (WSL2 is a real Linux
-userland — `ln -s`/`make` behave identically to native Linux there) and was
-extended to it.
+**2026-07-12 — `transcribe` wrapper sync fixed (symlink + Makefile), rolled out
+across all platform docs:** Resolved the "keep `~/bin/transcribe` in sync" item
+scoped earlier the same day. Both open design questions decided: Positron does
+_not_ need to become the documented default (Jason confirmed platform-general
+docs are fine as written); the symlink + Makefile approach _is_ feasible for the
+Windows-Simple audience (WSL2 is a real Linux userland — `ln -s`/`make` behave
+identically to native Linux there) and was extended to it.
 
 Built `Makefile` (new, repo root) with a single `.PHONY: install` target:
-`ln -sf` the repo's `transcribe.sh` into `~/bin/transcribe` (idempotent,
-safe to re-run) plus `chmod +x`. Replaces the old `cp`/`chmod` sequence
-everywhere it appeared, and fills three places that never had an install
-step documented at all:
+`ln -sf` the repo's `transcribe.sh` into `~/bin/transcribe` (idempotent, safe to
+re-run) plus `chmod +x`. Replaces the old `cp`/`chmod` sequence everywhere it
+appeared, and fills three places that never had an install step documented at
+all:
 
 - `installation.md` — macOS Apple Silicon (Simple + Technical) switched from
-  `cp` to `make install`. Linux (Simple), Linux (Technical), and Windows
-  WSL2 (Technical) each gained a net-new "Install the transcribe script"
-  step (previously missing entirely) using the same command. Windows
-  (Simple) already got this fix in the prior turn.
+  `cp` to `make install`. Linux (Simple), Linux (Technical), and Windows WSL2
+  (Technical) each gained a net-new "Install the transcribe script" step
+  (previously missing entirely) using the same command. Windows (Simple) already
+  got this fix in the prior turn.
 - `transcribe.sh`'s own header comment updated to match.
 - `README.md`'s Project Structure tree gained a `Makefile` entry.
-- Linux (Simple) and Windows (Simple) both gained `build-essential` in
-  their `apt install` lines (`make`'s actual dependency, previously present
-  only in the Technical tracks). RHEL/Fedora's `dnf` line also gained an
-  explicit `make` package — not verified whether `gcc` alone would have
-  pulled it in as a dependency, added explicitly rather than assumed.
+- Linux (Simple) and Windows (Simple) both gained `build-essential` in their
+  `apt install` lines (`make`'s actual dependency, previously present only in
+  the Technical tracks). RHEL/Fedora's `dnf` line also gained an explicit `make`
+  package — not verified whether `gcc` alone would have pulled it in as a
+  dependency, added explicitly rather than assumed.
 
-Also fixed while doing this full-repo doc pass: the stale `"macOS/Linux (R
-users):"` label at `installation.md` (flagged, not fixed, in the prior
-turn) — changed to `"macOS/Linux:"`. Confirms the earlier full-repo grep
-for R-specific patterns had a real blind spot (prose labels vs. literal `R`
+Also fixed while doing this full-repo doc pass: the stale
+`"macOS/Linux (R users):"` label at `installation.md` (flagged, not fixed, in
+the prior turn) — changed to `"macOS/Linux:"`. Confirms the earlier full-repo
+grep for R-specific patterns had a real blind spot (prose labels vs. literal `R`
 code/file references), now closed.
 
-`noise-reduction.md` and `cowork-folder-access.md` were read as part of
-this pass and need no changes — neither references the engine default, R,
-or the install method.
+`noise-reduction.md` and `cowork-folder-access.md` were read as part of this
+pass and need no changes — neither references the engine default, R, or the
+install method.
 
-**2026-07-12 — Repo-sharing readiness pass (pre-share with a pyannote
-dev):** Full-project read surfaced inconsistencies and gaps ahead of
-sharing the repo externally. Done in two tiers the same day:
+**2026-07-12 — Repo-sharing readiness pass (pre-share with a pyannote dev):**
+Full-project read surfaced inconsistencies and gaps ahead of sharing the repo
+externally. Done in two tiers the same day:
 
-_Blockers:_ `LICENSE.md` added (PolyForm Noncommercial 1.0.0, verbatim
-canonical text, Required Notice: Copyright (c) 2026 C. Jason Tinant) plus
-a plain-language License section in README — noted honestly:
-source-available, not OSI open source. `summarize-transcript.py`'s
-docstring and `--help` epilog corrected from the pre-rename
-`transcribe.py` naming; the `from transcribe import run_pipeline` example
-(which the hyphenated filename never allowed) now points at
-`docs/reference.md`'s importlib recipe. Privacy question resolved by
-decision, not deletion: Jason reviewed the transcript fragments and first
-names in WATERSHED/session notes and judged them innocuous; session notes
-stay in the repo. (Removing them wouldn't have helped much anyway —
-WATERSHED carries the same material, and git history retains committed
-files.)
+_Blockers:_ `LICENSE.md` added (PolyForm Noncommercial 1.0.0, verbatim canonical
+text, Required Notice: Copyright (c) 2026 C. Jason Tinant) plus a plain-language
+License section in README — noted honestly: source-available, not OSI open
+source. `summarize-transcript.py`'s docstring and `--help` epilog corrected from
+the pre-rename `transcribe.py` naming; the `from transcribe import run_pipeline`
+example (which the hyphenated filename never allowed) now points at
+`docs/reference.md`'s importlib recipe. Privacy question resolved by decision,
+not deletion: Jason reviewed the transcript fragments and first names in
+WATERSHED/session notes and judged them innocuous; session notes stay in the
+repo. (Removing them wouldn't have helped much anyway — WATERSHED carries the
+same material, and git history retains committed files.)
 
 _Second tier (things a reviewer would notice):_
 
-- `requirements-lock.txt` added — exact versions extracted from the
-  venv's dist-info metadata (equivalent to `uv pip freeze`, which
-  couldn't run from the session sandbox against the macOS venv):
-  whisperx 3.8.6, pyannote.audio 4.0.4, torch 2.8.0, faster-whisper
-  1.2.1, torchcodec 0.7.0, et al. Pins the versions behind this repo's
-  version-specific claims (torchcodec warnings, `community-1` default).
-  Referenced from a new "Exact Versions" section in `installation.md`
+- `requirements-lock.txt` added — exact versions extracted from the venv's
+  dist-info metadata (equivalent to `uv pip freeze`, which couldn't run from the
+  session sandbox against the macOS venv): whisperx 3.8.6, pyannote.audio 4.0.4,
+  torch 2.8.0, faster-whisper 1.2.1, torchcodec 0.7.0, et al. Pins the versions
+  behind this repo's version-specific claims (torchcodec warnings, `community-1`
+  default). Referenced from a new "Exact Versions" section in `installation.md`
   and README's structure tree.
 - Real bug fixed in `transcribe.sh`: `$audio_stem`/`$audio_path` were
-  interpolated directly into the sidecar `python3 -c` program text — a
-  path containing an apostrophe (Zoom's own `...(he_they)'s Zoom
-  Meeting` folder naming) would have broken it. Now passed as argv with
-  a single-quoted program. Verified in the sandbox with exactly such a
-  path; the old form would have raised a SyntaxError.
-- `transcribe.sh`'s PYTHONWARNINGS comment corrected: it claimed to
-  suppress the torchcodec warning, which it never did (already
-  documented in the torchcodec parked item). Comment now states what the
-  line actually does (pyannote UserWarnings) and what it doesn't.
-  Behavior unchanged.
-- `review_transcript.py`: macOS-only `open` calls replaced with a
-  platform-aware `open_with_default_app` (`open` on darwin, `xdg-open`
-  elsewhere) — docs claim Linux/WSL2 support, so this was a real gap.
-- `grant_planning` preset gaps closed: it existed in `MEETING_PROMPTS`
-  and README's table but was missing from `MEETING_TYPE_DESCRIPTIONS`
-  (so `--list-types` silently omitted it), `docs/reference.md`'s presets
-  table, and README's supported-types line. All three fixed;
-  `--list-types` column width bumped to fit the longer name. Verified by
-  running `--list-types`.
+  interpolated directly into the sidecar `python3 -c` program text — a path
+  containing an apostrophe (Zoom's own `...(he_they)'s Zoom Meeting` folder
+  naming) would have broken it. Now passed as argv with a single-quoted program.
+  Verified in the sandbox with exactly such a path; the old form would have
+  raised a SyntaxError.
+- `transcribe.sh`'s PYTHONWARNINGS comment corrected: it claimed to suppress the
+  torchcodec warning, which it never did (already documented in the torchcodec
+  parked item). Comment now states what the line actually does (pyannote
+  UserWarnings) and what it doesn't. Behavior unchanged.
+- `review_transcript.py`: macOS-only `open` calls replaced with a platform-aware
+  `open_with_default_app` (`open` on darwin, `xdg-open` elsewhere) — docs claim
+  Linux/WSL2 support, so this was a real gap.
+- `grant_planning` preset gaps closed: it existed in `MEETING_PROMPTS` and
+  README's table but was missing from `MEETING_TYPE_DESCRIPTIONS` (so
+  `--list-types` silently omitted it), `docs/reference.md`'s presets table, and
+  README's supported-types line. All three fixed; `--list-types` column width
+  bumped to fit the longer name. Verified by running `--list-types`.
 
-Deliberately not done (noted in the evaluation, no decision forced):
-committing unit tests (the sandbox tests from prior sessions were never
-kept), env-var overrides for the hardcoded `~/PROJECTS` archive path,
-replacing the `your-username` placeholder clone URLs, pruning
-`.gitignore`'s vestigial R section, and softening the "auto-detection
-degrades with 3+ speakers" diarization claim to explicitly anecdotal.
-(The last three were done later the same day as follow-up polish; the
-env-var archive path followed the same day — see entry below. Only the
-unit tests remain undone.)
+Deliberately not done (noted in the evaluation, no decision forced): committing
+unit tests (the sandbox tests from prior sessions were never kept), env-var
+overrides for the hardcoded `~/PROJECTS` archive path, replacing the
+`your-username` placeholder clone URLs, pruning `.gitignore`'s vestigial R
+section, and softening the "auto-detection degrades with 3+ speakers"
+diarization claim to explicitly anecdotal. (The last three were done later the
+same day as follow-up polish; the env-var archive path followed the same day —
+see entry below. Only the unit tests remain undone.)
 
-**2026-07-12 — Hyphenated filename resolved: `summarize-transcript.py`
-renamed to `summarize_transcript.py`:** Parked 2026-07-11 with two
-options (rename vs. treat CLI as the only supported pattern); resolved
-in favor of the rename once three things tipped the balance the same
-day: two consumers depended on the `importlib` workaround
-(`sanity_check_transcript.py` plus the documented interactive recipe),
-the repo had just gone public with zero external users — the cheapest
-the rename would ever be — and a pyannoteAI engineer was about to read
-the code, where a file-path `importlib` load of a sibling module reads
-as a wart.
+**2026-07-12 — Hyphenated filename resolved: `summarize-transcript.py` renamed
+to `summarize_transcript.py`:** Parked 2026-07-11 with two options (rename vs.
+treat CLI as the only supported pattern); resolved in favor of the rename once
+three things tipped the balance the same day: two consumers depended on the
+`importlib` workaround (`sanity_check_transcript.py` plus the documented
+interactive recipe), the repo had just gone public with zero external users —
+the cheapest the rename would ever be — and a pyannoteAI engineer was about to
+read the code, where a file-path `importlib` load of a sibling module reads as a
+wart.
 
 Mechanical rollout: `mv` (git detects the rename on `git add -A`);
 `sanity_check_transcript.py`'s 8-line `importlib` block collapsed to
-`from summarize_transcript import summarize_anthropic,
-summarize_ollama` (its docstring note about the workaround removed);
-`docs/reference.md`'s "Interactive / script usage" `importlib` recipe
-replaced with a normal import (run from the repo folder or add to
-`sys.path`); the renamed file's own docstring now shows the working
-import; every CLI example across `README.md`, `docs/reference.md`,
-`docs/installation.md` updated. Historical references in WATERSHED and
-session notes left as-is — they describe the past accurately.
+`from summarize_transcript import summarize_anthropic, summarize_ollama` (its
+docstring note about the workaround removed); `docs/reference.md`'s "Interactive
+/ script usage" `importlib` recipe replaced with a normal import (run from the
+repo folder or add to `sys.path`); the renamed file's own docstring now shows
+the working import; every CLI example across `README.md`, `docs/reference.md`,
+`docs/installation.md` updated. Historical references in WATERSHED and session
+notes left as-is — they describe the past accurately.
 
 Verified: both files `py_compile` clean, `import sanity_check_transcript`
-resolves the new import chain end-to-end, `--list-types` runs, and a
-repo-wide grep confirms no live references to the hyphenated name
-outside history documents.
+resolves the new import chain end-to-end, `--list-types` runs, and a repo-wide
+grep confirms no live references to the hyphenated name outside history
+documents.
 
 **2026-07-12 — Archive path made overridable via `TRANSCRIBE_OUTPUT_DIR`:**
 Closed the "hardcoded `~/PROJECTS` archive path" item from the readiness
-evaluation's deliberately-not-done list — prioritized ahead of Tier 4
-work because anyone cloning the now-shared repo hits the hardcoded path
-first. Precedence: explicit `--output_dir`/`--output-dir`/`output_dir`
-argument > `TRANSCRIBE_OUTPUT_DIR` env var > the unchanged default.
+evaluation's deliberately-not-done list — prioritized ahead of Tier 4 work
+because anyone cloning the now-shared repo hits the hardcoded path first.
+Precedence: explicit `--output_dir`/`--output-dir`/`output_dir` argument >
+`TRANSCRIBE_OUTPUT_DIR` env var > the unchanged default.
 
-Implementation: `transcribe.sh` resolves `$output_dir` once (with
-`mkdir -p` for robustness) and uses it for both whisperx's
-`--output_dir` and the sidecar write — the sidecar previously hardcoded
-the archive path inside its Python snippet, and now receives the dir as
-a third argv. One documented nuance: a `--output_dir` passed on the
-`transcribe` command line overrides whisperx's output but not the
-sidecar location, which always follows the env/default archive.
-`summarize_transcript.py` gets a module-level `DEFAULT_OUTPUT_DIR`
+Implementation: `transcribe.sh` resolves `$output_dir` once (with `mkdir -p` for
+robustness) and uses it for both whisperx's `--output_dir` and the sidecar write
+— the sidecar previously hardcoded the archive path inside its Python snippet,
+and now receives the dir as a third argv. One documented nuance: a
+`--output_dir` passed on the `transcribe` command line overrides whisperx's
+output but not the sidecar location, which always follows the env/default
+archive. `summarize_transcript.py` gets a module-level `DEFAULT_OUTPUT_DIR`
 (reads the env var at import) used by `save_outputs`, `run_pipeline`,
-`run_pipeline_merged`, and the CLI default. `review_transcript.py`
-needed no change — all its outputs and sidecar reads are input-relative
-by design, so it follows the archive wherever it lives. Docs: custom-
-location subsection in `installation.md`'s archive setup; one-line
-note in README's "Where output goes."
+`run_pipeline_merged`, and the CLI default. `review_transcript.py` needed no
+change — all its outputs and sidecar reads are input-relative by design, so it
+follows the archive wherever it lives. Docs: custom- location subsection in
+`installation.md`'s archive setup; one-line note in README's "Where output
+goes."
 
-Verified: `bash -n` + `py_compile` clean; env override observed in both
-the module default and `--help` text; sidecar written to a custom
-`TRANSCRIBE_OUTPUT_DIR` with an apostrophe-containing audio path (the
-quoting fix from earlier today still holds through the new argv).
+Verified: `bash -n` + `py_compile` clean; env override observed in both the
+module default and `--help` text; sidecar written to a custom
+`TRANSCRIBE_OUTPUT_DIR` with an apostrophe-containing audio path (the quoting
+fix from earlier today still holds through the new argv).
 
-**2026-07-12 — Unit tests committed (`tests/`, 48 tests):** Closes the
-last deliberately-not-done item from the readiness evaluation. Prior
-sessions' tests lived only in throwaway sandboxes; WATERSHED described
-testing that a reader of the repo couldn't find. Now committed as four
-stdlib-`unittest` files (no pytest — zero new dependencies, matching
-the tools' own stdlib-only design), covering the pure functions of all
-four Python tools; no LLM call or audio needed. Run with
-`python3 -m unittest discover tests` from the repo root (documented in
+**2026-07-12 — Unit tests committed (`tests/`, 48 tests):** Closes the last
+deliberately-not-done item from the readiness evaluation. Prior sessions' tests
+lived only in throwaway sandboxes; WATERSHED described testing that a reader of
+the repo couldn't find. Now committed as four stdlib-`unittest` files (no pytest
+— zero new dependencies, matching the tools' own stdlib-only design), covering
+the pure functions of all four Python tools; no LLM call or audio needed. Run
+with `python3 -m unittest discover tests` from the repo root (documented in
 `docs/reference.md`; `tests/` added to README's structure tree).
 
-Regression cases encode this repo's actual bug history, not generic
-coverage: the `--report` word-level-timestamp fix (a word 19s into a
-0-start segment must report `[0:19]`), the unaligned-punctuation
-fallback, `?:??` for unlocatable sanity flags, filler-only differences
-excluded from `compare_transcripts.py`'s shown disagreements, the
-`grant_planning` `--list-types` omission (as a prompts-vs-descriptions
-consistency check), the `save_outputs` skip-transcript-for-`.txt`
-behavior, and the `TRANSCRIBE_OUTPUT_DIR` override (tested in a fresh
-interpreter, since the default is read at import). All 48 passed on
-first run in the sandbox.
+Regression cases encode this repo's actual bug history, not generic coverage:
+the `--report` word-level-timestamp fix (a word 19s into a 0-start segment must
+report `[0:19]`), the unaligned-punctuation fallback, `?:??` for unlocatable
+sanity flags, filler-only differences excluded from `compare_transcripts.py`'s
+shown disagreements, the `grant_planning` `--list-types` omission (as a
+prompts-vs-descriptions consistency check), the `save_outputs`
+skip-transcript-for-`.txt` behavior, and the `TRANSCRIBE_OUTPUT_DIR` override
+(tested in a fresh interpreter, since the default is read at import). All 48
+passed on first run in the sandbox.
 
-**2026-07-14 — Zoom-baseline comparison run (deferred since 2026-07-11),
-plus a text-alignment speaker-name-transfer probe:** Real subject: the
-ESIIL Data Short Course session recording (2026-07-13, 2h09m, 11
-speakers per Zoom's roster), transcribed with `large-v3`,
-`--min_speakers 1 --max_speakers 4`, and `--hotwords` including ESIIL
-and CIRES. Zoom's own artifacts (`.transcript.vtt` with account-name
-speaker attribution, `.cc.vtt` without) converted to WhisperX-shaped
-JSON via `tmp_vtt_to_json.py` (a `tmp_`-prefixed, gitignored one-off;
-Zoom-side word timestamps are interpolated from cue timing, so
-approximate by design), then diffed with the existing
-`compare_transcripts.py`.
+**2026-07-14 — Zoom-baseline comparison run (deferred since 2026-07-11), plus a
+text-alignment speaker-name-transfer probe:** Real subject: the ESIIL Data Short
+Course session recording (2026-07-13, 2h09m, 11 speakers per Zoom's roster),
+transcribed with `large-v3`, `--min_speakers 1 --max_speakers 4`, and
+`--hotwords` including ESIIL and CIRES. Zoom's own artifacts (`.transcript.vtt`
+with account-name speaker attribution, `.cc.vtt` without) converted to
+WhisperX-shaped JSON via `tmp_vtt_to_json.py` (a `tmp_`-prefixed, gitignored
+one-off; Zoom-side word timestamps are interpolated from cue timing, so
+approximate by design), then diffed with the existing `compare_transcripts.py`.
 
-**Text results:** 93.2% raw / 93.5% content agreement, 725 divergences.
-The "pipeline is a little better on tricky science words" claim (made in
-writing to UC Boulder colleagues the same day) is supported but narrow:
-pipeline won `CIRES` (Zoom: "CERES"), `Corps` (Zoom: "Board,"), and
-came closer on a participant's surname — but _both_ systems
-mangled the spoken word "ESIIL" (Zoom: "easel"/"ESO"; pipeline:
-"ESL"/"ESOL"), despite ESIIL being in `--hotwords`. Hotwords hint, they
-don't guarantee. `known-terms.txt` gained ESIIL, CIRES, Earth Lab so
-the sanity pass can flag these next time.
+**Text results:** 93.2% raw / 93.5% content agreement, 725 divergences. The
+"pipeline is a little better on tricky science words" claim (made in writing to
+UC Boulder colleagues the same day) is supported but narrow: pipeline won
+`CIRES` (Zoom: "CERES"), `Corps` (Zoom: "Board,"), and came closer on a
+participant's surname — but _both_ systems mangled the spoken word "ESIIL"
+(Zoom: "easel"/"ESO"; pipeline: "ESL"/"ESOL"), despite ESIIL being in
+`--hotwords`. Hotwords hint, they don't guarantee. `known-terms.txt` gained
+ESIIL, CIRES, Earth Lab so the sanity pass can flag these next time.
 
-**Speaker results — the more interesting half.** The `--max_speakers 4`
-pin (suggested per README's lecture guidance, miscalibrated for an
-11-voice session) forced ~9 participants into 2 labels.
-`tmp_map_speakers.py` (second gitignored one-off) aligned the two
-transcripts word-by-word and majority-voted Zoom's account names onto
-the pipeline's `SPEAKER_XX` labels: SPEAKER_00 and SPEAKER_02 both
-mapped to the lecturer at ~99.7% (diarization split one voice into two
-labels — harmless, votes unambiguous), while SPEAKER_01/SPEAKER_03
-had no majority (42%/29% top shares) — exactly the merged buckets, and
-the vote share self-flags them. Direct evidence for the Tier 4
-discussion: text-alignment name transfer works where diarization is
-right and announces where it isn't, at zero voice-embedding cost —
-though it only exists when a named reference transcript (here, Zoom's)
-exists at all. Also noted plainly: for multi-participant Zoom sessions,
-Zoom's speaker attribution is structurally better (exact names, free,
-from per-account audio streams); this pipeline's edge is vocabulary,
-word-level confidence, and the JSON structure downstream tools need.
+**Speaker results — the more interesting half.** The `--max_speakers 4` pin
+(suggested per README's lecture guidance, miscalibrated for an 11-voice session)
+forced ~9 participants into 2 labels. `tmp_map_speakers.py` (second gitignored
+one-off) aligned the two transcripts word-by-word and majority-voted Zoom's
+account names onto the pipeline's `SPEAKER_XX` labels: SPEAKER_00 and SPEAKER_02
+both mapped to the lecturer at ~99.7% (diarization split one voice into two
+labels — harmless, votes unambiguous), while SPEAKER_01/SPEAKER_03 had no
+majority (42%/29% top shares) — exactly the merged buckets, and the vote share
+self-flags them. Direct evidence for the Tier 4 discussion: text-alignment name
+transfer works where diarization is right and announces where it isn't, at zero
+voice-embedding cost — though it only exists when a named reference transcript
+(here, Zoom's) exists at all. Also noted plainly: for multi-participant Zoom
+sessions, Zoom's speaker attribution is structurally better (exact names, free,
+from per-account audio streams); this pipeline's edge is vocabulary, word-level
+confidence, and the JSON structure downstream tools need.
 
-Process note: Jason established `99_archive/` (gitignored) inside the
-repo as the place for non-sensitive test materials like this session —
-distinct from the private output archive, which remains for real
-recordings.
+Process note: Jason established `99_archive/` (gitignored) inside the repo as
+the place for non-sensitive test materials like this session — distinct from the
+private output archive, which remains for real recordings.
 
-**2026-07-14 — Rate-limit retry added to the Anthropic path:** The
-ESIIL summary run crashed with a 429: `--merge` fires two ~30k-token
-requests back-to-back, and the second exceeded a per-minute token
-window — a failure mode that never surfaced on ~25-minute meeting
-transcripts and only appeared at 2h09m scale. Run 1's completed summary
-was also lost in the crash (the merged pipeline only saves at the end)
-— the retry prevents the crash rather than adding partial-save
-plumbing. New `_post_with_retry` in `summarize_transcript.py`, used by
-both Anthropic call sites (`summarize_anthropic`, `merge_summaries`):
-retries 429/5xx up to 3 times, honors `Retry-After` (capped 120s),
-defaults to 60s for 429 (one TPM window), fails fast on client errors
-like 401. Ollama call sites deliberately unchanged (local server, no
-rate limits, connection errors already handled). Five unit tests added
-via injection points — 53 total, all green.
+**2026-07-14 — Rate-limit retry added to the Anthropic path:** The ESIIL summary
+run crashed with a 429: `--merge` fires two ~30k-token requests back-to-back,
+and the second exceeded a per-minute token window — a failure mode that never
+surfaced on ~25-minute meeting transcripts and only appeared at 2h09m scale. Run
+1's completed summary was also lost in the crash (the merged pipeline only saves
+at the end) — the retry prevents the crash rather than adding partial-save
+plumbing. New `_post_with_retry` in `summarize_transcript.py`, used by both
+Anthropic call sites (`summarize_anthropic`, `merge_summaries`): retries 429/5xx
+up to 3 times, honors `Retry-After` (capped 120s), defaults to 60s for 429 (one
+TPM window), fails fast on client errors like 401. Ollama call sites
+deliberately unchanged (local server, no rate limits, connection errors already
+handled). Five unit tests added via injection points — 53 total, all green.
