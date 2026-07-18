@@ -23,7 +23,7 @@ neither should start without an explicit ask.
 **Status:** parked — decision, not started
 
 Two `tmp_`-prefixed, gitignored one-offs earned their keep on first use
-(2026-07-14, ESIIL session — see Resolved/History): `tmp_vtt_to_json.py` (Zoom
+(2026-07-14, esimil session — see Resolved/History): `tmp_vtt_to_json.py` (Zoom
 WebVTT → WhisperX-shaped JSON, enabling `compare_transcripts.py` and
 `review_transcript.py` against Zoom's output) and `tmp_map_speakers.py`
 (text-alignment speaker-name transfer from a named reference transcript, with

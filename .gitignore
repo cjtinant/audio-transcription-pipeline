@@ -33,13 +33,15 @@ __pycache__/
 .cache/
 models/
 
+# ── Custom dictionary files ───────────────────────────────────────────
+.cspell
+cspell.json
 
-# ── Scratch files ───────────────────────────────────────────────────────
+# ── Scratch files ──────────────────────────────────────────────────────
 scratch.md
-quickstart.md
 tmp_*
 
-# ── Admin and archive files ──────────────────────────────────────────────
+# ── Admin and archive files ────────────────────────────────────────────
 00_admin/
 99_archive
 docs/references/
