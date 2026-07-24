@@ -352,3 +352,58 @@ class TestSpeakerNameInjection(unittest.TestCase):
                   summarize_transcript.build_speaker_prompt(infer=True)):
             self.assertIn("(inferred)", p)
             self.assertIn("SPEAKER_XX", p)
+
+
+class TestExtractText(unittest.TestCase):
+    """
+    Regression: `content[0]["text"]` raised KeyError: 'text' in real use
+    (2026-07-24). `content` is a list of blocks and text is not guaranteed
+    to be first — models with adaptive thinking may emit a `thinking`
+    block ahead of the answer. Because thinking engages adaptively, this
+    failed intermittently: the same request could succeed twice and crash
+    on the third run.
+    """
+
+    def test_plain_text_block(self):
+        payload = {"content": [{"type": "text", "text": "hello"}]}
+        self.assertEqual(summarize_transcript.extract_text(payload), "hello")
+
+    def test_thinking_block_before_text(self):
+        payload = {"content": [
+            {"type": "thinking", "thinking": "reasoning...", "signature": "x"},
+            {"type": "text", "text": "the answer"},
+        ]}
+        self.assertEqual(summarize_transcript.extract_text(payload),
+                         "the answer")
+
+    def test_multiple_text_blocks_are_joined_in_order(self):
+        payload = {"content": [
+            {"type": "text", "text": "first"},
+            {"type": "thinking", "thinking": "..."},
+            {"type": "text", "text": "second"},
+        ]}
+        self.assertEqual(summarize_transcript.extract_text(payload),
+                         "first\nsecond")
+
+    def test_unknown_block_type_carrying_text_is_still_used(self):
+        payload = {"content": [{"type": "something_new", "text": "answer"}]}
+        self.assertEqual(summarize_transcript.extract_text(payload), "answer")
+
+    def test_no_text_raises_with_diagnosis(self):
+        payload = {"content": [{"type": "thinking", "thinking": "..."}],
+                   "stop_reason": "end_turn"}
+        with self.assertRaises(ValueError) as ctx:
+            summarize_transcript.extract_text(payload)
+        self.assertIn("thinking", str(ctx.exception))
+
+    def test_truncated_before_any_text_names_the_cause(self):
+        """Thinking tokens draw on the same budget as the answer."""
+        payload = {"content": [{"type": "thinking", "thinking": "..."}],
+                   "stop_reason": "max_tokens"}
+        with self.assertRaises(ValueError) as ctx:
+            summarize_transcript.extract_text(payload)
+        self.assertIn("--max-tokens", str(ctx.exception))
+
+    def test_empty_content_raises(self):
+        with self.assertRaises(ValueError):
+            summarize_transcript.extract_text({"content": []})

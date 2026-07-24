@@ -427,6 +427,47 @@ def _post_with_retry(url, *, headers=None, json=None, timeout=DEFAULT_TIMEOUT,
         response.raise_for_status()
         return response
 
+def extract_text(payload: dict) -> str:
+    """
+    Pull the assistant's text out of an Anthropic Messages response.
+
+    `content` is a LIST OF BLOCKS, not a single text block, and text is
+    not guaranteed to be first. Models with adaptive thinking may emit a
+    `thinking` block ahead of the answer, in which case the old
+    `content[0]["text"]` raised KeyError: 'text'. Because thinking engages
+    adaptively, that failed intermittently rather than every time — the
+    same request could work twice and crash on the third run.
+
+    Concatenates every text block in order and ignores the rest.
+    """
+    blocks = payload.get("content") or []
+    parts = [
+        b.get("text", "") for b in blocks
+        if isinstance(b, dict) and b.get("type") == "text"
+    ]
+    if not parts:
+        # Be forgiving about an unfamiliar block shape before giving up.
+        parts = [
+            b["text"] for b in blocks
+            if isinstance(b, dict) and isinstance(b.get("text"), str)
+        ]
+    text = "\n".join(p for p in parts if p).strip()
+    if text:
+        return text
+
+    # No text at all. Report enough to diagnose it without a re-run.
+    kinds = [b.get("type", "?") for b in blocks if isinstance(b, dict)]
+    stop = payload.get("stop_reason")
+    detail = f"block types: {kinds or 'none'}; stop_reason: {stop}"
+    if stop == "max_tokens":
+        raise ValueError(
+            "The model hit the output ceiling before producing any text "
+            f"({detail}). With adaptive thinking, reasoning tokens draw "
+            "on the same budget — raise --max-tokens and retry."
+        )
+    raise ValueError(f"No text block in the API response ({detail}).")
+
+
 def summarize_anthropic(
     transcript: str,
     prompt: str,
@@ -486,7 +527,7 @@ def summarize_anthropic(
         },
         timeout=timeout,
     )
-    return response.json()["content"][0]["text"]
+    return extract_text(response.json())
 
 
 def summarize_ollama(
@@ -787,7 +828,7 @@ def merge_summaries(
             },
             timeout=DEFAULT_TIMEOUT,
         )
-        return response.json()["content"][0]["text"]
+        return extract_text(response.json())
     else:
         try:
             response = httpx.post(
