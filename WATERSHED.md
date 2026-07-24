@@ -28,12 +28,16 @@ scannable words may beat Opus 5's 2,299 thorough ones. A per-preset default
 would capture this; a single global default cannot. Worth deciding whether
 that complexity earns its keep before building it.
 
-**3. Unverified: Sonnet 5's "Caitlin."** Sonnet named her as the first live-demo
-participant; Opus 5 never mentions her. Dr. Ramadan — present only in Opus 5 —
-was confirmed real by Jason. If "Caitlin" appears nowhere in the transcript,
-Sonnet fabricated a named participant and attributed a specific action to her,
-which is a materially worse failure than omission and would sharpen the
-conclusion below. One grep settles it; not yet run.
+**3. Named-entity coverage should be mechanical, not a human read.** Resolved
+the "Caitlin" question by grep: **Caitlin 86 mentions, Ramadan 17.** Both are
+real; each model omitted one; Opus omitted the more prominent. Neither the
+mechanical metrics nor the human read caught this — it took a third check
+nobody had planned.
+
+That check is cheap and objective, and belongs in `tmp_compare_models.py`:
+extract capitalized tokens from the transcript, rank by frequency, and report
+which of the top names appear in each summary. It would have flagged both
+omissions in seconds without any judgment call. Not built.
 
 **Flagged:** 2026-07-24
 
@@ -1011,12 +1015,14 @@ that matters here. The real question is not "is Opus smarter" but "do you want
    free inside the summary, on the exact error class WATERSHED already
    documented for this recording (2026-07-14: both Zoom and the pipeline
    mangled "ESIIL" as easel/ESO/ESL/ESOL).
-2. **Opus 5 captured a real participant Sonnet 5 omitted entirely.** Dr.
-   Ramadan appears only in Opus's troubleshooting table; confirmed real by
-   Jason. Sonnet instead led its live-demo list with "Caitlin," who Opus never
-   mentions and who remains unverified (parked above). Omission at 758 words is
-   expected; omitting a confirmed named participant while listing six others is
-   not.
+2. **Both models omitted a real named participant — and Opus 5 omitted the more
+   prominent one.** Corrected finding; see the erratum below. Transcript
+   mention counts: **Caitlin 86, Ramadan 17.** Opus captured Ramadan and
+   dropped Caitlin entirely; Sonnet did the reverse. Opus wrote 3x more words
+   and still omitted the most-frequently-named participant in the session,
+   which makes this a selection failure rather than a length constraint. This
+   finding does **not** favor either model; if anything it counts against Opus,
+   whose extra length is partly justified on completeness grounds.
 3. **Opus 5 captured failure modes, Sonnet 5 captured syntax.** "dash +
    **space** (missing the space was a common error)" vs "Bulleted lists
    syntax"; "you cannot create an empty folder in GitHub, so add a `.keep`
@@ -1030,10 +1036,28 @@ defect against it — it filed the "Danger Zone" concept under a section headed
 7:57–11:32 but timestamped it `[16:35]`, inconsistent with its own structure,
 and rendered late timestamps as `[116:00]` where Opus used `~1:56:00`.
 
-**Decision:** `claude-opus-5` stays the default. The evidence is specific to
+**Decision:** `claude-opus-5` stays the default, on narrower grounds than the
+first draft of this entry claimed. What survives scrutiny is error correction
+(finding 1) and pedagogical detail (finding 3). Participant coverage — finding
+2, initially written up as Opus's strongest result — turned out to favor
+neither model once checked. The evidence is also specific to
 completeness-oriented presets (`lecture`, `grant_planning`) and does not
 transfer to `standup`/`general` — parked separately above rather than
 generalized.
+
+The margin is thinner than the headline suggests. Sonnet 5 costs a third as
+much and is the better artifact if you want something scannable; Opus 5 earns
+the default only because a mistranscription passed through as fact is the
+failure mode this pipeline exists to catch.
+
+**Erratum (same day, before commit):** finding 2 was first recorded as "Opus
+captured a real participant Sonnet omitted," from Jason confirming Dr. Ramadan
+was real. That inferred Caitlin was fabricated — treating confirmation of one
+name as evidence against the other, which does not follow. A grep showed
+Caitlin at 86 mentions to Ramadan's 17: both real, each model missed one, and
+the more prominent omission was Opus's. Recorded rather than silently fixed,
+because the reasoning error is the more useful artifact: **a single confirmed
+data point was used to settle a question it could not settle.**
 
 **Corrected as a result:** the cost figures added to `pipeline-reference.md`
 earlier the same day were token arithmetic and wrong by roughly 2x. Transcript
@@ -1046,6 +1070,12 @@ transcript format.
 
 **Method note:** the harness reports mechanical facts only (time, tokens, cost,
 `stop_reason`) and writes both summaries side by side. Quality scoring was a
-human read, same as 2026-07-12 — and one finding (Dr. Ramadan) could only be
-settled by Jason's own knowledge of the session, which is exactly the limit
-`compare_transcripts.py` documents for itself: A-says/B-says, not right/wrong.
+human read, same as 2026-07-12 — the limit `compare_transcripts.py` already
+documents for itself: A-says/B-says, not right/wrong.
+
+The erratum exposed a real gap in that method. Two summaries disagreeing tells
+you where to look, but not who is right, and a human read of both will not
+surface what is absent from *both* — or reliably notice which of two omissions
+matters more. The grep that settled it took seconds and needed no judgment.
+**Comparison needs a third reference, and for named entities the transcript
+itself is that reference.** Parked above as a coverage check for the harness.
