@@ -9,71 +9,45 @@ Move items to a commit and add to Resolved/History when resolved.
 
 ## Parked:
 
-### Summarizer model default — reasoned, not measured
+### Follow-ups from the 2026-07-24 model comparison
 
-**Status:** parked — harness built 2026-07-24, test not yet run
+**Status:** parked — three questions the A/B test surfaced but did not answer
+(the test itself is resolved; see Resolved/History)
 
-`claude-opus-5` became the summarizer default on 2026-07-24, sized for
-multi-hour lectures. The reasoning is documented and defensible (long-context
-comprehension, freshest knowledge cutoff of the current lineup), but **no A/B
-comparison was actually run** — unlike the Anthropic-vs-Ollama engine decision
-(2026-07-12), which was settled by testing both against a real transcript and
-scoring the results.
+**1. `DEFAULT_MAX_TOKENS` headroom is thinner than it looks.** Opus 5 used
+5,976 of the 8,192 ceiling — **73%** — on a 2h09m recording. At that rate a
+genuine 3-hour lecture produces ~8,300 output tokens and would truncate. The
+ceiling was raised specifically for the 3-hour case and is marginal for exactly
+that case. Options: raise the default to 16000, or leave it and document
+`--max-tokens 16000` as required for 3-hour runs. Not decided.
 
-This repo's own convention is to test engine choices rather than assert them.
-The honest position: the default is a reasoned guess. It may well be
-unnecessary — Sonnet 5 could be indistinguishable for this task at ~60% of the
-cost, and nobody has checked.
+**2. Model choice may be preset-dependent, which nothing currently expresses.**
+The test measured `lecture`, where Opus 5's completeness clearly wins. That
+result does not transfer to `standup` or `general`, where Sonnet 5's 758
+scannable words may beat Opus 5's 2,299 thorough ones. A per-preset default
+would capture this; a single global default cannot. Worth deciding whether
+that complexity earns its keep before building it.
 
-**What a real test would look like:** same transcript, same preset, summaries
-from `claude-sonnet-5` and `claude-opus-5`, scored the way the 2026-07-12 test
-scored Anthropic vs Ollama — did it catch the real content, did it hallucinate,
-did it follow the preset's section structure. A long recording is the right
-subject, since that is what the default was chosen for; the ESIIL course
-session (2h09m, already transcribed) is the obvious candidate.
-
-**Knock-on effect, not separately decided:** `sanity_check_transcript.py`
-reuses `summarize_anthropic`, so it silently inherited `claude-opus-5` too. Its
-measured precision (3/5 real flags, 2/5 false positives on `mentor-meet`,
-2026-07-12) was recorded against `claude-sonnet-4-6` and no longer describes
-what the tool currently runs. Probably an improvement; unverified either way.
-Any re-test of the sanity pass should re-baseline rather than compare against
-that number.
-
-**Harness built 2026-07-24; the run itself is still pending.**
-`tmp_compare_models.py` (`tmp_`-prefixed and gitignored, same convention as the
-Zoom probes) sends one transcript and preset through two or more models and
-reports wall-clock time, exact input/output tokens and cost from the API's own
-usage block, and `stop_reason`. Both summaries are written side by side for the
-human read.
-
-It has to run on Jason's machine. The Cowork session that wrote it has no route
-to `api.anthropic.com`, no `ANTHROPIC_API_KEY`, and no connected folder for the
-output archive — all three verified, not assumed. Command:
-
-```bash
-export ANTHROPIC_API_KEY=$(grep -m1 '^ANTHROPIC_API_KEY=' ~/.Renviron \
-    | cut -d= -f2- | tr -d '\r')
-.venv/bin/python3 tmp_compare_models.py \
-    ~/PROJECTS/audio-transcription-output/2026-07-13_esiil-course_audio.json \
-    --type lecture
-```
-
-**Read `stop_reason` first.** `max_tokens` means the summary was cut off, not
-that the model had less to say — the exact failure the 2026-07-24 ceiling change
-addressed, and the first empirical check on whether 8192 is enough for a 2h09m
-session. Judge quality only after both summaries finish cleanly; a truncated
-summary is unfinished, not worse.
-
-**Also waiting on this run:** the cost figures added to
-`docs/pipeline-reference.md` on 2026-07-24 (~$0.10 for a 1-hour summary, ~$0.75
-for a 3-hour `--merge`) are token arithmetic, not measurements. The harness
-reports real usage — correct those figures once it has run.
-
-Filed rather than left implicit, so the untested basis does not quietly become
-settled fact. Scoring the summaries for quality remains an explicit ask.
+**3. Unverified: Sonnet 5's "Caitlin."** Sonnet named her as the first live-demo
+participant; Opus 5 never mentions her. Dr. Ramadan — present only in Opus 5 —
+was confirmed real by Jason. If "Caitlin" appears nowhere in the transcript,
+Sonnet fabricated a named participant and attributed a specific action to her,
+which is a materially worse failure than omission and would sharpen the
+conclusion below. One grep settles it; not yet run.
 
 **Flagged:** 2026-07-24
+
+---
+
+### Summarizer model default — RESOLVED, see Resolved/History
+
+**Status:** resolved 2026-07-24 — measured, no longer a reasoned guess
+
+The A/B comparison this item called for was run on 2026-07-24 against the
+ESIIL short course (2h09m). Full record — measured numbers, quality scoring,
+and the decision — is in **Resolved / History**, dated 2026-07-24.
+
+Open follow-ups it surfaced are parked separately above.
 
 ---
 
@@ -1003,3 +977,75 @@ up to 3 times, honors `Retry-After` (capped 120s), defaults to 60s for 429 (one
 TPM window), fails fast on client errors like 401. Ollama call sites
 deliberately unchanged (local server, no rate limits, connection errors already
 handled). Five unit tests added via injection points — 53 total, all green.
+
+**2026-07-24 — Summarizer model default measured: `claude-opus-5` confirmed,
+`claude-sonnet-5` shown to lose real content.** Closes the "reasoned, not
+measured" item parked earlier the same day, which flagged that `claude-opus-5`
+had become the default without the A/B treatment the Anthropic-vs-Ollama
+decision got on 2026-07-12. Run via `tmp_compare_models.py` against the ESIIL
+short course (2026-07-13, 2h09m), `lecture` preset, 8192-token ceiling.
+
+**Measured:**
+
+| Model             | Time  | In     | Out   | Words | Cost    | stop     |
+| ----------------- | ----- | ------ | ----- | ----- | ------- | -------- |
+| `claude-sonnet-5` | 24.9s | 60,581 | 2,192 | 758   | $0.1431 | end_turn |
+| `claude-opus-5`   | 75.5s | 60,581 | 5,976 | 2,299 | $0.4523 | end_turn |
+
+**Neither truncated** — the 2026-07-24 ceiling raise (1024 → 8192) was
+sufficient here, though Opus 5 used 73% of it. See the parked follow-up on
+headroom for 3-hour recordings.
+
+**Cost is not where the difference lives.** Per output word the two models are
+within 4% of each other ($0.000189 vs $0.000197). Opus 5 costs 3.2x more
+because it wrote 3x more, not because its tokens are more expensive in any way
+that matters here. The real question is not "is Opus smarter" but "do you want
+758 words or 2,299."
+
+**Quality scoring — three findings that are capability, not length:**
+
+1. **Opus 5 corrected a mistranscription; Sonnet 5 propagated it.** Opus wrote
+   "GEDI (referenced as 'JEDI')" — recognizing the error while preserving what
+   was said — and similarly flagged ESIIL/"ESOL" variance. Sonnet passed "JEDI"
+   through as fact. This is `sanity_check_transcript.py`'s job happening for
+   free inside the summary, on the exact error class WATERSHED already
+   documented for this recording (2026-07-14: both Zoom and the pipeline
+   mangled "ESIIL" as easel/ESO/ESL/ESOL).
+2. **Opus 5 captured a real participant Sonnet 5 omitted entirely.** Dr.
+   Ramadan appears only in Opus's troubleshooting table; confirmed real by
+   Jason. Sonnet instead led its live-demo list with "Caitlin," who Opus never
+   mentions and who remains unverified (parked above). Omission at 758 words is
+   expected; omitting a confirmed named participant while listing six others is
+   not.
+3. **Opus 5 captured failure modes, Sonnet 5 captured syntax.** "dash +
+   **space** (missing the space was a common error)" vs "Bulleted lists
+   syntax"; "you cannot create an empty folder in GitHub, so add a `.keep`
+   placeholder" vs "creating an `img` folder with `.keep`". For the `lecture`
+   preset — which asks for study notes — the *why* is the reusable part. Opus
+   also produced a 10-row participant/problem/resolution table where Sonnet
+   produced six one-line descriptors.
+
+**Sonnet 5's edge, honestly:** far more scannable at 100 lines vs 170. One
+defect against it — it filed the "Danger Zone" concept under a section headed
+7:57–11:32 but timestamped it `[16:35]`, inconsistent with its own structure,
+and rendered late timestamps as `[116:00]` where Opus used `~1:56:00`.
+
+**Decision:** `claude-opus-5` stays the default. The evidence is specific to
+completeness-oriented presets (`lecture`, `grant_planning`) and does not
+transfer to `standup`/`general` — parked separately above rather than
+generalized.
+
+**Corrected as a result:** the cost figures added to `pipeline-reference.md`
+earlier the same day were token arithmetic and wrong by roughly 2x. Transcript
+text tokenizes at **~2.2 chars/token, not ~4** — the `[SPEAKER_00 @ 1234.5s]`
+prefix on every segment is dense in digits and brackets. Real rate is ~470
+input tokens per minute of audio; a 1-hour Opus summary is ~$0.24 (was
+estimated $0.10) and a 3-hour `--merge` ~$1.36 (was estimated $0.75). Lesson
+worth keeping: `chars / 4` is not a safe token estimate for this pipeline's
+transcript format.
+
+**Method note:** the harness reports mechanical facts only (time, tokens, cost,
+`stop_reason`) and writes both summaries side by side. Quality scoring was a
+human read, same as 2026-07-12 — and one finding (Dr. Ramadan) could only be
+settled by Jason's own knowledge of the session, which is exactly the limit
+`compare_transcripts.py` documents for itself: A-says/B-says, not right/wrong.

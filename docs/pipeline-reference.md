@@ -224,10 +224,21 @@ This is a reasoned default, not a measured one — no A/B comparison has been ru
 across Claude models for this task, unlike the Anthropic-vs-Ollama engine
 decision (WATERSHED 2026-07-12).
 
-**Rough cost per 1-hour meeting summary:** ~$0.10 on Opus 5 (~14k input tokens,
-~2k output). A 3-hour lecture with `--merge` runs three requests over ~40k input
-tokens each — closer to $0.75. Both are estimates from token arithmetic, not
-measured invoices.
+**Measured cost (2026-07-24, ESIIL short course, 2h09m, `lecture` preset):**
+
+| Model             | Time  | In tokens | Out tokens | Cost    |
+| ----------------- | ----- | --------- | ---------- | ------- |
+| `claude-sonnet-5` | 24.9s | 60,581    | 2,192      | $0.1431 |
+| `claude-opus-5`   | 75.5s | 60,581    | 5,976      | $0.4523 |
+
+Extrapolating from that run: **~470 input tokens per minute of audio.** A 1-hour
+summary on Opus 5 runs ~$0.24; a 3-hour lecture with `--merge` (three requests)
+lands near $1.36.
+
+**Transcript text tokenizes densely — about 2.2 characters per token, not the
+usual ~4.** The `[SPEAKER_00 @ 1234.5s]` prefix on every segment is the reason;
+digits and brackets cost more than prose. Estimating input tokens as
+`chars / 4` understates the real figure by nearly half.
 
 **Output length:** `--max-tokens` (default 8192) caps the summary. The previous
 value of 1024 silently truncated long summaries mid-section; if a summary still
