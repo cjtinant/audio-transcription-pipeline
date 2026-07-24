@@ -108,6 +108,7 @@ permanently, in the private output archive (see below).
 | ---------------------------------------------------------- | -------------------------------------------- | ------------------------------------ |
 | `transcribe.sh`                                            | Runs WhisperX on any audio file              | Step 1 — once per recording          |
 | `review_transcript.py`                                     | JSON → interactive HTML for reviewing output | Optional — between Step 1 and Step 2 |
+| `map_speakers.py`                                          | Zoom VTT → real speaker names in the cache   | Optional — Zoom cloud recordings     |
 | `summarize_transcript.py`                                  | Reads JSON, generates LLM summary            | Step 2                               |
 | `~/PROJECTS/audio-transcription-output/*.json`             | WhisperX output — permanent original record  | Created in Step 1, read in Step 2    |
 | `~/PROJECTS/audio-transcription-output/*_transcript_*.txt` | Clean readable transcript                    | Created in Step 2                    |
@@ -439,7 +440,20 @@ multi-party discussion that makes the summary unable to attribute anything to
 a real person — measured on a 5-speaker meeting where the most-mentioned
 participant appeared in no summary at all.
 
-Three ways to fix that, most reliable first:
+Four ways to fix that, most reliable first:
+
+```bash
+# 0. Zoom cloud recording? Let Zoom's own speaker attribution do the work.
+#    Aligns the two transcripts word by word, transfers names, and writes
+#    only the confident ones into the cache.
+python3 map_speakers.py meeting.transcript.vtt meeting.json --write-cache
+```
+
+Use `.transcript.vtt` (speaker-attributed), not `.cc.vtt` (plain captions).
+Run without `--write-cache` first to inspect. Labels below an 80% vote share
+are reported but never written — a split vote means diarization merged two
+people into one label, and naming it would pick one of them at random.
+
 
 ```bash
 # 1. Cached names (best) — label speakers once in the review tool, and every
@@ -551,6 +565,7 @@ audio-transcription-pipeline/
 ├── requirements-lock.txt        # Exact tested versions (reproducibility snapshot)
 ├── transcribe.sh                # Bash wrapper for WhisperX (Step 1)
 ├── review_transcript.py         # JSON → interactive HTML review tool (optional)
+├── map_speakers.py              # Zoom VTT → speaker names via text alignment (optional)
 ├── compare_transcripts.py       # Word-level diff between two transcripts (optional)
 ├── sanity_check_transcript.py   # LLM plausibility pass, flags likely mistranscriptions (optional)
 ├── known-terms.txt              # Vocabulary list for sanity_check_transcript.py

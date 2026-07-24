@@ -310,7 +310,10 @@ neither should start without an explicit ask.
 
 ### Promote the Zoom-comparison probes into committed tools?
 
-**Status:** parked — decision, not started
+**Status:** RESOLVED 2026-07-24 — promoted as a single tool, `map_speakers.py`.
+See Resolved/History. The "two more tools to maintain" cost that made this a
+decision rather than a task turned out to be avoidable: the VTT converter
+folded in as a `--convert-only` mode of the mapper.
 
 Two `tmp_`-prefixed, gitignored one-offs earned their keep on first use
 (2026-07-14, esimil session — see Resolved/History): `tmp_vtt_to_json.py` (Zoom
@@ -1455,3 +1458,94 @@ transcripts only, same caveat as Tier 1's speaker-slot caching and Tier 2's
 clip command carried when they were built. The obvious first real use is
 re-running the MEFA summary with `--speakers` and checking whether the
 attribution failure that motivated all of this actually disappears.
+
+**2026-07-24 — Zoom-comparison probes promoted: `map_speakers.py` (approach
+2):** Closes the "Promote the Zoom-comparison probes into committed tools?"
+item parked 2026-07-14, and completes the third of five approaches in the
+speaker-name injection design map.
+
+**Both probes became one tool, not two.** The parked item priced this at "two
+more tools to maintain" — `tmp_vtt_to_json.py` plus `tmp_map_speakers.py`.
+Folding the VTT converter in as a module reduces that to one committed file
+with a `--convert-only` mode, which preserves the converter's original use
+(diffing Zoom's transcript against the pipeline's with
+`compare_transcripts.py`) at no extra maintenance cost. The stated objection
+to promotion no longer applies.
+
+**What changed from the probe, beyond naming and tests.** The probe printed
+every proposed mapping and left trimming to the human. The tool defaults to
+safe: a **vote share below 80% is reported but never written**. The ESIIL run
+that validated this approach put clean mappings at ~99.7% and merged clusters
+at 42%/29%, so the gap is wide and the threshold sits comfortably inside it.
+Rationale is the Tier 4 finding, applied again: a merged label must not
+silently acquire one of the names it merged, because a wrong name does not
+invite the double-check an anonymous label does. `--min-share` adjusts it.
+
+**Composition with approach 4 is the real payoff.** `--write-cache` writes
+confident mappings straight into the `.speaker-cache.json` that
+`summarize_transcript.py` now reads automatically, merging into any existing
+entry rather than clobbering other subjects. The full chain — Zoom VTT →
+alignment → cache → named summary — runs as two commands with no manual
+transcription of names between them, and the middle two steps are exact rather
+than inferred.
+
+**Tests: 72 → 91.** New `tests/test_map_speakers.py` covers VTT parsing (hour
+components, the UTF-8 BOM Zoom writes, cues with no speaker prefix, and a long
+sentence-colon that must not be mistaken for "Name:"), the voting logic (clean
+1:1 mapping, merged clusters self-flagging at 50%, disagreed words casting no
+vote, `UNKNOWN` reference speakers yielding nothing so a `.cc.vtt` fails
+loudly rather than silently), and threshold behaviour at the boundary.
+
+**Verified end-to-end on synthetic data only** — same caveat every tool in this
+repo has carried at build time. The chain was exercised: VTT parsed, names
+transferred, a merged label correctly refused, an unrelated cache subject left
+intact, and the summarizer picking up the written names with no flags passed.
+
+**Still not built:** approach 5 (voice embeddings), unchanged in status — still
+gated on the cheaper paths proving insufficient, and three of them now exist.
+
+**2026-07-24 — Speaker-name injection validated on a real recording, and
+approach 3 independently reproduced a video-verified mapping.** First real-data
+use of the injection work built the same day, on the MEFA manuscript discussion
+(51m27s, 5 speakers, `research` preset).
+
+**Result: the failure that motivated the whole thread is gone.** The earlier
+run produced summaries that could not name a single participant. This one
+attributes arguments to Laurie Anderson, Claire Lunch, Barry Logan, Timothy
+McCay and Jason throughout, including who raised reciprocity, who set the "not
+a plea for help" framing constraint, and who volunteered to draft the outline.
+Every "next step" now has an owner.
+
+**Approach 3 (roster-constrained inference) got both unknowns right.** Three
+labels were supplied exactly via `--speakers`; SPEAKER_00 and SPEAKER_03 were
+left to the roster. The model returned Barry Logan for SPEAKER_03 and Timothy
+McCay for SPEAKER_00 — matching what Jason independently confirmed from the
+video — and cited its evidence in both cases ("Timothy McCay refers to Barry's
+description of how a PUI can work with others"; "addressed by Laurie as 'Tim, I
+like your idea'"). Both were marked `(inferred)` as the prompt requires.
+
+That is one validated case, not a rate. But it is the first evidence that the
+closed-vocabulary constraint works as intended: the model reasoned from
+third-person reference and direct address, exactly the signals the approach
+assumes exist, and did not reach outside the supplied list.
+
+**Correction to a same-day guess:** "LaRue" (4 transcript mentions) was
+hypothesized to be a mangling of "Laurie", on the basis of the coverage table
+alone. The summary shows LaRue is a real researcher, cited alongside Zipkin for
+definitional work on macrosystems. The hypothesis was recorded as likely rather
+than established, which is the only reason this is a footnote and not a fourth
+erratum. **Similar-looking names in the coverage output are a prompt to check,
+not evidence of a mistranscription** — the ERIN case (Aaron/ARIN/Erin) and the
+LaRue case look nearly identical in that table and only one is a mangling.
+
+**Still unfixed: MEFA is transcribed throughout as "MIFA", and the summary
+propagates it.** Adding MEFA to `known-terms.txt` does not help here — that
+list is only consulted by `sanity_check_transcript.py`, not by the summarizer.
+The summarizer has no vocabulary hinting of any kind. Options, none chosen: a
+`--known-terms` equivalent for the summarizer prompt, running the sanity pass
+before summarizing as a matter of course, or accepting that fixing spelling is
+the human's job at review time. Worth a decision rather than a silent gap.
+
+**Recommended follow-through:** the two inferred names are now video-confirmed,
+so writing all five into `.speaker-cache.json` via `--save-speakers` makes them
+exact and removes the `(inferred)` hedge on future runs of this subject.
