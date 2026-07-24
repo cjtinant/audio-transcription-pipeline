@@ -43,6 +43,7 @@ requires ffmpeg on PATH (already a pipeline dependency via transcribe.sh).
 """
 
 import argparse
+import html
 import json
 import re
 import subprocess
@@ -185,6 +186,16 @@ def save_speaker_cache(cache_path: Path, cache: dict) -> None:
 # ---------------------------------------------------------------------------
 
 SOURCE_AUDIO_FILENAME = ".source-audio.json"
+
+
+def embed_json(obj) -> str:
+    """
+    Serialize `obj` for embedding inside a <script> block. Splitting `</`
+    keeps a transcript containing a literal '</script>' from closing the
+    block early — which would break the page and, with crafted content,
+    execute whatever followed. The escape is invisible to JSON.parse.
+    """
+    return json.dumps(obj, separators=(",", ":")).replace("</", "<\\/")
 
 
 def open_with_default_app(path: Path) -> None:
@@ -396,6 +407,15 @@ ALL_SPEAKERS.forEach((s,i) => {{
 
 let thresh = 0.2, hotword = '';
 
+// Everything below builds markup as strings and assigns it to innerHTML.
+// Transcript words, speaker names typed into the inputs, and the search box
+// are all untrusted from the browser's point of view — escape them at every
+// interpolation point so a stray '<' renders as text instead of markup.
+const ESCAPES = {{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}};
+function esc(s) {{
+  return String(s).replace(/[&<>"']/g, c => ESCAPES[c]);
+}}
+
 // Build speaker label inputs
 function buildSpeakerControls() {{
   const container = document.getElementById('spk-controls');
@@ -406,7 +426,7 @@ function buildSpeakerControls() {{
     const lbl = document.createElement('label');
     lbl.style.cssText = 'font-size:11px;';
     const pal = spkPalette[spk];
-    lbl.innerHTML = `<span class="badge" style="background:${{pal.bg}};color:${{pal.color}}">${{spk}}</span>`;
+    lbl.innerHTML = `<span class="badge" style="background:${{pal.bg}};color:${{pal.color}}">${{esc(spk)}}</span>`;
     const inp = document.createElement('input');
     inp.className = 'spk-input';
     inp.value = spkNames[spk];
@@ -423,7 +443,7 @@ function buildLegend() {{
   let html = '';
   ALL_SPEAKERS.forEach(spk => {{
     const p = spkPalette[spk];
-    html += `<span class="leg-item"><span class="leg-swatch" style="background:${{p.bg}};border:1px solid ${{p.color}}40"></span> ${{spkNames[spk] || spk}}</span>`;
+    html += `<span class="leg-item"><span class="leg-swatch" style="background:${{p.bg}};border:1px solid ${{p.color}}40"></span> ${{esc(spkNames[spk] || spk)}}</span>`;
   }});
   html += `<span class="leg-item"><span class="leg-swatch" style="background:#fde8e0;border:1px solid #f9a8a8"></span> low confidence</span>`;
   html += `<span class="leg-item"><span class="leg-swatch" style="background:#fef3cd;border:1px solid #fcd34d"></span> hot word</span>`;
@@ -472,11 +492,11 @@ function render() {{
       let cls = 'word';
       if (hot) cls += ' hot';
       else if (low) cls += ' low';
-      whtml += `<span class="${{cls}}" title="confidence: ${{w.s.toFixed(2)}} | speaker: ${{w.spk}}">${{w.w}} </span>`;
+      whtml += `<span class="${{cls}}" title="confidence: ${{w.s.toFixed(2)}} | speaker: ${{esc(w.spk)}}">${{esc(w.w)}} </span>`;
     }}
 
     const lowSeg = seg.logprob < -0.5;
-    const badge = `<span class="badge" style="background:${{pal.bg}};color:${{pal.color}}">${{name}}</span>`;
+    const badge = `<span class="badge" style="background:${{pal.bg}};color:${{pal.color}}">${{esc(name)}}</span>`;
     const warn = lowSeg ? '<br><span style="color:#dc2626;font-size:10px" title="low segment confidence">⚠ low conf</span>' : '';
 
     html += `<div class="seg">
@@ -485,7 +505,7 @@ function render() {{
     </div>`;
   }}
 
-  list.innerHTML = html || (hw ? `<div class="no-results">No segments match "${{hw}}"</div>` : '');
+  list.innerHTML = html || (hw ? `<div class="no-results">No segments match "${{esc(hw)}}"</div>` : '');
   document.getElementById('stats').textContent =
     hw ? `${{vis}} of ${{SEGS.length}} segments` : `${{SEGS.length}} segments`;
 }}
@@ -634,15 +654,15 @@ def main():
     m, s = divmod(int(duration_s), 60)
     subtitle = f"{len(segments)} segments · {len(speakers)} speakers · {m}m {s}s"
 
-    html = HTML_TEMPLATE.format(
-        title=title,
-        subtitle=subtitle,
-        segs_json=json.dumps(segments, separators=(",", ":")),
-        speakers_json=json.dumps(speakers),
-        known_names_json=json.dumps(known_names),
+    page = HTML_TEMPLATE.format(
+        title=html.escape(title),
+        subtitle=html.escape(subtitle),
+        segs_json=embed_json(segments),
+        speakers_json=embed_json(speakers),
+        known_names_json=embed_json(known_names),
     )
 
-    out_path.write_text(html, encoding="utf-8")
+    out_path.write_text(page, encoding="utf-8")
     print(f"Written:  {out_path}")
 
     if args.report:
