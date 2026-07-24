@@ -24,15 +24,41 @@
 # tracked in WATERSHED.md, not suppressed here.
 export PYTHONWARNINGS="ignore::UserWarning:pyannote"
 
-# Activate the WhisperX virtual environment
-source ~/PROJECTS/audio-transcription-pipeline/.venv/bin/activate
+# Locate the repo from this script's own path rather than assuming
+# ~/PROJECTS/audio-transcription-pipeline — `make install` symlinks this file
+# into ~/bin from wherever the repo was cloned, and installation.md tells
+# users to clone wherever they like. Follow the symlink chain by hand:
+# macOS's readlink has no dependable -f across the versions this repo targets.
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+    link_dir=$(cd -P "$(dirname "$src")" && pwd)
+    src=$(readlink "$src")
+    case "$src" in
+        /*) ;;
+        *) src="$link_dir/$src" ;;
+    esac
+done
+repo_dir=$(cd -P "$(dirname "$src")" && pwd)
 
-# Load HF token from ~/.Renviron
-hf_token=$(grep HF_TOKEN ~/.Renviron | cut -d= -f2 | tr -d '\r')
+# Activate the WhisperX virtual environment
+source "$repo_dir/.venv/bin/activate"
+
+# Load the HF token. An exported HF_TOKEN wins — that is what installation.md
+# tells WSL2 users to set, and nothing reads ~/.Renviron automatically there.
+# Otherwise fall back to ~/.Renviron (the macOS/Linux path). The grep is
+# anchored and capped at one match: an unanchored grep also matched
+# commented-out lines and every duplicate the docs' `echo >>` pattern can
+# append, and a second append would have produced a multi-line token.
+hf_token="${HF_TOKEN:-}"
+if [ -z "$hf_token" ] && [ -f "$HOME/.Renviron" ]; then
+    hf_token=$(grep -m1 '^[[:space:]]*HF_TOKEN=' "$HOME/.Renviron" \
+        | cut -d= -f2- | tr -d '\r')
+fi
 
 if [ -z "$hf_token" ]; then
-    echo "Error: HF_TOKEN not found in ~/.Renviron"
-    echo "Add it with: echo 'HF_TOKEN=hf_yourtoken' >> ~/.Renviron"
+    echo "Error: HF_TOKEN not set."
+    echo "macOS/Linux: echo 'HF_TOKEN=hf_yourtoken' >> ~/.Renviron"
+    echo "WSL2:        echo 'export HF_TOKEN=hf_yourtoken' >> ~/.bashrc"
     exit 1
 fi
 
@@ -77,7 +103,7 @@ sidecar.write_text(json.dumps(data, indent=2, sort_keys=True))
 # first, a user-supplied override (e.g. --model large-v2) was silently beaten
 # by the hardcoded --model large-v3 coming after it. Defaults first, "$@"
 # last means any hardcoded flag below can actually be overridden.
-exec ~/PROJECTS/audio-transcription-pipeline/.venv/bin/whisperx \
+exec "$repo_dir/.venv/bin/whisperx" \
     --model large-v3 \
     --diarize \
     --hf_token "$hf_token" \
