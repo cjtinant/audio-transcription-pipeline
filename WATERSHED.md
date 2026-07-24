@@ -9,6 +9,44 @@ Move items to a commit and add to Resolved/History when resolved.
 
 ## Parked:
 
+### Summarizer model default — reasoned, not measured
+
+**Status:** parked — open question left behind by the 2026-07-24 change below
+
+`claude-opus-5` became the summarizer default on 2026-07-24, sized for
+multi-hour lectures. The reasoning is documented and defensible (long-context
+comprehension, freshest knowledge cutoff of the current lineup), but **no A/B
+comparison was actually run** — unlike the Anthropic-vs-Ollama engine decision
+(2026-07-12), which was settled by testing both against a real transcript and
+scoring the results.
+
+This repo's own convention is to test engine choices rather than assert them.
+The honest position: the default is a reasoned guess. It may well be
+unnecessary — Sonnet 5 could be indistinguishable for this task at ~60% of the
+cost, and nobody has checked.
+
+**What a real test would look like:** same transcript, same preset, summaries
+from `claude-sonnet-5` and `claude-opus-5`, scored the way the 2026-07-12 test
+scored Anthropic vs Ollama — did it catch the real content, did it hallucinate,
+did it follow the preset's section structure. A long recording is the right
+subject, since that is what the default was chosen for; the ESIIL course
+session (2h09m, already transcribed) is the obvious candidate.
+
+**Knock-on effect, not separately decided:** `sanity_check_transcript.py`
+reuses `summarize_anthropic`, so it silently inherited `claude-opus-5` too. Its
+measured precision (3/5 real flags, 2/5 false positives on `mentor-meet`,
+2026-07-12) was recorded against `claude-sonnet-4-6` and no longer describes
+what the tool currently runs. Probably an improvement; unverified either way.
+Any re-test of the sanity pass should re-baseline rather than compare against
+that number.
+
+**Not started without an explicit ask.** Filed here rather than left implicit,
+so the untested basis does not quietly become settled fact.
+
+**Flagged:** 2026-07-24
+
+---
+
 ### Repo review 2026-07-24 — findings and proposed changes
 
 **Status:** in progress — four change sets approved, being applied in order.
@@ -57,9 +95,9 @@ unescaped, and the embedded JSON is not `</script>`-hardened. Low practical risk
 
 **Deliberately not done in this pass** — surfaced, no decision forced:
 
-- `max_tokens: 1024` for single-run summaries vs `2048` for merge. The
-  asymmetry looks unintentional and may truncate the six-section
-  `grant_planning` output on long meetings. Not changed without a real case.
+- ~~`max_tokens: 1024` for single-run summaries vs `2048` for merge.~~
+  **Resolved 2026-07-24** — the real case arrived (3-hour lecture). Both raised
+  to 8192 with a `--max-tokens` flag; see the model-default entry above.
 - `transcribe.sh` writes the sidecar before validating `$1`, so `transcribe`
   with no argument (or flags first) records a junk entry.
 - `review_transcript.py --out` does not create parent directories; the default

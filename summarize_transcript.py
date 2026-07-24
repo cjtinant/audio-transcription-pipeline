@@ -13,6 +13,13 @@ CLI usage:
     python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
     python summarize_transcript.py --list-types
 
+Long sessions (multi-hour lectures, course recordings):
+    # Defaults are already sized for these — claude-opus-5, 8192-token
+    # output ceiling. Raise the ceiling further if a summary still looks
+    # cut off, and use --type lecture for course recordings.
+    python summarize_transcript.py ~/PROJECTS/audio-transcription-output/lecture.json \
+        --type lecture --max-tokens 16000
+
 Interactive usage (Python REPL or script, from the repo folder):
     from summarize_transcript import run_pipeline
     result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
@@ -34,6 +41,46 @@ from pathlib import Path
 DEFAULT_OUTPUT_DIR = os.environ.get(
     "TRANSCRIBE_OUTPUT_DIR", "~/PROJECTS/audio-transcription-output"
 )
+
+# ── Model and output-length defaults ──────────────────────────────────
+#
+# Sized for this pipeline's actual worst case: a multi-hour lecture or
+# course session. A 3-hour recording is roughly 40k input tokens once
+# speaker labels and timestamps are added (the 2h09m ESIIL session
+# measured ~30k — see WATERSHED 2026-07-14).
+#
+# Model: claude-opus-5. Chosen for long-transcript comprehension —
+# 1M-token context, and the freshest knowledge cutoff of the current
+# lineup, which matters when a lecture references recent tools or
+# events. Override per-run with --model, or set a standing default with
+# SUMMARIZE_MODEL (same env-var pattern as TRANSCRIBE_OUTPUT_DIR).
+#
+# NOTE: this is a reasoned choice, not a measured one. Unlike the
+# Anthropic-vs-Ollama engine decision (WATERSHED 2026-07-12), no A/B
+# comparison was run across Claude models for this task.
+DEFAULT_ANTHROPIC_MODEL = os.environ.get("SUMMARIZE_MODEL", "claude-opus-5")
+DEFAULT_OLLAMA_MODEL = os.environ.get(
+    "SUMMARIZE_OLLAMA_MODEL", "llama3.1:8b-instruct-q6_k"
+)
+
+# Output ceiling per request. The old value (1024) silently truncated
+# long summaries: a 3-hour lecture through the six-section
+# `grant_planning` or four-section `lecture` preset needs far more than
+# ~750 words, and the model has no way to signal it ran out of room.
+# 8192 leaves headroom without inviting padding; raise with --max-tokens
+# for exhaustive summaries of very long sessions.
+DEFAULT_MAX_TOKENS = 8192
+
+# Merge combines two full summaries, so its input is roughly twice a
+# single summary's output and its own output should not be smaller.
+DEFAULT_MERGE_MAX_TOKENS = 8192
+
+# HTTP timeout. The old 60s was set when summaries capped at 1024
+# tokens; a large model writing 8k tokens from a 40k-token transcript
+# routinely exceeds that. Generous rather than tight — a timeout here
+# costs a whole re-run, and the retry logic below only helps for 429/5xx.
+DEFAULT_TIMEOUT = 900
+DEFAULT_OLLAMA_TIMEOUT = 1800
 
 
 # ── 1. Meeting type prompt presets ────────────────────────────────────
@@ -192,7 +239,7 @@ def format_transcript(segments: list[dict]) -> str:
 _RETRYABLE_STATUSES = {429, 500, 502, 503, 529}
 
 
-def _post_with_retry(url, *, headers=None, json=None, timeout=60,
+def _post_with_retry(url, *, headers=None, json=None, timeout=DEFAULT_TIMEOUT,
                      max_attempts=4, _post=None, _sleep=time.sleep):
     """
     httpx.post with retry on rate limits and transient server errors.
@@ -225,8 +272,10 @@ def _post_with_retry(url, *, headers=None, json=None, timeout=60,
 def summarize_anthropic(
     transcript: str,
     prompt: str,
-    model: str = "claude-sonnet-4-6",
+    model: str = DEFAULT_ANTHROPIC_MODEL,
     api_key: str | None = None,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> str:
     """
     Summarize a transcript using the Anthropic API.
@@ -234,8 +283,13 @@ def summarize_anthropic(
     Args:
         transcript: Formatted transcript string
         prompt:     System prompt from get_prompt()
-        model:      Anthropic model ID (default: claude-sonnet-4-6)
+        model:      Anthropic model ID (default: DEFAULT_ANTHROPIC_MODEL,
+                    currently claude-opus-5; SUMMARIZE_MODEL overrides)
         api_key:    Anthropic API key (default: ANTHROPIC_API_KEY env var)
+        max_tokens: Output ceiling for this request. Long transcripts need
+                    a large value — the old 1024 truncated multi-hour
+                    lecture summaries mid-section without any error.
+        timeout:    Per-request HTTP timeout in seconds
 
     Returns:
         Summary as a string
@@ -269,10 +323,10 @@ def summarize_anthropic(
         },
         json={
             "model":      model,
-            "max_tokens": 1024,
+            "max_tokens": max_tokens,
             "messages":   [{"role": "user", "content": full_prompt}],
         },
-        timeout=60,
+        timeout=timeout,
     )
     return response.json()["content"][0]["text"]
 
@@ -280,8 +334,9 @@ def summarize_anthropic(
 def summarize_ollama(
     transcript: str,
     prompt: str,
-    model: str = "llama3.1:8b-instruct-q6_k",
+    model: str = DEFAULT_OLLAMA_MODEL,
     host: str = "http://127.0.0.1:11434",
+    timeout: int = DEFAULT_OLLAMA_TIMEOUT,
 ) -> str:
     """
     Summarize a transcript using a local Ollama model.
@@ -306,7 +361,7 @@ def summarize_ollama(
         response = httpx.post(
             f"{host}/api/generate",
             json={"model": model, "prompt": full_prompt, "stream": False},
-            timeout=120,
+            timeout=timeout,
         )
         response.raise_for_status()
     except httpx.ConnectError:
@@ -375,6 +430,7 @@ def run_pipeline(
     save: bool = True,
     output_dir: str = DEFAULT_OUTPUT_DIR,
     model: str | None = None,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
 ) -> dict:
     """
     Run the full transcription and summarization pipeline.
@@ -389,6 +445,8 @@ def run_pipeline(
         save:          Whether to save transcript and summary to disk
         output_dir:    Directory for saved outputs (private archive, flat)
         model:         Override the default LLM model name
+        max_tokens:    Output ceiling (Anthropic only; Ollama has no
+                       equivalent knob in this pipeline's request shape)
 
     Returns:
         Dict with keys: segments, transcript, summary, paths (if saved)
@@ -431,11 +489,12 @@ def run_pipeline(
 
     # Summarize
     print(f"── Summarizing via {engine} ({meeting_type}) ──")
+    kwargs = {"model": model} if model else {}
     if engine == "anthropic":
-        kwargs = {"model": model} if model else {}
-        summary = summarize_anthropic(transcript, prompt, **kwargs)
+        summary = summarize_anthropic(
+            transcript, prompt, max_tokens=max_tokens, **kwargs
+        )
     else:
-        kwargs = {"model": model} if model else {}
         summary = summarize_ollama(transcript, prompt, **kwargs)
 
     print(summary, "\n")
@@ -462,17 +521,21 @@ def merge_summaries(
     model: str | None = None,
     api_key: str | None = None,
     host: str = "http://127.0.0.1:11434",
+    max_tokens: int = DEFAULT_MERGE_MAX_TOKENS,
 ) -> str:
     """
     Merge two independently generated summaries using an LLM.
 
     Args:
-        summary1:  First summary string
-        summary2:  Second summary string
-        engine:    LLM backend — "ollama" or "anthropic"
-        model:     Override model name
-        api_key:   Anthropic API key (default: ANTHROPIC_API_KEY env var)
-        host:      Ollama server URL
+        summary1:   First summary string
+        summary2:   Second summary string
+        engine:     LLM backend — "ollama" or "anthropic"
+        model:      Override model name
+        api_key:    Anthropic API key (default: ANTHROPIC_API_KEY env var)
+        host:       Ollama server URL
+        max_tokens: Output ceiling for the merged summary. Must be at
+                    least as large as a single summary's — the merge is
+                    meant to be more complete, not shorter.
 
     Returns:
         Merged summary as a string
@@ -502,11 +565,11 @@ def merge_summaries(
                 "content-type":      "application/json",
             },
             json={
-                "model":      model or "claude-sonnet-4-6",
-                "max_tokens": 2048,
+                "model":      model or DEFAULT_ANTHROPIC_MODEL,
+                "max_tokens": max_tokens,
                 "messages":   [{"role": "user", "content": full_prompt}],
             },
-            timeout=60,
+            timeout=DEFAULT_TIMEOUT,
         )
         return response.json()["content"][0]["text"]
     else:
@@ -514,11 +577,11 @@ def merge_summaries(
             response = httpx.post(
                 f"{host}/api/generate",
                 json={
-                    "model":  model or "llama3.1:8b-instruct-q6_k",
+                    "model":  model or DEFAULT_OLLAMA_MODEL,
                     "prompt": full_prompt,
                     "stream": False,
                 },
-                timeout=120,
+                timeout=DEFAULT_OLLAMA_TIMEOUT,
             )
             response.raise_for_status()
         except httpx.ConnectError:
@@ -536,6 +599,7 @@ def run_pipeline_merged(
     save: bool = True,
     output_dir: str = DEFAULT_OUTPUT_DIR,
     model: str | None = None,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
 ) -> dict:
     """
     Run the pipeline twice and merge the results for a more complete summary.
@@ -575,20 +639,29 @@ def run_pipeline_merged(
 
     print("── Run 1 ───────────────────────────────────")
     if engine == "anthropic":
-        summary1 = summarize_anthropic(transcript, prompt, **kwargs)
+        summary1 = summarize_anthropic(
+            transcript, prompt, max_tokens=max_tokens, **kwargs
+        )
     else:
         summary1 = summarize_ollama(transcript, prompt, **kwargs)
 
     print("── Run 2 ───────────────────────────────────")
     if engine == "anthropic":
-        summary2 = summarize_anthropic(transcript, prompt, **kwargs)
+        summary2 = summarize_anthropic(
+            transcript, prompt, max_tokens=max_tokens, **kwargs
+        )
     else:
         summary2 = summarize_ollama(transcript, prompt, **kwargs)
 
     print("── Merging ─────────────────────────────────")
     # Pass `model` through: without it the merge step silently fell back to
     # the default model even when both summary runs used an override.
-    summary_merged = merge_summaries(summary1, summary2, engine, model=model)
+    # max_tokens likewise — a merge capped below the summaries it combines
+    # would drop content the two runs had already produced.
+    summary_merged = merge_summaries(
+        summary1, summary2, engine, model=model,
+        max_tokens=max(max_tokens, DEFAULT_MERGE_MAX_TOKENS),
+    )
     print(summary_merged, "\n")
 
     paths = None
@@ -618,7 +691,8 @@ examples:
   python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type interview
   python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \\
       --prompt "List every action item and who owns it."
-  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --model llama3.1:8b-instruct-q8_0
+  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --model claude-sonnet-5
+  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/lecture.json --type lecture --max-tokens 16000
   python summarize_transcript.py --list-types
         """,
     )
@@ -651,9 +725,21 @@ examples:
         "--model",
         default=None,
         help=(
-            "Override LLM model name. "
-            "Ollama default: llama3.1:8b-instruct-q6_k  "
-            "Anthropic default: claude-sonnet-4-6"
+            f"Override LLM model name. "
+            f"Anthropic default: {DEFAULT_ANTHROPIC_MODEL} "
+            f"(set SUMMARIZE_MODEL for a standing default). "
+            f"Ollama default: {DEFAULT_OLLAMA_MODEL}"
+        ),
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=DEFAULT_MAX_TOKENS,
+        help=(
+            f"Output ceiling for the summary, Anthropic only "
+            f"(default: {DEFAULT_MAX_TOKENS}). Raise for exhaustive "
+            f"summaries of very long sessions; a summary that stops "
+            f"mid-sentence means this was hit."
         ),
     )
     parser.add_argument(
@@ -704,6 +790,7 @@ examples:
         save          = not args.no_save,
         output_dir    = args.output_dir,
         model         = args.model,
+        max_tokens    = args.max_tokens,
     )
 
 

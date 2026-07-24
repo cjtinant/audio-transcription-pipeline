@@ -431,6 +431,41 @@ cd ~/PROJECTS/audio-transcription-pipeline
 Output is written to `~/PROJECTS/audio-transcription-output/` by default (the
 `--output-dir` flag exists only to override this).
 
+### Long recordings (multi-hour lectures and course sessions)
+
+The defaults are sized for these: `claude-opus-5` and an 8192-token output
+ceiling. A 3-hour recording is roughly 40k input tokens once speaker labels and
+timestamps are added, which fits comfortably in context — the thing that
+actually breaks is summary length, not input size.
+
+```bash
+# 3-hour lecture — preset plus a larger output ceiling
+.venv/bin/python3 summarize_transcript.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-13_esiil-course_audio.json \
+  --type lecture --max-tokens 16000
+
+# Faster and cheaper, if the recording is short or the stakes are low
+.venv/bin/python3 summarize_transcript.py \
+  ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.txt \
+  --model claude-sonnet-5
+```
+
+**If a summary stops mid-sentence or drops a section**, it hit the output
+ceiling — raise `--max-tokens`. The model cannot signal this, so a truncated
+summary looks like a complete one that simply had less to say.
+
+Set `SUMMARIZE_MODEL` in your shell profile for a standing default without
+passing `--model` every run:
+
+```bash
+export SUMMARIZE_MODEL=claude-sonnet-5
+```
+
+Avoid `--merge` on multi-hour recordings unless you need it — it fires three
+large requests back to back and was the original cause of the rate-limit crash
+logged in `WATERSHED.md` (2026-07-14). The retry logic handles it now, but it
+triples both cost and wall-clock time.
+
 ---
 
 ### Before you start — checklist

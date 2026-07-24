@@ -90,9 +90,14 @@ python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.jso
 python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \
     --prompt "List every action item and who owns it."
 
-# Override the Anthropic model (default is claude-sonnet-4-6)
+# Override the Anthropic model (default is claude-opus-5)
 python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
-    --model claude-haiku-4-5   # cheaper/faster
+    --model claude-sonnet-5   # faster/cheaper
+
+# Multi-hour lecture or course session — raise the output ceiling if the
+# summary looks cut off mid-section
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/lecture.json \
+    --type lecture --max-tokens 16000
 
 # Override the Ollama model
 python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
@@ -129,6 +134,11 @@ result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
 # Override model
 result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json",
                       model="llama3.1:8b-instruct-q8_0")
+
+# Multi-hour lecture — lecture preset, larger output ceiling
+result = run_pipeline("~/PROJECTS/audio-transcription-output/lecture.json",
+                      meeting_type="lecture",
+                      max_tokens=16000)
 ```
 
 For most interactive use, the CLI usage above is simpler — this is only needed
@@ -194,15 +204,35 @@ reliable than Ollama's local model for LLM-based transcript review — not just
 faster, but more likely to follow output-format instructions exactly and less
 prone to false-positive flags.
 
-**Pricing (May 2026, per million tokens):**
+**Pricing (verified 2026-07-24, per million tokens):**
 
-| Model               | Input | Output | Notes               |
-| ------------------- | ----- | ------ | ------------------- |
-| `claude-haiku-4-5`  | $1.00 | $5.00  | Fastest, cheapest   |
-| `claude-sonnet-4-6` | $3.00 | $15.00 | Recommended balance |
-| `claude-opus-4-6`   | $5.00 | $25.00 | Highest quality     |
+| Model              | Input  | Output | Notes                            |
+| ------------------ | ------ | ------ | -------------------------------- |
+| `claude-haiku-4-5` | $1.00  | $5.00  | Fastest; 200k context, not 1M    |
+| `claude-sonnet-5`  | $3.00  | $15.00 | $2/$10 intro through 2026-08-31  |
+| `claude-opus-5`    | $5.00  | $25.00 | **Default** — freshest knowledge |
+| `claude-fable-5`   | $10.00 | $50.00 | Frontier reasoning; slower       |
 
-**Typical cost per 1-hour meeting summary:** ~$0.035 (Sonnet 4.6)
+**Why `claude-opus-5` is the default:** this pipeline's hard case is a
+multi-hour lecture or course session, where the summary depends on holding the
+whole transcript in view and noticing structure across it. Opus 5 also has the
+freshest knowledge cutoff of the current lineup, which matters when a recording
+references recent tools or events. See
+`docs/references/cowork-model-selection.md` for the fuller comparison.
+
+This is a reasoned default, not a measured one — no A/B comparison has been run
+across Claude models for this task, unlike the Anthropic-vs-Ollama engine
+decision (WATERSHED 2026-07-12).
+
+**Rough cost per 1-hour meeting summary:** ~$0.10 on Opus 5 (~14k input tokens,
+~2k output). A 3-hour lecture with `--merge` runs three requests over ~40k input
+tokens each — closer to $0.75. Both are estimates from token arithmetic, not
+measured invoices.
+
+**Output length:** `--max-tokens` (default 8192) caps the summary. The previous
+value of 1024 silently truncated long summaries mid-section; if a summary still
+stops abruptly, raise this rather than assuming the model had nothing more to
+say.
 
 ```bash
 # Add to ~/.Renviron
