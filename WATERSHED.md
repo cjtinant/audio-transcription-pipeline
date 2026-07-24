@@ -9,6 +9,68 @@ Move items to a commit and add to Resolved/History when resolved.
 
 ## Parked:
 
+### Repo review 2026-07-24 — findings and proposed changes
+
+**Status:** in progress — four change sets approved, being applied in order.
+Move to Resolved/History once committed.
+
+Full read-only review of the tracked repo (all Python/bash/docs, `git ls-files`,
+53 tests green before any edit). No credentials or transcripts found in git
+history; `.gitignore` and the external-archive design hold up. Findings below in
+the agreed application order.
+
+**Set 1 — `--merge` drops the `--model` override.** `run_pipeline_merged` calls
+`merge_summaries(summary1, summary2, engine)` without `model`, so the merge step
+silently uses the default model even when both summary runs used an override.
+One-argument fix.
+
+**Set 2 — `transcribe.sh` (three related issues, one change set).**
+
+- Lines 28/80 hardcode `~/PROJECTS/audio-transcription-pipeline`, but the
+  Makefile symlinks from `$(CURDIR)` and `installation.md` tells users to clone
+  wherever they are — the wrapper breaks for any other clone location. Resolve
+  the repo dir from the script's own symlink-resolved path instead.
+- The wrapper reads only `~/.Renviron`, but `installation.md`'s WSL2 section
+  tells users to export `HF_TOKEN` in `~/.bashrc` and states nothing reads
+  `.Renviron` there. Following the WSL2 docs makes `transcribe` fail. Add an
+  env-var fallback.
+- `grep HF_TOKEN ~/.Renviron` matches commented-out lines and every duplicate
+  the docs' `echo >>` pattern can append; a second append yields a multi-line
+  token. Anchor the match and take the first hit.
+
+**Set 3 — documentation inconsistencies.**
+
+- Three broken README links: `docs/reference.md` is actually
+  `docs/pipeline-reference.md`, and `makefiles-and-symlinks-explained.md` +
+  `cowork-folder-access.md` live in the gitignored `docs/references/`, so those
+  two 404 for anyone reading the public repo. Repeated in the Project Structure
+  tree; `summarize_transcript.py:19` cites the same wrong filename.
+- README's Zoom example (`transcribe "~/Zoom/..."`) cannot work — tilde does not
+  expand inside double quotes and the script does not expand it either.
+- README's How It Works diagram shows a date-only summary filename; the actual
+  format includes time.
+
+**Set 4 — `review_transcript.py` HTML injection.** Transcript words, user-typed
+speaker names, the search term, and the filename all reach `innerHTML`
+unescaped, and the embedded JSON is not `</script>`-hardened. Low practical risk
+(local file, own transcripts) but cheap to close.
+
+**Deliberately not done in this pass** — surfaced, no decision forced:
+
+- `max_tokens: 1024` for single-run summaries vs `2048` for merge. The
+  asymmetry looks unintentional and may truncate the six-section
+  `grant_planning` output on long meetings. Not changed without a real case.
+- `transcribe.sh` writes the sidecar before validating `$1`, so `transcribe`
+  with no argument (or flags first) records a junk entry.
+- `review_transcript.py --out` does not create parent directories; the default
+  output path does.
+- The direct-whisperx examples pass `--hf_token` on the command line, visible in
+  `ps`. Inherent to whisperx's CLI, not fixable here — worth knowing.
+
+**Flagged:** 2026-07-24
+
+---
+
 ### Review tooling ideas — priority order
 
 Ranked by effort-vs-value when first triaged (2026-07-11). Tiers 1–3 have since
