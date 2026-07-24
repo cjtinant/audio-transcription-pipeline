@@ -49,10 +49,23 @@ python3 tmp_compare_models.py transcript.json --coverage-only \
     summary_a.md summary_b.md
 ```
 
-**Still to run against the real transcript.** Verified so far only against a
-synthetic transcript with hand-set counts. The yes/no marks in that run were
-computed against the two real summary files and are trustworthy; the ranking
-was not. See the coverage finding in Resolved/History for what that showed.
+**Run against the real transcript 2026-07-24** — results and the conclusion
+they overturned are in Resolved/History. Two fixes came out of that first real
+run:
+
+- **Possessives folded into the base name.** `Caitlin's` was ranking as its own
+  entity and reporting absent from summaries that discuss Caitlin at length —
+  three spurious rows out of four in the "missed by every summary" list. Folding
+  also self-validates: `Caitlin 79 + Caitlin's 7 = 86`, matching the original
+  grep exactly.
+- **Coverage now reported two ways, by name count and weighted by mentions.**
+  The two disagree sharply and the disagreement is the point; see below.
+
+**Known false-positive class, not worth fixing:** mistranscribed entities. `ESL`
+(7 mentions) reported as missing from both summaries — but `ESL` is the
+pipeline's own mangling of ESIIL, documented 2026-07-14, and both models
+correctly normalized it. The check flags summaries for *not* reproducing a
+transcription error. Read `NO` rows against known-mangled terms accordingly.
 
 **Flagged:** 2026-07-24
 
@@ -1052,13 +1065,21 @@ defect against it — it filed the "Danger Zone" concept under a section headed
 and rendered late timestamps as `[116:00]` where Opus used `~1:56:00`.
 
 **Decision:** `claude-opus-5` stays the default, on narrower grounds than the
-first draft of this entry claimed. What survives scrutiny is error correction
+first draft of this entry claimed. What survives every pass is error correction
 (finding 1) and pedagogical detail (finding 3). Participant coverage — finding
-2, initially written up as Opus's strongest result — turned out to favor
-neither model once checked. The evidence is also specific to
-completeness-oriented presets (`lecture`, `grant_planning`) and does not
-transfer to `standup`/`general` — parked separately above rather than
-generalized.
+2, initially written up as Opus 5's strongest result — favours neither model
+once measured properly, and on a mention-weighted view actively favours Sonnet
+5. The evidence is also specific to completeness-oriented presets (`lecture`,
+`grant_planning`) and does not transfer to `standup`/`general` — parked
+separately above rather than generalized.
+
+**Honest summary of the margin:** Opus 5 costs 3.2x more, catches
+mistranscriptions Sonnet 5 propagates as fact, explains failure modes rather
+than syntax, and drops one heavily-discussed participant. Sonnet 5 is a third
+the price, more scannable, better on weighted participant coverage, and passed
+a mistranscribed term through as fact. Neither is reliable on named-participant
+coverage, which is why the coverage check now runs as part of the harness
+rather than being left to a human read.
 
 The margin is thinner than the headline suggests. Sonnet 5 costs a third as
 much and is the better artifact if you want something scannable; Opus 5 earns
@@ -1096,19 +1117,35 @@ matters more. The grep that settled it took seconds and needed no judgment.
 itself is that reference.** Built the same day into `tmp_compare_models.py`
 (see parked item 3).
 
-**Follow-on finding, from the coverage check on the real summary files
-(2026-07-24):** simple string counts against both documents show Sonnet 5
-omitted **three** named people Opus 5 captured — Nate (the instructor), Dr.
-Ramadan, and Gaurav Chakrabarti — plus Jim from the education team. Opus 5
-omitted one: Caitlin. So on participant coverage Opus 5 does come out ahead
-after all, but on measured grounds rather than the inference that produced the
-erratum, and with a real miss of its own that the first write-up did not know
-about.
+**Coverage measured against the real transcript (2026-07-24), top 25 names:**
 
-Worth separating carefully: those presence/absence counts are real, taken from
-the two summary files. The *ranking* used to demonstrate the tool was
-synthetic — only Caitlin's 86 and Ramadan's 17 came from the transcript. Which
-names actually dominate the recording is still unrun, and the conclusion above
-should be treated as provisional until `--coverage-only` is run against the
-real JSON. Not repeating the earlier mistake of letting a partial check settle
-a question it cannot.
+| Metric                  | Sonnet 5              | Opus 5     |
+| ----------------------- | --------------------- | ---------- |
+| Names covered           | 17/25                 | **20/25**  |
+| Real misses, by mention | Ramadan 17, Gaurav 11, LinkedIn 5, Jim 4 = **37** | Caitlin 86 |
+
+**Participant coverage favours neither model, and which one looks better
+depends entirely on how you count.** Opus 5 covers more distinct names; Sonnet 5
+covers more than twice as much *discussed* content. Opus 5's single omission —
+Caitlin, at 86 mentions the second-most-discussed name in the session after
+Pauline — outweighs all four of Sonnet 5's misses combined, and it made that
+omission while writing 3x more words.
+
+**Rodrigo (5 mentions) appears in neither summary.** A real participant both
+models dropped and no side-by-side read would ever have surfaced. The single
+clearest justification for building the check.
+
+**Erratum, second pass:** this entry previously read "on participant coverage
+Opus 5 does come out ahead after all," written from presence/absence marks
+against a *synthetic* ranking. The real ranking overturned it. The synthetic
+run also assumed Nate (the instructor) would rank high; he is not in the top 25
+at all — instructors are doing the talking, not being addressed by name — so
+"Sonnet omitted Nate," reported as a finding, was noise.
+
+**The meta-lesson, having now been wrong twice on this same point:**
+participant coverage kept flipping because the *metric* was doing the work, not
+the evidence. Findings 1 and 3 (mistranscription correction, pedagogical
+detail) held steady across every pass; this one moved every time it was
+measured differently. When a comparison result changes with each new way of
+looking at it, that is a signal the axis is not decisive — not an invitation to
+keep re-measuring until one side wins.
