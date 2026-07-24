@@ -16,7 +16,7 @@ CLI usage:
 Interactive usage (Python REPL or script, from the repo folder):
     from summarize_transcript import run_pipeline
     result = run_pipeline("~/PROJECTS/audio-transcription-output/meeting.json")
-See "Interactive / script usage" in docs/reference.md for more examples.
+See "Interactive / script usage" in docs/pipeline-reference.md for more examples.
 ─────────────────────────────────────────────────────────────────────
 """
 
@@ -586,7 +586,9 @@ def run_pipeline_merged(
         summary2 = summarize_ollama(transcript, prompt, **kwargs)
 
     print("── Merging ─────────────────────────────────")
-    summary_merged = merge_summaries(summary1, summary2, engine)
+    # Pass `model` through: without it the merge step silently fell back to
+    # the default model even when both summary runs used an override.
+    summary_merged = merge_summaries(summary1, summary2, engine, model=model)
     print(summary_merged, "\n")
 
     paths = None
