@@ -103,6 +103,16 @@ python summarize_transcript.py ~/PROJECTS/audio-transcription-output/lecture.jso
 python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
     --engine ollama --model llama3.1:8b-instruct-q8_0
 
+# Speaker names — cached (automatic), explicit, or roster-constrained
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
+    --speakers "SPEAKER_00=Jason,SPEAKER_02=Liz"
+
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
+    --roster "Jason,Liz,Barry,Tim"
+
+python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json \
+    --no-speaker-names        # ignore the cache, raw SPEAKER_XX labels
+
 # Skip saving to disk
 python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --no-save
 

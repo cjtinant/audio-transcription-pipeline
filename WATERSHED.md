@@ -9,7 +9,9 @@ Move items to a commit and add to Resolved/History when resolved.
 
 ## Parked:
 
-### Replication run — MEFA manuscript discussion (pre-registered 2026-07-24)
+### Speaker-name injection — five approaches, feasibility ranking, build log
+
+**Status:** in progress 
 
 **Status:** RESOLVED 2026-07-24 — run completed, scored against the
 pre-registered predictions below. Result: **the case for `claude-opus-5` is
@@ -371,10 +373,86 @@ to answer.
 
 ---
 
+### Speaker-name injection — five approaches, ranked by feasibility
+
+**Status:** design map, 2026-07-24. Approaches 4, 3 and 1 built the same day;
+2 and 5 remain parked. Supersedes the "sweep into the probe-promotion session"
+disposition on the item below, which the MEFA evidence overtook.
+
+The 2026-07-14 taxonomy above answers **where names come from** (reference
+signals). This entry answers the complementary question: **how a name reaches
+the summary**. The two compose — a signal is useless without an injection path,
+and the injection path is identical regardless of which signal supplied the
+name.
+
+**Why this jumped the queue:** the MEFA run (2026-07-24) showed `Jason` — 11
+mentions, the most-named person in the transcript — absent from both summaries,
+while Opus 5 plainly captured his contributions and filed them under
+`SPEAKER_04`. Nothing in the pipeline ever resolves that label. In a
+multi-party discussion the summary is structurally incapable of attributing
+anything to a real person, **regardless of model**. That is a larger defect
+than any model-choice question this repo has spent two comparison runs on.
+
+**The five approaches, unsupervised → supervised:**
+
+1. **LLM vocative inference** (unsupervised). Prompt the summarizer to infer
+   names from address patterns in the content. Zero setup, any transcript.
+   Evidence is now two-sided: worked spontaneously on ESIIL (instructor
+   addressing students by name), produced zero names on MEFA (peers using third
+   person). Format-dependent; carries the confidently-wrong risk Tier 4 flags.
+2. **Alignment to a named reference transcript** (weakly supervised).
+   `tmp_map_speakers.py`, already proven 2026-07-14: word-align against Zoom's
+   `.transcript.vtt`, majority-vote account names onto `SPEAKER_XX`, vote share
+   self-flags merged clusters. Supervision is free — Zoom's per-account streams
+   did the labeling. Limited to platforms that emit named transcripts.
+3. **Roster seeding with closed-vocabulary inference** (semi-supervised).
+   Supply the attendee list from a calendar invite; the LLM does approach 1 but
+   constrained to that vocabulary. The model can no longer invent a name, only
+   misassign a real one. Roster also pins speaker count and feeds `--hotwords`
+   (taxonomy option 2) — three benefits from one cheap input.
+4. **Deterministic cache substitution** (supervised, light). Human labels
+   speakers once via `review_transcript.py --save-speakers`; the summarizer
+   reads `.speaker-cache.json` and substitutes names into the formatted
+   transcript before the LLM call. No inference, therefore no misattribution.
+   Reusable across every recording of a recurring subject.
+5. **Voice-embedding enrollment** (supervised, heavy). The Tier 4 item;
+   `return_embeddings=True` already exists unused in whisperx. Only approach
+   needing no per-recording reference, and the only one surviving a platform
+   change. Costs enrollment UX, cold start, and confidently-wrong risk.
+
+**Feasibility ranking** — effort against value, on this repo's actual
+recordings:
+
+| Rank | Approach | Effort | Reliability | Gated on |
+| ---- | ------------------ | ------ | ---------------- | ---------------------- |
+| 1    | 4 — cache          | ~20 LOC | exact | a one-time human label |
+| 2    | 3 — roster         | ~30 LOC | high, hedged | knowing the attendees |
+| 3    | 1 — inference      | ~15 LOC | format-dependent | nothing |
+| 4    | 2 — VTT alignment  | promote a probe | proven 99.7% | a named reference file |
+| 5    | 5 — embeddings     | large | unknown | enrollment + cold start |
+
+Approach 4 ranks first not because it is cleverest but because it is the only
+one that **cannot be wrong**: a name is either in the cache or it is not. It is
+also upstream of everything else — every other approach needs somewhere to put
+a confirmed name, and the cache is that place. Approaches 2 and 5 are
+deliberately deferred: 2 depends on a file type that only exists for cloud
+recordings, and 5 was already judged (2026-07-11) not worth starting until the
+simpler paths prove insufficient. Both remain parked above.
+
+**These are fallback layers, not competitors.** Intended precedence once all
+are available: cache (4) → alignment (2) → roster (3) → inference (1) → raw
+`SPEAKER_XX`. Each layer is more reliable than the one after it, so the first
+one that produces a name should win.
+
+**Built 2026-07-24:** approaches 4, 3 and 1 — see Resolved/History.
+
+**Flagged:** 2026-07-24
+
+---
+
 ### Summarizer ignores saved speaker names (cache → summary injection)
 
-**Status:** parked — small feature; sweep into the probe-promotion session
-rather than building piecemeal
+**Status:** superseded 2026-07-24 by the design map above; built the same day
 
 Noticed 2026-07-14 when the ESIIL `--save-speakers` write happened after the
 summary run and it turned out order couldn't matter: `summarize_transcript.py`
@@ -1308,3 +1386,72 @@ detail) held steady across every pass; this one moved every time it was
 measured differently. When a comparison result changes with each new way of
 looking at it, that is a signal the axis is not decisive — not an invitation to
 keep re-measuring until one side wins.
+
+**2026-07-24 — Speaker-name injection built (approaches 4, 3 and 1):** Closes
+the "Summarizer ignores saved speaker names" item parked 2026-07-14, promoted
+ahead of the probe-promotion session it was originally meant to wait for. The
+MEFA comparison run the same day supplied the evidence: `Jason`, the
+most-mentioned name in a 5-speaker transcript, appeared in neither model's
+summary, while Opus 5 had plainly captured his contributions and filed them
+under `SPEAKER_04`. Nothing in the pipeline resolved that label. The defect was
+model-independent, which made it larger than the model-choice question two
+comparison runs had been spent on.
+
+Built as three layers from the five-approach design map under Parked:
+
+**Approach 4 — deterministic cache substitution (the main one).**
+`summarize_transcript.py` now reads the `.speaker-cache.json` that
+`review_transcript.py --save-speakers` already wrote, keyed by the subject slug
+parsed from the filename convention, and substitutes names into the formatted
+transcript before the LLM call. No inference: a label either has a saved name
+or keeps `SPEAKER_XX`. Labels present in the cache but absent from the
+transcript are ignored, and unnamed labels are reported rather than silently
+left. Missing or corrupt cache returns an empty dict instead of raising —
+failing a summarization run over a cosmetic lookup would be worse than the
+problem being solved.
+
+Precedence: explicit `--speakers` > cache > raw labels, with
+`--no-speaker-names` to opt out entirely and `--subject` to override the lookup
+key.
+
+**Approach 3 — roster seeding (`--roster "Jason,Liz,Barry"`).** Appends a
+prompt block naming the attendees and permitting attribution using only those
+names. The model can misassign a real name but cannot invent one, which is the
+substantive risk reduction over unconstrained inference.
+
+**Approach 1 — hedged inference (`--infer-speakers`).** Same mechanism with no
+closed vocabulary. Off by default and documented as least reliable. Both
+prompts require every attribution to be marked `(inferred)` and instruct the
+model to keep `SPEAKER_XX` when unsure — following the Tier 4 finding that a
+confidently wrong name is worse than an anonymous one, because a wrong label
+does not invite the double-check an unlabeled one does. A roster wins over bare
+inference whenever both are passed; there is no case where the unconstrained
+version is preferable.
+
+**Refactor along the way:** `run_pipeline` and `run_pipeline_merged` carried
+identical parse blocks and now share `prepare_transcript()`. Name handling
+therefore cannot drift between the single and merged paths — a real risk, since
+the `--merge` path had already drifted once before on the `model` argument
+(fixed earlier the same day).
+
+**Tests: 53 → 72.** Coverage includes the substitution itself, unnamed labels
+surviving untouched, explicit-over-cache precedence, missing and corrupt cache
+files, `.txt` inputs passing through unmodified, `apply_speaker_names` not
+mutating its input (`run_pipeline` returns those segments to the caller), and
+that both inference prompts require hedging. One test compares
+`summarize_transcript.parse_subject` against `review_transcript.parse_subject`
+across three filename shapes: the two implementations are deliberately
+duplicated rather than cross-imported, so a silent divergence there would break
+every cache lookup with no visible error. That test is the guard.
+
+**Not built:** approach 2 (VTT alignment — `tmp_map_speakers.py` exists and is
+proven, but promoting it is a separate decision tied to the probe-promotion
+item) and approach 5 (voice embeddings — still gated on the simpler paths
+proving insufficient, per the 2026-07-11 judgment). Intended precedence once
+all five exist: cache → alignment → roster → inference → raw labels.
+
+**Untested against a real recording.** Verified end-to-end against synthetic
+transcripts only, same caveat as Tier 1's speaker-slot caching and Tier 2's
+clip command carried when they were built. The obvious first real use is
+re-running the MEFA summary with `--speakers` and checking whether the
+attribution failure that motivated all of this actually disappears.

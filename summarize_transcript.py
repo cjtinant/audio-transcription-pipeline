@@ -30,6 +30,7 @@ See "Interactive / script usage" in docs/pipeline-reference.md for more examples
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from datetime import datetime
@@ -152,6 +153,63 @@ MEETING_TYPE_DESCRIPTIONS = {
 }
 
 
+# Approaches 3 and 1 from the WATERSHED design map. Both work by adding
+# an instruction block to the prompt rather than by rewriting the
+# transcript, so they compose with approach 4: cached names are already
+# substituted in the text, and these only address what is left over.
+#
+# Both are deliberately hedged. WATERSHED's Tier 4 note is explicit that a
+# confidently wrong name is worse than SPEAKER_00, because a wrong label
+# does not get double-checked the way an anonymous one does. Every
+# inferred name is therefore required to carry a marker.
+
+ROSTER_PROMPT = (
+    "\nSpeaker identification:\n"
+    "The following people attended this meeting:\n{roster}\n"
+    "Some speakers are labeled SPEAKER_00, SPEAKER_01 and so on because "
+    "automatic diarization could not name them. Where the conversation "
+    "makes a speaker's identity clear — someone is addressed by name, or "
+    "introduces themselves — you may attribute that speaker using ONLY "
+    "names from the list above. Never use a name that is not on the list, "
+    "and never guess to fill a gap.\n"
+    "Mark every such attribution as '(inferred)' the first time you use "
+    "it, e.g. 'Jason (inferred)'. If you cannot tell who a speaker is, "
+    "keep the SPEAKER_XX label — an unnamed speaker is a correct answer, "
+    "a wrong name is not.\n\n"
+)
+
+INFER_PROMPT = (
+    "\nSpeaker identification:\n"
+    "Speakers are labeled SPEAKER_00, SPEAKER_01 and so on because "
+    "automatic diarization could not name them. If the conversation makes "
+    "a speaker's identity unambiguous — they are addressed by name "
+    "repeatedly, or they introduce themselves — you may attribute that "
+    "speaker by name.\n"
+    "Mark every such attribution as '(inferred)' the first time you use "
+    "it, e.g. 'Jason (inferred)'. Attribute only on clear evidence. If in "
+    "any doubt, keep the SPEAKER_XX label — an unnamed speaker is a "
+    "correct answer, a wrong name is not.\n\n"
+)
+
+
+def build_speaker_prompt(roster: list[str] | None = None,
+                         infer: bool = False) -> str:
+    """
+    Return the speaker-identification block to append to a prompt.
+
+    A roster (approach 3) beats bare inference (approach 1) whenever both
+    are requested: a closed vocabulary cannot invent a name, so there is
+    no case where the unconstrained version is preferable.
+    """
+    if roster:
+        return ROSTER_PROMPT.format(
+            roster="\n".join(f"- {name}" for name in roster)
+        )
+    if infer:
+        return INFER_PROMPT
+    return ""
+
+
 def get_prompt(meeting_type: str, custom_prompt: str | None = None) -> str:
     """Return the summarization prompt for a given meeting type."""
     if meeting_type == "custom":
@@ -212,6 +270,102 @@ def read_txt_transcript(txt_path: str) -> str:
     if not path.exists():
         raise FileNotFoundError(f"Text file not found: {path}")
     return path.read_text(encoding="utf-8")
+
+
+# ── 2b. Speaker-name injection ────────────────────────────────────────
+#
+# Approach 4 of the five mapped in WATERSHED (2026-07-24): deterministic
+# substitution from the cache `review_transcript.py --save-speakers`
+# already writes. No inference, so no misattribution — a label either has
+# a saved name or it keeps SPEAKER_XX.
+#
+# Why this exists: the MEFA run showed the most-named person in a
+# transcript (11 mentions) absent from both models' summaries, because
+# nothing ever told either model who SPEAKER_04 was. Without this, every
+# multi-party summary is structurally anonymous regardless of model.
+
+SPEAKER_CACHE_FILENAME = ".speaker-cache.json"
+
+
+def parse_subject(input_path: str) -> str:
+    """
+    Subject slug from the yyyy-mm-dd_subject-name(_audio)? convention.
+
+    Deliberately duplicates review_transcript.py's parse_subject rather
+    than importing it: that module pulls in subprocess and the HTML
+    template for a six-line regex, and the summarizer has no other reason
+    to depend on the review tool. The convention is stable and documented
+    in the README; if it ever changes, both need updating — noted here so
+    the duplication is a choice rather than a surprise.
+    """
+    stem = Path(input_path).stem
+    stem = re.sub(r"_(large-v2|large-v3)$", "", stem)
+    m = re.match(r"^\d{4}-\d{2}-\d{2}_(.+)$", stem)
+    rest = m.group(1) if m else stem
+    rest = re.sub(r"^audio_", "", rest)
+    rest = re.sub(r"_audio$", "", rest)
+    return rest
+
+
+def load_speaker_names(input_path: str, subject: str | None = None) -> dict:
+    """
+    Look up saved speaker names for this transcript's subject.
+
+    Reads `.speaker-cache.json` next to the input file — the same file
+    review_transcript.py writes and pre-fills from. Missing or corrupt
+    cache means "no names", never an error: a summary without names is
+    the old behavior, and failing the run over a cosmetic lookup would be
+    worse than the problem it solves.
+
+    Returns:
+        Dict of SPEAKER_XX -> name, empty if nothing is cached.
+    """
+    path = Path(input_path).expanduser()
+    cache_path = path.parent / SPEAKER_CACHE_FILENAME
+    if not cache_path.exists():
+        return {}
+    try:
+        cache = json.loads(cache_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+    names = cache.get(subject or parse_subject(input_path), {})
+    return names if isinstance(names, dict) else {}
+
+
+def parse_speaker_pairs(spec: str) -> dict:
+    """
+    Parse "SPEAKER_00=Jason,SPEAKER_02=Liz" into a dict.
+
+    Same syntax as review_transcript.py --save-speakers, so a mapping can
+    be pasted between the two tools without rewriting it.
+    """
+    pairs = {}
+    for item in spec.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        if "=" not in item:
+            raise ValueError(f"Expected SPEAKER_XX=Name, got {item!r}")
+        key, _, name = item.partition("=")
+        key, name = key.strip(), name.strip()
+        if key and name:
+            pairs[key] = name
+    return pairs
+
+
+def apply_speaker_names(segments: list[dict], names: dict) -> list[dict]:
+    """
+    Replace speaker labels with real names where one is known.
+
+    Returns new dicts — the caller's segments are left alone, since
+    run_pipeline hands the same list back to the caller in its result.
+    Labels with no cached name keep SPEAKER_XX rather than being blanked:
+    an unlabeled speaker is honest, a wrongly-labeled one is not.
+    """
+    if not names:
+        return segments
+    return [{**seg, "speaker": names.get(seg["speaker"], seg["speaker"])}
+            for seg in segments]
 
 
 # ── 3. Format segments for LLM input ──────────────────────────────────
@@ -424,6 +578,55 @@ def save_outputs(
     }
 
 
+# ── 5b. Shared transcript preparation ─────────────────────────────────
+
+def prepare_transcript(
+    input_path: str,
+    speaker_names: dict | None = None,
+    subject: str | None = None,
+    use_cache: bool = True,
+) -> tuple[list[dict] | None, str]:
+    """
+    Read a transcript and apply approach-4 speaker names to it.
+
+    Shared by run_pipeline and run_pipeline_merged, which previously
+    carried identical parse blocks — one place to change means the two
+    paths cannot drift apart on name handling.
+
+    Precedence: an explicit `speaker_names` mapping wins over the cache,
+    so a caller can always override what was saved without editing the
+    cache file.
+
+    A cleaned .txt input is passed through untouched: it has no speaker
+    labels to substitute, and a human already had the chance to write
+    real names into it.
+    """
+    if Path(input_path).suffix.lower() == ".txt":
+        print("── Reading cleaned transcript (.txt) ───────")
+        return None, read_txt_transcript(input_path)
+
+    print("── Parsing transcript (.json) ──────────────")
+    segments = read_whisperx(input_path)
+
+    names = dict(speaker_names) if speaker_names else {}
+    if use_cache and not names:
+        names = load_speaker_names(input_path, subject)
+
+    if names:
+        labels = {seg["speaker"] for seg in segments}
+        applied = {k: v for k, v in names.items() if k in labels}
+        unmatched = sorted(labels - set(applied))
+        if applied:
+            print("── Speaker names ───────────────────────────")
+            for label, name in sorted(applied.items()):
+                print(f"  {label} -> {name}")
+            if unmatched:
+                print(f"  unnamed, left as-is: {', '.join(unmatched)}")
+        segments = apply_speaker_names(segments, applied)
+
+    return segments, format_transcript(segments)
+
+
 # ── 6. Full pipeline ──────────────────────────────────────────────────
 
 def run_pipeline(
@@ -435,6 +638,11 @@ def run_pipeline(
     output_dir: str = DEFAULT_OUTPUT_DIR,
     model: str | None = None,
     max_tokens: int = DEFAULT_MAX_TOKENS,
+    speaker_names: dict | None = None,
+    subject: str | None = None,
+    use_cache: bool = True,
+    roster: list[str] | None = None,
+    infer_speakers: bool = False,
 ) -> dict:
     """
     Run the full transcription and summarization pipeline.
@@ -451,6 +659,16 @@ def run_pipeline(
         model:         Override the default LLM model name
         max_tokens:    Output ceiling (Anthropic only; Ollama has no
                        equivalent knob in this pipeline's request shape)
+        speaker_names: Explicit SPEAKER_XX -> name mapping. Wins over the
+                       cache. (Approach 4)
+        subject:       Override the cache lookup key, normally parsed from
+                       the filename convention
+        use_cache:     Read .speaker-cache.json for names (default True)
+        roster:        Attendee names; the LLM may attribute speakers using
+                       only these, marked '(inferred)'. (Approach 3)
+        infer_speakers: Let the LLM infer names from the conversation with
+                       no roster to constrain it. Off by default — the
+                       least reliable path. (Approach 1)
 
     Returns:
         Dict with keys: segments, transcript, summary, paths (if saved)
@@ -474,22 +692,16 @@ def run_pipeline(
     if engine not in ("ollama", "anthropic"):
         raise ValueError("engine must be 'ollama' or 'anthropic'")
 
-    # Parse — .txt (cleaned) or .json (raw WhisperX)
-    suffix = Path(input_path).suffix.lower()
-    if suffix == ".txt":
-        print("── Reading cleaned transcript (.txt) ───────")
-        segments   = None
-        transcript = read_txt_transcript(input_path)
-    else:
-        print("── Parsing transcript (.json) ──────────────")
-        segments   = read_whisperx(input_path)
-        transcript = format_transcript(segments)
+    segments, transcript = prepare_transcript(
+        input_path, speaker_names, subject, use_cache
+    )
 
     print("── Transcript ──────────────────────────────")
     print(transcript, "\n")
 
-    # Build prompt
+    # Build prompt, plus any speaker-identification instructions
     prompt = get_prompt(meeting_type, custom_prompt)
+    prompt += build_speaker_prompt(roster, infer_speakers)
 
     # Summarize
     print(f"── Summarizing via {engine} ({meeting_type}) ──")
@@ -604,6 +816,11 @@ def run_pipeline_merged(
     output_dir: str = DEFAULT_OUTPUT_DIR,
     model: str | None = None,
     max_tokens: int = DEFAULT_MAX_TOKENS,
+    speaker_names: dict | None = None,
+    subject: str | None = None,
+    use_cache: bool = True,
+    roster: list[str] | None = None,
+    infer_speakers: bool = False,
 ) -> dict:
     """
     Run the pipeline twice and merge the results for a more complete summary.
@@ -627,18 +844,12 @@ def run_pipeline_merged(
     if engine not in ("ollama", "anthropic"):
         raise ValueError("engine must be 'ollama' or 'anthropic'")
 
-    # Parse
-    suffix = Path(input_path).suffix.lower()
-    if suffix == ".txt":
-        print("── Reading cleaned transcript (.txt) ───────")
-        segments   = None
-        transcript = read_txt_transcript(input_path)
-    else:
-        print("── Parsing transcript (.json) ──────────────")
-        segments   = read_whisperx(input_path)
-        transcript = format_transcript(segments)
+    segments, transcript = prepare_transcript(
+        input_path, speaker_names, subject, use_cache
+    )
 
     prompt = get_prompt(meeting_type, custom_prompt)
+    prompt += build_speaker_prompt(roster, infer_speakers)
     kwargs = {"model": model} if model else {}
 
     print("── Run 1 ───────────────────────────────────")
@@ -755,6 +966,59 @@ examples:
             "if that env var is set)"
         ),
     )
+    speaker_group = parser.add_argument_group(
+        "speaker names",
+        "Resolve SPEAKER_XX labels to real people. Without any of these, a "
+        "multi-party summary can only ever say SPEAKER_00. Listed most "
+        "reliable first; see WATERSHED's speaker-name injection design map.",
+    )
+    speaker_group.add_argument(
+        "--speakers",
+        default=None,
+        metavar="PAIRS",
+        help=(
+            "Explicit names, comma-separated SPEAKER_XX=Name pairs "
+            "(e.g. SPEAKER_00=Jason,SPEAKER_02=Liz). Same syntax as "
+            "review_transcript.py --save-speakers. Overrides the cache."
+        ),
+    )
+    speaker_group.add_argument(
+        "--subject",
+        default=None,
+        help=(
+            "Override the speaker-cache lookup key (default: parsed from "
+            "the filename's yyyy-mm-dd_subject-name convention)"
+        ),
+    )
+    speaker_group.add_argument(
+        "--no-speaker-names",
+        action="store_true",
+        help=(
+            "Do not read .speaker-cache.json — summarize with raw "
+            "SPEAKER_XX labels, the behavior before names were injected"
+        ),
+    )
+    speaker_group.add_argument(
+        "--roster",
+        default=None,
+        metavar="NAMES",
+        help=(
+            "Comma-separated attendee names. The model may attribute "
+            "speakers using only these names, each marked '(inferred)'. "
+            "Use when you know who was present but not which label is "
+            "whom — e.g. straight from a calendar invite."
+        ),
+    )
+    speaker_group.add_argument(
+        "--infer-speakers",
+        action="store_true",
+        help=(
+            "Let the model infer names from the conversation with no "
+            "roster to constrain it. Least reliable option and off by "
+            "default: it can invent a name that was never said. Prefer "
+            "--speakers or --roster where possible."
+        ),
+    )
     parser.add_argument(
         "--merge",
         action="store_true",
@@ -785,16 +1049,33 @@ examples:
         parser.print_help()
         sys.exit(1)
 
+    speaker_names = None
+    if args.speakers:
+        try:
+            speaker_names = parse_speaker_pairs(args.speakers)
+        except ValueError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    roster = None
+    if args.roster:
+        roster = [n.strip() for n in args.roster.split(",") if n.strip()]
+
     fn = run_pipeline_merged if args.merge else run_pipeline
     fn(
-        input_path    = args.input_path,
-        engine        = args.engine,
-        meeting_type  = args.meeting_type,
-        custom_prompt = args.custom_prompt,
-        save          = not args.no_save,
-        output_dir    = args.output_dir,
-        model         = args.model,
-        max_tokens    = args.max_tokens,
+        input_path     = args.input_path,
+        engine         = args.engine,
+        meeting_type   = args.meeting_type,
+        custom_prompt  = args.custom_prompt,
+        save           = not args.no_save,
+        output_dir     = args.output_dir,
+        model          = args.model,
+        max_tokens     = args.max_tokens,
+        speaker_names  = speaker_names,
+        subject        = args.subject,
+        use_cache      = not args.no_speaker_names,
+        roster         = roster,
+        infer_speakers = args.infer_speakers,
     )
 
 

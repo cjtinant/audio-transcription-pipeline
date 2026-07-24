@@ -25,6 +25,12 @@ from summarize_transcript import (  # noqa: E402
     save_outputs,
 )
 
+# Imported as modules too: the speaker-name tests compare the two tools'
+# parse_subject implementations against each other, since a divergence
+# there would silently break every cache lookup.
+import review_transcript  # noqa: E402
+import summarize_transcript  # noqa: E402
+
 
 class _FakeResponse:
     def __init__(self, status_code, retry_after=None):
@@ -190,3 +196,159 @@ class TestDefaultOutputDirEnvVar(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSpeakerNameInjection(unittest.TestCase):
+    """
+    Approaches 4, 3 and 1 from WATERSHED's speaker-name injection design
+    map (2026-07-24). Regression basis: the MEFA run produced summaries
+    with no real names at all because nothing resolved SPEAKER_XX.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.segments = [
+            {"start": 0.0, "end": 2.0, "speaker": "SPEAKER_00", "text": "One."},
+            {"start": 2.0, "end": 4.0, "speaker": "SPEAKER_04", "text": "Two."},
+            {"start": 4.0, "end": 6.0, "speaker": "SPEAKER_02", "text": "Three."},
+        ]
+
+    def _write(self, name="2026-07-24_MEFA_manuscript-discussion.json",
+               cache=None):
+        path = Path(self.tmp) / name
+        path.write_text(json.dumps({"segments": self.segments}))
+        if cache is not None:
+            (Path(self.tmp) / ".speaker-cache.json").write_text(
+                json.dumps(cache)
+            )
+        return str(path)
+
+    # ── subject parsing ───────────────────────────────────────────────
+    def test_parse_subject_strips_date_and_audio_suffix(self):
+        self.assertEqual(
+            summarize_transcript.parse_subject("2026-07-07_soil-moisture_audio.json"),
+            "soil-moisture",
+        )
+
+    def test_parse_subject_strips_model_comparison_suffix(self):
+        self.assertEqual(
+            summarize_transcript.parse_subject("2026-06-09_tho-meet_large-v3.json"),
+            "tho-meet",
+        )
+
+    def test_parse_subject_matches_review_tool(self):
+        """Both tools must key the cache identically or lookups silently miss."""
+        for stem in ("2026-07-07_soil-moisture_audio.json",
+                     "2026-06-09_audio_tho-meet.json",
+                     "no-convention-here.json"):
+            self.assertEqual(
+                summarize_transcript.parse_subject(stem),
+                review_transcript.parse_subject(Path(stem)),
+                f"parse_subject diverged on {stem}",
+            )
+
+    # ── approach 4: cache substitution ────────────────────────────────
+    def test_cache_names_substituted_into_transcript(self):
+        path = self._write(cache={"MEFA_manuscript-discussion":
+                                  {"SPEAKER_00": "Jason"}})
+        _, transcript = summarize_transcript.prepare_transcript(path)
+        self.assertIn("[Jason @ 0.0s]", transcript)
+
+    def test_unnamed_speakers_keep_their_label(self):
+        """A wrong name is worse than no name — never blank or guess."""
+        path = self._write(cache={"MEFA_manuscript-discussion":
+                                  {"SPEAKER_00": "Jason"}})
+        _, transcript = summarize_transcript.prepare_transcript(path)
+        self.assertIn("SPEAKER_02", transcript)
+        self.assertIn("SPEAKER_04", transcript)
+
+    def test_missing_cache_is_not_an_error(self):
+        path = self._write()
+        _, transcript = summarize_transcript.prepare_transcript(path)
+        self.assertIn("SPEAKER_00", transcript)
+
+    def test_corrupt_cache_is_not_an_error(self):
+        path = self._write()
+        (Path(self.tmp) / ".speaker-cache.json").write_text("{not json")
+        self.assertEqual(summarize_transcript.load_speaker_names(path), {})
+
+    def test_explicit_names_override_cache(self):
+        path = self._write(cache={"MEFA_manuscript-discussion":
+                                  {"SPEAKER_00": "FromCache"}})
+        _, transcript = summarize_transcript.prepare_transcript(
+            path, speaker_names={"SPEAKER_00": "Explicit"}
+        )
+        self.assertIn("Explicit", transcript)
+        self.assertNotIn("FromCache", transcript)
+
+    def test_use_cache_false_leaves_labels_raw(self):
+        path = self._write(cache={"MEFA_manuscript-discussion":
+                                  {"SPEAKER_00": "Jason"}})
+        _, transcript = summarize_transcript.prepare_transcript(
+            path, use_cache=False
+        )
+        self.assertNotIn("Jason", transcript)
+
+    def test_subject_override_selects_a_different_entry(self):
+        path = self._write(cache={"other-subject": {"SPEAKER_00": "Liz"}})
+        _, transcript = summarize_transcript.prepare_transcript(
+            path, subject="other-subject"
+        )
+        self.assertIn("[Liz @ 0.0s]", transcript)
+
+    def test_apply_speaker_names_does_not_mutate_input(self):
+        """run_pipeline hands segments back to the caller."""
+        original = [dict(s) for s in self.segments]
+        summarize_transcript.apply_speaker_names(
+            self.segments, {"SPEAKER_00": "Jason"}
+        )
+        self.assertEqual(self.segments, original)
+
+    def test_txt_input_passes_through_untouched(self):
+        path = Path(self.tmp) / "cleaned.txt"
+        path.write_text("Jason: already named by a human.\n")
+        segments, transcript = summarize_transcript.prepare_transcript(str(path))
+        self.assertIsNone(segments)
+        self.assertIn("already named", transcript)
+
+    # ── pair parsing ──────────────────────────────────────────────────
+    def test_parse_speaker_pairs(self):
+        self.assertEqual(
+            summarize_transcript.parse_speaker_pairs(
+                "SPEAKER_00=Jason, SPEAKER_02=Liz"
+            ),
+            {"SPEAKER_00": "Jason", "SPEAKER_02": "Liz"},
+        )
+
+    def test_parse_speaker_pairs_rejects_malformed(self):
+        with self.assertRaises(ValueError):
+            summarize_transcript.parse_speaker_pairs("SPEAKER_00")
+
+    # ── approaches 3 and 1: prompt construction ───────────────────────
+    def test_no_speaker_prompt_by_default(self):
+        self.assertEqual(summarize_transcript.build_speaker_prompt(), "")
+
+    def test_roster_prompt_lists_names_and_forbids_others(self):
+        p = summarize_transcript.build_speaker_prompt(roster=["Jason", "Liz"])
+        self.assertIn("- Jason", p)
+        self.assertIn("- Liz", p)
+        self.assertIn("ONLY", p)
+
+    def test_infer_prompt_used_when_no_roster(self):
+        p = summarize_transcript.build_speaker_prompt(infer=True)
+        self.assertIn("(inferred)", p)
+        self.assertNotIn("ONLY", p)
+
+    def test_roster_wins_over_infer(self):
+        """A closed vocabulary is strictly safer than an open one."""
+        p = summarize_transcript.build_speaker_prompt(
+            roster=["Jason"], infer=True
+        )
+        self.assertIn("ONLY", p)
+
+    def test_both_inference_prompts_require_hedging(self):
+        """Tier 4: a confidently wrong name is worse than SPEAKER_00."""
+        for p in (summarize_transcript.build_speaker_prompt(roster=["Jason"]),
+                  summarize_transcript.build_speaker_prompt(infer=True)):
+            self.assertIn("(inferred)", p)
+            self.assertIn("SPEAKER_XX", p)

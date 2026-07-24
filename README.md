@@ -431,6 +431,47 @@ cd ~/PROJECTS/audio-transcription-pipeline
 Output is written to `~/PROJECTS/audio-transcription-output/` by default (the
 `--output-dir` flag exists only to override this).
 
+### Getting real names into the summary
+
+By default a summary can only ever say `SPEAKER_00`, because diarization
+produces anonymous clusters and nothing downstream resolves them. In a
+multi-party discussion that makes the summary unable to attribute anything to
+a real person — measured on a 5-speaker meeting where the most-mentioned
+participant appeared in no summary at all.
+
+Three ways to fix that, most reliable first:
+
+```bash
+# 1. Cached names (best) — label speakers once in the review tool, and every
+#    future summary of that subject picks them up automatically
+python3 review_transcript.py meeting.json --save-speakers "SPEAKER_00=Jason,SPEAKER_02=Liz"
+.venv/bin/python3 summarize_transcript.py meeting.json --type research
+
+# 2. Names for this run only, no cache involved
+.venv/bin/python3 summarize_transcript.py meeting.json \
+  --speakers "SPEAKER_00=Jason,SPEAKER_02=Liz"
+
+# 3. Roster — you know who attended but not which label is whom.
+#    The model may use only these names, and marks each one "(inferred)".
+.venv/bin/python3 summarize_transcript.py meeting.json \
+  --roster "Jason,Liz,Barry,Tim"
+```
+
+Cached names are exact — a label either has a saved name or keeps
+`SPEAKER_XX`. Nothing is guessed. The roster option does involve the model
+guessing, but from a closed list, so it can misassign a real name and never
+invent one.
+
+`--infer-speakers` lets the model name speakers with no roster at all. It is
+off by default and the least reliable option, because it can produce a name
+nobody said. A wrong name is worse than `SPEAKER_00` — an anonymous label
+invites a check, a confident wrong one does not. Whether it works depends on
+the meeting: it succeeded on a lecture where the instructor addressed students
+by name, and produced nothing on a peer discussion where people spoke about
+each other in the third person.
+
+Use `--no-speaker-names` to ignore the cache and summarize with raw labels.
+
 ### Long recordings (multi-hour lectures and course sessions)
 
 The defaults are sized for these: `claude-opus-5` and a 16000-token output
