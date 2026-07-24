@@ -21,3 +21,19 @@ polypedon
 ESIIL
 CIRES
 Earth Lab
+
+# Added 2026-07-24 from the MEFA manuscript discussion. Both acronyms were
+# mistranscribed throughout that recording and neither summarizer model
+# recovered them: MEFA appeared as "MIFA" (6x), and ERIN appeared as
+# "Aaron" (4x), "ARIN" (3x) and "Erin" (4x) — three spellings of one word.
+MEFA
+ERIN
+NEON
+Ameriflux
+PhenoCam
+macrosystems
+teleconnections
+Emergy
+Odum
+PUI
+PUIs
