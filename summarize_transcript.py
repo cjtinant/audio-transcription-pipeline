@@ -14,11 +14,11 @@ CLI usage:
     python summarize_transcript.py --list-types
 
 Long sessions (multi-hour lectures, course recordings):
-    # Defaults are already sized for these — claude-opus-5, 8192-token
-    # output ceiling. Raise the ceiling further if a summary still looks
-    # cut off, and use --type lecture for course recordings.
+    # Defaults are already sized for these — claude-opus-5, 16000-token
+    # output ceiling. Use --type lecture for course recordings; raise
+    # --max-tokens only if a summary still reads as cut off.
     python summarize_transcript.py ~/PROJECTS/audio-transcription-output/lecture.json \
-        --type lecture --max-tokens 16000
+        --type lecture
 
 Interactive usage (Python REPL or script, from the repo folder):
     from summarize_transcript import run_pipeline
@@ -63,17 +63,21 @@ DEFAULT_OLLAMA_MODEL = os.environ.get(
     "SUMMARIZE_OLLAMA_MODEL", "llama3.1:8b-instruct-q6_k"
 )
 
-# Output ceiling per request. The old value (1024) silently truncated
-# long summaries: a 3-hour lecture through the six-section
+# Output ceiling per request. The original value (1024) silently
+# truncated long summaries: a multi-hour lecture through the six-section
 # `grant_planning` or four-section `lecture` preset needs far more than
 # ~750 words, and the model has no way to signal it ran out of room.
-# 8192 leaves headroom without inviting padding; raise with --max-tokens
-# for exhaustive summaries of very long sessions.
-DEFAULT_MAX_TOKENS = 8192
+#
+# Sized from measurement, not guesswork: in the 2026-07-24 A/B run
+# (ESIIL short course, 2h09m, `lecture`), claude-opus-5 produced 5,976
+# output tokens — 73% of an 8192 ceiling. Extrapolated to the 3-hour
+# case these defaults exist for, that is ~8,300 tokens, i.e. truncation.
+# 16000 restores real headroom. See WATERSHED 2026-07-24.
+DEFAULT_MAX_TOKENS = 16000
 
 # Merge combines two full summaries, so its input is roughly twice a
 # single summary's output and its own output should not be smaller.
-DEFAULT_MERGE_MAX_TOKENS = 8192
+DEFAULT_MERGE_MAX_TOKENS = 16000
 
 # HTTP timeout. The old 60s was set when summaries capped at 1024
 # tokens; a large model writing 8k tokens from a 40k-token transcript
@@ -692,7 +696,7 @@ examples:
   python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --type custom \\
       --prompt "List every action item and who owns it."
   python summarize_transcript.py ~/PROJECTS/audio-transcription-output/meeting.json --model claude-sonnet-5
-  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/lecture.json --type lecture --max-tokens 16000
+  python summarize_transcript.py ~/PROJECTS/audio-transcription-output/lecture.json --type lecture
   python summarize_transcript.py --list-types
         """,
     )

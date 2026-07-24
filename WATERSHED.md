@@ -14,12 +14,13 @@ Move items to a commit and add to Resolved/History when resolved.
 **Status:** parked — three questions the A/B test surfaced but did not answer
 (the test itself is resolved; see Resolved/History)
 
-**1. `DEFAULT_MAX_TOKENS` headroom is thinner than it looks.** Opus 5 used
-5,976 of the 8,192 ceiling — **73%** — on a 2h09m recording. At that rate a
-genuine 3-hour lecture produces ~8,300 output tokens and would truncate. The
-ceiling was raised specifically for the 3-hour case and is marginal for exactly
-that case. Options: raise the default to 16000, or leave it and document
-`--max-tokens 16000` as required for 3-hour runs. Not decided.
+**1. ~~`DEFAULT_MAX_TOKENS` headroom~~ — RESOLVED 2026-07-24.** Opus 5 used
+5,976 of the 8,192 ceiling (**73%**) on a 2h09m recording, extrapolating to
+~8,300 on the 3-hour case the ceiling exists for. Raised to **16000** (both
+`DEFAULT_MAX_TOKENS` and `DEFAULT_MERGE_MAX_TOKENS`); README and
+`pipeline-reference.md` updated, and their examples no longer need to pass
+`--max-tokens` by hand. Note the pipeline still does not surface `stop_reason`,
+so truncation remains invisible in normal use — only the harness reports it.
 
 **2. Model choice may be preset-dependent, which nothing currently expresses.**
 The test measured `lecture`, where Opus 5's completeness clearly wins. That
@@ -28,16 +29,30 @@ scannable words may beat Opus 5's 2,299 thorough ones. A per-preset default
 would capture this; a single global default cannot. Worth deciding whether
 that complexity earns its keep before building it.
 
-**3. Named-entity coverage should be mechanical, not a human read.** Resolved
-the "Caitlin" question by grep: **Caitlin 86 mentions, Ramadan 17.** Both are
-real; each model omitted one; Opus omitted the more prominent. Neither the
-mechanical metrics nor the human read caught this — it took a third check
-nobody had planned.
+**3. ~~Named-entity coverage should be mechanical~~ — BUILT 2026-07-24.**
+Resolved the "Caitlin" question by grep: **Caitlin 86 mentions, Ramadan 17.**
+Both real; each model omitted one; Opus omitted the more prominent. Neither the
+mechanical metrics nor a careful read of both summaries caught it — it took a
+third check nobody had planned.
 
-That check is cheap and objective, and belongs in `tmp_compare_models.py`:
-extract capitalized tokens from the transcript, rank by frequency, and report
-which of the top names appear in each summary. It would have flagged both
-omissions in seconds without any judgment call. Not built.
+`tmp_compare_models.py` now extracts proper-noun candidates from the transcript
+(stdlib heuristic: capitalized tokens that do not appear lowercase more often
+than capitalized), ranks them by frequency, and reports which appear in each
+summary — plus, separately, any name **no** summary mentions, which is the
+blind spot a side-by-side read structurally cannot show.
+
+`--coverage-only` scores existing summary files with no API call, so summaries
+already paid for can be re-checked for free:
+
+```bash
+python3 tmp_compare_models.py transcript.json --coverage-only \
+    summary_a.md summary_b.md
+```
+
+**Still to run against the real transcript.** Verified so far only against a
+synthetic transcript with hand-set counts. The yes/no marks in that run were
+computed against the two real summary files and are trustworthy; the ranking
+was not. See the coverage finding in Resolved/History for what that showed.
 
 **Flagged:** 2026-07-24
 
@@ -1078,4 +1093,22 @@ you where to look, but not who is right, and a human read of both will not
 surface what is absent from *both* — or reliably notice which of two omissions
 matters more. The grep that settled it took seconds and needed no judgment.
 **Comparison needs a third reference, and for named entities the transcript
-itself is that reference.** Parked above as a coverage check for the harness.
+itself is that reference.** Built the same day into `tmp_compare_models.py`
+(see parked item 3).
+
+**Follow-on finding, from the coverage check on the real summary files
+(2026-07-24):** simple string counts against both documents show Sonnet 5
+omitted **three** named people Opus 5 captured — Nate (the instructor), Dr.
+Ramadan, and Gaurav Chakrabarti — plus Jim from the education team. Opus 5
+omitted one: Caitlin. So on participant coverage Opus 5 does come out ahead
+after all, but on measured grounds rather than the inference that produced the
+erratum, and with a real miss of its own that the first write-up did not know
+about.
+
+Worth separating carefully: those presence/absence counts are real, taken from
+the two summary files. The *ranking* used to demonstrate the tool was
+synthetic — only Caitlin's 86 and Ramadan's 17 came from the transcript. Which
+names actually dominate the recording is still unrun, and the conclusion above
+should be treated as provisional until `--coverage-only` is run against the
+real JSON. Not repeating the earlier mistake of letting a partial check settle
+a question it cannot.

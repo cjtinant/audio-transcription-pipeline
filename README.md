@@ -433,16 +433,16 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default (the
 
 ### Long recordings (multi-hour lectures and course sessions)
 
-The defaults are sized for these: `claude-opus-5` and an 8192-token output
-ceiling. A 3-hour recording is roughly 40k input tokens once speaker labels and
-timestamps are added, which fits comfortably in context — the thing that
+The defaults are sized for these: `claude-opus-5` and a 16000-token output
+ceiling. A 3-hour recording is roughly 85k input tokens once speaker labels and
+timestamps are added, which fits comfortably in a 1M context — the thing that
 actually breaks is summary length, not input size.
 
 ```bash
-# 3-hour lecture — preset plus a larger output ceiling
+# 3-hour lecture — the preset is all you need; defaults cover the rest
 .venv/bin/python3 summarize_transcript.py \
   ~/PROJECTS/audio-transcription-output/2026-07-13_esiil-course_audio.json \
-  --type lecture --max-tokens 16000
+  --type lecture
 
 # Faster and cheaper, if the recording is short or the stakes are low
 .venv/bin/python3 summarize_transcript.py \

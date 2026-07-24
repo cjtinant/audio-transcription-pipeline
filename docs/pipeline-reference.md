@@ -240,10 +240,13 @@ usual ~4.** The `[SPEAKER_00 @ 1234.5s]` prefix on every segment is the reason;
 digits and brackets cost more than prose. Estimating input tokens as
 `chars / 4` understates the real figure by nearly half.
 
-**Output length:** `--max-tokens` (default 8192) caps the summary. The previous
-value of 1024 silently truncated long summaries mid-section; if a summary still
-stops abruptly, raise this rather than assuming the model had nothing more to
-say.
+**Output length:** `--max-tokens` (default 16000) caps the summary. The original
+value of 1024 silently truncated long summaries mid-section. The default was
+sized from the 2026-07-24 run above: Opus 5 produced 5,976 tokens on a 2h09m
+recording, which extrapolates to ~8,300 on a 3-hour one — enough to truncate
+under the interim 8192 ceiling. If a summary still stops abruptly, raise this
+rather than assuming the model had nothing more to say; `stop_reason` is the
+only reliable tell, and this pipeline does not surface it.
 
 ```bash
 # Add to ~/.Renviron
