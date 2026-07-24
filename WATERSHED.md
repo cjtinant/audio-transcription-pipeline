@@ -11,7 +11,7 @@ Move items to a commit and add to Resolved/History when resolved.
 
 ### Summarizer model default — reasoned, not measured
 
-**Status:** parked — open question left behind by the 2026-07-24 change below
+**Status:** parked — harness built 2026-07-24, test not yet run
 
 `claude-opus-5` became the summarizer default on 2026-07-24, sized for
 multi-hour lectures. The reasoning is documented and defensible (long-context
@@ -40,8 +40,38 @@ what the tool currently runs. Probably an improvement; unverified either way.
 Any re-test of the sanity pass should re-baseline rather than compare against
 that number.
 
-**Not started without an explicit ask.** Filed here rather than left implicit,
-so the untested basis does not quietly become settled fact.
+**Harness built 2026-07-24; the run itself is still pending.**
+`tmp_compare_models.py` (`tmp_`-prefixed and gitignored, same convention as the
+Zoom probes) sends one transcript and preset through two or more models and
+reports wall-clock time, exact input/output tokens and cost from the API's own
+usage block, and `stop_reason`. Both summaries are written side by side for the
+human read.
+
+It has to run on Jason's machine. The Cowork session that wrote it has no route
+to `api.anthropic.com`, no `ANTHROPIC_API_KEY`, and no connected folder for the
+output archive — all three verified, not assumed. Command:
+
+```bash
+export ANTHROPIC_API_KEY=$(grep -m1 '^ANTHROPIC_API_KEY=' ~/.Renviron \
+    | cut -d= -f2- | tr -d '\r')
+.venv/bin/python3 tmp_compare_models.py \
+    ~/PROJECTS/audio-transcription-output/2026-07-13_esiil-course_audio.json \
+    --type lecture
+```
+
+**Read `stop_reason` first.** `max_tokens` means the summary was cut off, not
+that the model had less to say — the exact failure the 2026-07-24 ceiling change
+addressed, and the first empirical check on whether 8192 is enough for a 2h09m
+session. Judge quality only after both summaries finish cleanly; a truncated
+summary is unfinished, not worse.
+
+**Also waiting on this run:** the cost figures added to
+`docs/pipeline-reference.md` on 2026-07-24 (~$0.10 for a 1-hour summary, ~$0.75
+for a 3-hour `--merge`) are token arithmetic, not measurements. The harness
+reports real usage — correct those figures once it has run.
+
+Filed rather than left implicit, so the untested basis does not quietly become
+settled fact. Scoring the summaries for quality remains an explicit ask.
 
 **Flagged:** 2026-07-24
 
