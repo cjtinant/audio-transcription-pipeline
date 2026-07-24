@@ -9,6 +9,158 @@ Move items to a commit and add to Resolved/History when resolved.
 
 ## Parked:
 
+### Replication run — MEFA manuscript discussion (pre-registered 2026-07-24)
+
+**Status:** RESOLVED 2026-07-24 — run completed, scored against the
+pre-registered predictions below. Result: **the case for `claude-opus-5` is
+weaker than the ESIIL run suggested, and the default should be treated as
+open rather than settled.** See "Scored results" at the end of this entry.
+
+Second comparison on deliberately fresh material, following the same instinct
+as 2026-07-12's choice of `mentor-meet` over the picked-apart `tho-meet`. The
+ESIIL transcript has now been examined repeatedly and is no longer a fair test
+of anything.
+
+Subject: `2026-07-24_MEFA_manuscript-discussion.json` — 51m27s, 587 segments,
+**5 speakers in balanced proportion** (224/148/106/95/14 segments), ~23,700
+estimated input tokens, `research` preset. A different shape from ESIIL in
+every respect that matters: shorter, no dominant speaker, discussion rather
+than instruction.
+
+**Predictions recorded in advance, so the read cannot be retrofitted:**
+
+1. **Mistranscription correction (finding 1) replicates** if Opus 5 flags or
+   corrects a garbled term that Sonnet 5 passes through as fact. Refuted if
+   neither does, or if Sonnet 5 catches one Opus 5 misses.
+2. **Detail depth (finding 3) replicates** if Opus 5 supplies mechanism where
+   Sonnet 5 supplies labels. Refuted if the extra length is padding — more
+   words, same information.
+3. **Participant coverage favours neither model.** This is the ESIIL result and
+   the prediction here. A clean win on *both* name-count and mention-weighted
+   coverage would be new information; a split repeats what is already known and
+   should not be read as a win for either side.
+4. **Cost ratio holds at roughly 3x** with near-identical cost per output word.
+
+**Bonus observation this run enables, not planned for:** with 5 balanced
+speakers and no speaker-name injection (see the cache→summary parked item),
+both summaries must refer to `SPEAKER_XX` unless a model infers names from
+vocatives in the content. WATERSHED 2026-07-14 recorded exactly that happening
+spontaneously on the ESIIL lecture. A 5-way discussion where participants
+address each other by name is a far better test of it — this run is incidental
+evidence for the parked Tier 4 LLM-inference item, at no extra cost.
+
+**Privacy note:** unpublished manuscript content with four named collaborators
+is a different sensitivity class from a public course recording. The README's
+own `--engine ollama` guidance applies; proceeding with Anthropic was a
+deliberate choice, not an oversight.
+
+---
+
+#### Scored results (2026-07-24)
+
+Measured: Sonnet 5 — 20.9s, 1,644 out, 669 words, $0.0633. Opus 5 — 50.0s,
+3,511 out, 1,481 words, $0.2049. Neither truncated at the 16000 ceiling.
+
+**Prediction 1 (mistranscription correction) — REFUTED.** The transcript
+renders the acronym **ERIN** three ways: `Aaron` (4), `ARIN` (3), `Erin` (4).
+Neither model produced the correct form. Opus 5 normalized everything to
+`ARIN`; Sonnet 5 used `"Aaron"/ARIN` and later, unhedged, "the Aaron network's
+model." Consolidating onto a wrong variant is not correction. If anything
+Sonnet 5's hedged form preserves more signal — for a pipeline built to catch
+transcription errors, flagged ambiguity beats confident normalization to the
+wrong answer.
+
+This also puts the ESIIL GEDI/"JEDI" finding in doubt. It was scored the same
+way — assuming the plausible-looking spelling was correct — and has not been
+confirmed against the recording. **Finding 1 should be treated as unproven on
+both runs, not replicated.**
+
+**Prediction 2 (detail depth) — CONFIRMED.** Verifiable from the two documents
+alone, needing no external fact. Opus 5 preserves the disagreement that is the
+actual content of a manuscript-planning meeting: SPEAKER_03 admitting he could
+not define macrosystems after four years in MIFA; SPEAKER_01's "I don't even
+understand where I'm supposed to click"; the explicit warning the paper must
+not read as "a plea for help" or "a jobs program for PUI professors." It also
+captured a conflict of interest Sonnet 5 dropped entirely. Sonnet 5 has the
+topics without the tension.
+
+**Prediction 3 (coverage favours neither) — HELD, but only after fixing a bug
+in the checker.** As first reported: Sonnet 12/20 (53%), Opus 14/20 (61%) — a
+clean sweep for Opus, which by pre-registration would have been new
+information. Substring matching was inflating both: `ESOL` matched inside
+"unresolved", `Tim` inside "sometimes" and "verbatim", `ARIN` inside
+"appearing". Corrected to word-boundary matching: **Sonnet 9/20 (41%), Opus
+10/20 (42%)** — a tie, and both under half.
+
+**Prediction 4 (cost ratio ~3x, cost per word near-identical) — HALF
+REFUTED.** Ratio held (3.24x). Cost per word did not: Opus 5 is **46% more per
+word here**, against 4% on ESIIL. Input is identical for both models but priced
+2.5x apart, so on a shorter transcript the fixed input premium dominates. The
+ESIIL near-parity was a property of that recording's input/output ratio, not of
+the models.
+
+**Unpredicted finding — the strongest one.** `Jason` (11 mentions, the
+most-named person in the transcript) appears in neither summary, along with
+LaRue, Erin, Liz, Laurie and Nobel. But Opus 5 plainly *captured* Jason's
+contributions — GitHub repos, logging AI session notes, running diarization on
+the recording — and filed them under `SPEAKER_04`. Nothing in the pipeline ever
+tells the model who SPEAKER_04 is. **In a multi-party discussion the summary is
+structurally incapable of attributing anything to a real person.** This is
+direct evidence for the parked "Summarizer ignores saved speaker names" item,
+which now looks more valuable than any model choice.
+
+**Tier 4 inference hypothesis — did NOT replicate.** On ESIIL (2026-07-14) the
+summary spontaneously attributed participants by name. Here neither model
+inferred a single one: Sonnet 5 avoided attribution entirely ("one
+participant"), Opus 5 used labels throughout. Plausible reason: instructors
+address people directly ("Caitlin, share your screen") while peers discuss each
+other in the third person. Useful negative evidence — name inference appears to
+depend on meeting format, not model capability.
+
+**Open:** the transcript says `MIFA` (6); the filename says MEFA. Both models
+followed the transcript. Unlike ERIN there was no variant spelling in the text
+to cue them. Unresolved which is correct.
+
+#### Revised standing of the model decision
+
+Of the three findings that justified `claude-opus-5`, only **finding 3 (detail
+depth)** survives both runs. Finding 1 is unproven on both. Coverage is a tie.
+Opus 5 costs 3.2x more, and per word the premium is unstable.
+
+That is a materially weaker case than the ESIIL entry records. The default is
+not changed here — finding 3 is real, and matters most for exactly the
+completeness-oriented presets this pipeline uses — but it now rests on one
+axis, and that axis is the one most confounded with output length. **Treat the
+default as open, not settled.** A fair next test would control for length
+(cap Opus 5 near Sonnet 5's word count) to separate depth from volume.
+
+#### Method note: a pattern in how this was scored
+
+Three separate over-readings occurred across these two comparisons, **all
+favouring Opus 5**:
+
+1. Inferred "Caitlin" was fabricated from Jason confirming Dr. Ramadan was
+   real — treating confirmation of one name as evidence against another.
+2. Reported Opus 5 ahead on participant coverage from presence/absence marks
+   against a *synthetic* ranking; real data reversed it.
+3. Scored `ARIN` as a correct catch because it looked like an acronym; the
+   real form is ERIN and neither model found it.
+
+Each was corrected only because Jason supplied a fact from outside the
+evidence. The direction is the tell: three errors, one direction, is not noise.
+A conclusion was formed early and evidence was fitted to it afterwards.
+
+Two safeguards followed from this and are worth keeping: **pre-registering
+predictions before a run**, which is the only reason prediction 4's refutation
+was recorded rather than reinterpreted; and **reading the coverage table for
+variant spellings** — `Aaron`/`ARIN`/`Erin` as adjacent rows with similar
+counts was the mistranscription signal, sitting in the output, misread as three
+separate entities.
+
+**Flagged:** 2026-07-24
+
+---
+
 ### Follow-ups from the 2026-07-24 model comparison
 
 **Status:** parked — three questions the A/B test surfaced but did not answer
@@ -1036,13 +1188,15 @@ that matters here. The real question is not "is Opus smarter" but "do you want
 
 **Quality scoring — three findings that are capability, not length:**
 
-1. **Opus 5 corrected a mistranscription; Sonnet 5 propagated it.** Opus wrote
-   "GEDI (referenced as 'JEDI')" — recognizing the error while preserving what
-   was said — and similarly flagged ESIIL/"ESOL" variance. Sonnet passed "JEDI"
-   through as fact. This is `sanity_check_transcript.py`'s job happening for
-   free inside the summary, on the exact error class WATERSHED already
-   documented for this recording (2026-07-14: both Zoom and the pipeline
-   mangled "ESIIL" as easel/ESO/ESL/ESOL).
+1. ~~**Opus 5 corrected a mistranscription; Sonnet 5 propagated it.**~~
+   **DOWNGRADED to unproven, 2026-07-24** — see the MEFA entry under Parked.
+   Opus wrote "GEDI (referenced as 'JEDI')" and flagged ESIIL/"ESOL" variance
+   where Sonnet passed "JEDI" through. This was scored by assuming the
+   plausible-looking spelling was the correct one. The MEFA run showed that
+   assumption failing: Opus normalized `Aaron`/`ARIN`/`Erin` confidently onto
+   `ARIN`, when the real acronym is **ERIN** and neither model found it.
+   Whether GEDI is genuinely right here has never been checked against the
+   recording. Do not cite this as an established Opus 5 advantage until it is.
 2. **Both models omitted a real named participant — and Opus 5 omitted the more
    prominent one.** Corrected finding; see the erratum below. Transcript
    mention counts: **Caitlin 86, Ramadan 17.** Opus captured Ramadan and
@@ -1073,13 +1227,18 @@ once measured properly, and on a mention-weighted view actively favours Sonnet
 `grant_planning`) and does not transfer to `standup`/`general` — parked
 separately above rather than generalized.
 
-**Honest summary of the margin:** Opus 5 costs 3.2x more, catches
-mistranscriptions Sonnet 5 propagates as fact, explains failure modes rather
-than syntax, and drops one heavily-discussed participant. Sonnet 5 is a third
-the price, more scannable, better on weighted participant coverage, and passed
-a mistranscribed term through as fact. Neither is reliable on named-participant
-coverage, which is why the coverage check now runs as part of the harness
-rather than being left to a human read.
+**Honest summary of the margin:** Opus 5 costs 3.2x more, explains failure
+modes rather than syntax, and drops one heavily-discussed participant. Sonnet 5
+is a third the price, more scannable, and better on weighted participant
+coverage. Neither is reliable on named-participant coverage, which is why the
+coverage check now runs as part of the harness rather than being left to a
+human read.
+
+**Superseded in part (2026-07-24, MEFA run):** the mistranscription-correction
+advantage claimed above did not replicate and is now recorded as unproven on
+both runs. Only the detail-depth finding survives both. Read this entry
+together with the MEFA entry under Parked, which revises the standing of the
+default downward.
 
 The margin is thinner than the headline suggests. Sonnet 5 costs a third as
 much and is the better artifact if you want something scannable; Opus 5 earns
