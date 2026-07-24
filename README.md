@@ -70,7 +70,7 @@ Step 2 — Summarize
        │
        │  reads transcript, sends to LLM, returns structured summary
        ▼
-  ~/PROJECTS/audio-transcription-output/meeting_clean_summary_20260502.txt
+  ~/PROJECTS/audio-transcription-output/meeting_clean_summary_20260502_141530.txt
 ```
 
 All output lands in one flat, private, local-git-backed folder outside this repo
@@ -225,10 +225,14 @@ problems without an internet connection. Recordings here live in `~/Zoom/`
 instead, moved there for that reason. Copy the path in Finder (right-click the
 file → Copy "audio.m4a" as Pathname), then rename the folder and file to the
 convention above before transcribing. Zoom folder names always contain spaces —
-always wrap the path in quotes:
+always wrap the path in quotes. Keep `~` outside the quotes (or use `$HOME`):
+a tilde inside double quotes is not expanded, and the path fails as written.
 
 ```bash
-transcribe "~/Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
+transcribe ~/"Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
+
+# Equivalent, and clearer if the whole path is pasted from Finder:
+transcribe "$HOME/Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
 ```
 
 Output saved to:
@@ -446,14 +450,10 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default (the
 
 - [docs/installation.md](docs/installation.md) — Security, platform setup,
   HuggingFace tokens, testing your install, troubleshooting
-- [docs/reference.md](docs/reference.md) — Python API reference, meeting type
-  presets, LLM backend options
+- [docs/pipeline-reference.md](docs/pipeline-reference.md) — Python API
+  reference, meeting type presets, LLM backend options
 - [docs/noise-reduction.md](docs/noise-reduction.md) — Pre-processing options
   for poor-quality audio
-- [docs/makefiles-and-symlinks-explained.md](docs/makefiles-and-symlinks-explained.md)
-  — Plain-language primer on the `Makefile`/symlink install mechanism
-- [docs/cowork-folder-access.md](docs/cowork-folder-access.md) — Connecting a
-  local folder in Cowork
 
 ---
 
@@ -464,9 +464,7 @@ audio-transcription-pipeline/
 ├── docs/
 │   ├── installation.md               # Setup instructions for all platforms
 │   ├── noise-reduction.md            # Pre-processing options for poor audio
-│   ├── reference.md                  # Python API reference and LLM options
-│   ├── cowork-folder-access.md       # Connecting a local folder in Cowork
-│   ├── makefiles-and-symlinks-explained.md  # Makefile/symlink primer
+│   ├── pipeline-reference.md         # Python API reference and LLM options
 │   └── YYYY-MM-DD_session-notes.md   # Dated log per working session
 ├── tests/                       # Unit tests — python3 -m unittest discover tests
 ├── .gitignore                   # Excludes credentials and audio files
@@ -484,8 +482,9 @@ audio-transcription-pipeline/
 └── WATERSHED.md                 # Parked decisions, resolved history, open questions
 ```
 
-`00_admin/`, `scratch.md`, and personal draft files are intentionally excluded
-here — they're gitignored and stay local, not part of the tracked structure.
+`00_admin/`, `docs/references/`, `scratch.md`, and personal draft files are
+intentionally excluded here — they're gitignored and stay local, not part of
+the tracked structure.
 
 There is no `output/` folder in this repo. All transcription output lives in a
 separate, private, local-git folder — see
