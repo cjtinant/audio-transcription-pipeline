@@ -440,12 +440,17 @@ multi-party discussion that makes the summary unable to attribute anything to
 a real person — measured on a 5-speaker meeting where the most-mentioned
 participant appeared in no summary at all.
 
-Four ways to fix that, most reliable first:
+Four ways to fix that, most reliable first. All of them feed the same place —
+a `.speaker-cache.json` next to your transcript — so once names are in, the
+summarizer picks them up with no flags at all.
+
+**1. Zoom cloud recording? Let Zoom's own attribution do the work.**
+
+Zoom names speakers from per-account audio streams, which is more reliable
+than voice clustering. `map_speakers.py` aligns the two transcripts word by
+word and transfers those names across:
 
 ```bash
-# 0. Zoom cloud recording? Let Zoom's own speaker attribution do the work.
-#    Aligns the two transcripts word by word, transfers names, and writes
-#    only the confident ones into the cache.
 python3 map_speakers.py meeting.transcript.vtt meeting.json --write-cache
 ```
 
@@ -454,27 +459,38 @@ Run without `--write-cache` first to inspect. Labels below an 80% vote share
 are reported but never written — a split vote means diarization merged two
 people into one label, and naming it would pick one of them at random.
 
+**2. Label them yourself, once.** Identify each speaker in the review tool
+(`--clip` plays a few seconds of any timestamp), save the mapping, and every
+future summary of that subject picks it up automatically:
 
 ```bash
-# 1. Cached names (best) — label speakers once in the review tool, and every
-#    future summary of that subject picks them up automatically
-python3 review_transcript.py meeting.json --save-speakers "SPEAKER_00=Jason,SPEAKER_02=Liz"
-.venv/bin/python3 summarize_transcript.py meeting.json --type research
+python3 review_transcript.py meeting.json \
+  --save-speakers "SPEAKER_00=Jason,SPEAKER_02=Liz"
 
-# 2. Names for this run only, no cache involved
+.venv/bin/python3 summarize_transcript.py meeting.json --type research
+```
+
+**3. Names for this run only**, without touching the cache:
+
+```bash
 .venv/bin/python3 summarize_transcript.py meeting.json \
   --speakers "SPEAKER_00=Jason,SPEAKER_02=Liz"
+```
 
-# 3. Roster — you know who attended but not which label is whom.
-#    The model may use only these names, and marks each one "(inferred)".
+**4. Roster** — you know who attended but not which label is whom. The model
+may attribute speakers using only these names, and marks each one
+`(inferred)`:
+
+```bash
 .venv/bin/python3 summarize_transcript.py meeting.json \
   --roster "Jason,Liz,Barry,Tim"
 ```
 
-Cached names are exact — a label either has a saved name or keeps
-`SPEAKER_XX`. Nothing is guessed. The roster option does involve the model
-guessing, but from a closed list, so it can misassign a real name and never
-invent one.
+Options 1–3 are exact: a label either has a name or keeps `SPEAKER_XX`, and
+nothing is guessed. Option 4 does involve the model guessing, but from a
+closed list, so it can misassign a real name and never invent one. The three
+compose — supply the labels you know with `--speakers` and let `--roster`
+handle the rest.
 
 `--infer-speakers` lets the model name speakers with no roster at all. It is
 off by default and the least reliable option, because it can produce a name
@@ -485,6 +501,9 @@ by name, and produced nothing on a peer discussion where people spoke about
 each other in the third person.
 
 Use `--no-speaker-names` to ignore the cache and summarize with raw labels.
+
+The cache lives next to the transcript, so moving a transcript leaves its
+names behind — re-save or re-run `map_speakers.py` if you reorganize.
 
 ### Long recordings (multi-hour lectures and course sessions)
 

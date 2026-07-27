@@ -163,6 +163,72 @@ separate entities.
 
 ---
 
+### Summarizer has no vocabulary hinting; `known-terms.txt` never reaches it
+
+**Status:** parked — decision, surfaced 2026-07-24 while writing session notes
+
+The MEFA recording renders **MEFA** as "MIFA" throughout, and the summary
+propagates it. Adding MEFA to `known-terms.txt` does not help: that file is
+read only by `sanity_check_transcript.py`. `summarize_transcript.py` has no
+vocabulary hinting of any kind, so a term mangled consistently across a whole
+recording — with no correctly-spelled variant anywhere to cue the model — has
+nothing to correct it. Contrast ERIN, which appeared as Aaron/ARIN/Erin: even
+there both models picked a wrong variant rather than the right one.
+
+Three options, none chosen:
+
+1. Give the summarizer a `--known-terms` equivalent, appended to the prompt
+   the way `--roster` now is. Cheap, and symmetric with machinery that exists.
+2. Make the sanity pass a routine pre-step rather than an optional tool, so
+   mangled terms surface before summarizing.
+3. Accept that spelling correction is the human's job at review time, and say
+   so in the docs.
+
+Option 1 is tempting precisely because the machinery now exists — which is a
+reason to be careful, since it treats a transcription problem at the
+summarization stage. Worth a decision rather than drifting into whichever is
+easiest.
+
+**Flagged:** 2026-07-24
+
+---
+
+### `stop_reason` is invisible in normal pipeline use
+
+**Status:** parked — small, real, not urgent
+
+`tmp_compare_models.py` reports `stop_reason`, the only reliable signal that a
+summary was truncated rather than merely brief. `summarize_transcript.py`
+discards it. After the 2026-07-24 ceiling raise truncation is much less
+likely — but if it happens it is still silent, and a truncated summary reads
+exactly like a complete one.
+
+Cheapest fix: warn when `stop_reason == "max_tokens"`. A one-line print in
+`extract_text`'s caller, not a feature.
+
+**Flagged:** 2026-07-24
+
+---
+
+### Speaker cache is input-relative, so moving a transcript orphans its names
+
+**Status:** parked — known limitation, no action needed yet
+
+`.speaker-cache.json` lives beside the transcript it describes
+(`review_transcript.py`'s existing convention, which `map_speakers.py` and
+`summarize_transcript.py` now both follow). Keeping names with their
+transcript is the right default and needs no configuration. The cost: moving
+or copying a transcript elsewhere leaves the names behind, silently — the
+summary just reverts to `SPEAKER_XX` with no error.
+
+Not a problem while the archive stays flat and permanent, which is the
+documented design. Noted so it is not a surprise if that ever changes.
+Documented in README's speaker-names section.
+
+**Flagged:** 2026-07-24
+
+---
+
 ### Follow-ups from the 2026-07-24 model comparison
 
 **Status:** parked — three questions the A/B test surfaced but did not answer
@@ -1549,3 +1615,36 @@ the human's job at review time. Worth a decision rather than a silent gap.
 **Recommended follow-through:** the two inferred names are now video-confirmed,
 so writing all five into `.speaker-cache.json` via `--save-speakers` makes them
 exact and removes the `(inferred)` hedge on future runs of this subject.
+
+**2026-07-24 — Latent API-response bug fixed: `content[0]["text"]` →
+`extract_text()`.** Found by running the pipeline, not by reviewing it — the
+file had been read twice the same day without the problem being noticed.
+
+`response.json()["content"][0]["text"]` assumed the first content block is
+text. It is a *list of blocks*, and models with adaptive thinking may emit a
+`thinking` block ahead of the answer, producing `KeyError: 'text'`. Because
+thinking engages adaptively rather than always, this failed intermittently:
+the same request could succeed twice and crash on the third run, which is why
+neither the ESIIL nor the first MEFA run hit it.
+
+`extract_text()` collects every text block in order, falls back to any block
+carrying a text field before giving up, and on genuine absence raises with the
+block types and `stop_reason` included — plus a specific message for the case
+where reasoning consumed the whole token budget before any answer was written,
+since that one's fix is a larger `--max-tokens` rather than a retry. Applied
+at both Anthropic call sites (`summarize_anthropic`, `merge_summaries`) and in
+the comparison harness. Seven regression tests.
+
+**Worth keeping as a lesson:** this is the second bug this session that only
+appears when a *response* varies rather than when input varies (the first was
+adaptive thinking's effect on token budget). Static review does not surface
+either. The `--merge` path would have hit this one too, at twice the cost.
+
+**2026-07-24 — Session notes written:** `docs/2026-07-24_session-notes.md`.
+Writing them surfaced three gaps that were fixed or parked in the process:
+README's speaker-name section had inherited a broken 0/1/2/3 numbering when
+VTT alignment was inserted ahead of the existing three options; the
+`known-terms.txt`-never-reaches-the-summarizer gap and the input-relative
+cache limitation had both been mentioned in conversation but never recorded.
+All three are now in this file or the README. The write-up step earned its
+keep.
