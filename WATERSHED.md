@@ -9,25 +9,89 @@ Move items to a commit and add to Resolved/History when resolved.
 
 ## Parked:
 
+### Pipeline's Ollama default now points to a deleted model
+
+**Status:** parked — needs a decision
+
+The 2026-07-27 Ollama stack refresh (see session notes) removed all three
+`llama3.1:8b` variants, including `llama3.1:8b-instruct-q6_k` — the exact model
+`summarize_transcript.py`'s `DEFAULT_OLLAMA_MODEL` (line 64) hardcodes, and the
+one `sanity_check_transcript.py`'s docstring references. Running either script
+with `--engine ollama` and no explicit `--model` override will now fail outright
+(model not found), not silently misbehave — but it is a real break, not just
+documentation drift.
+
+New local stack: `qwen3.6:35b`, `nemotron3:33b`, `granite4.1:30b` — all
+30B+-class, comfortable on the confirmed 64GB M1 Max. None chosen as the
+pipeline default yet.
+
+**Decision needed:** which becomes the new `DEFAULT_OLLAMA_MODEL`, following
+this repo's own established practice of measuring rather than assuming — the
+2026-07-14 Ollama research note's own suggested next step was rerunning
+`sanity_check_transcript.py` against a real candidate before adopting it, same
+standard as the Sonnet-vs-Opus comparisons elsewhere in this file, not a
+benchmark-blog number. Until decided, `--model` must be passed explicitly for
+the Ollama engine to work at all.
+
+**Also carried over from the 2026-07-14 research note, not yet done:** run
+`ollama show <model>` on each of the three new models to confirm local weights,
+not a cloud-routed manifest, before routing sensitive material through any of
+them — the exact check that protects the sensitive-data lane this refresh exists
+for.
+
+`docs/pipeline-reference.md`'s Ollama section (install command, pull examples,
+`--model` override examples) still references the deleted `llama3.1` variants
+too — same class of stale-reference drift as 2026-07-24's README fixes. Not
+touched yet; out of scope for what prompted this entry.
+
+**Flagged:** 2026-07-27
+
+---
+
+### Ollama upgrade left an orphaned server process — version mismatch gotcha
+
+**Status:** parked — known gotcha, documented for next time
+
+`pkill -x Ollama` only matches the exact process name `Ollama` (capital O, the
+menu-bar app from the `.pkg` install). The actual background server is a
+separate, lowercase-named process (`ollama serve`), which exact-match `pkill`
+never touched. After removing the `.pkg` install's binary and app bundle and
+reinstalling via Homebrew, that orphaned process kept running in memory — bound
+to port 11434, serving the old version — because deleting a binary's file does
+not stop a process already using it. `ollama -v` surfaced this as a version
+mismatch: new CLI talking to an old server.
+
+**Fix:** `ps aux | grep -i "ollama serve"` and/or `lsof -i :11434` to find the
+stale PID, `kill <PID>` (or `kill -9` if it won't die), then
+`brew services restart ollama` to let the new binary take the port cleanly.
+
+Worth remembering for the next Ollama upgrade, `.pkg`-to-Homebrew migration, or
+any future install-method switch — this will recur in the same shape whenever an
+old server process outlives its own binary file.
+
+**Flagged:** 2026-07-27
+
+---
+
 ### Speaker-name injection — five approaches, feasibility ranking, build log
 
-**Status:** in progress 
+**Status:** in progress
 
 **Status:** RESOLVED 2026-07-24 — run completed, scored against the
 pre-registered predictions below. Result: **the case for `claude-opus-5` is
-weaker than the ESIIL run suggested, and the default should be treated as
-open rather than settled.** See "Scored results" at the end of this entry.
+weaker than the ESIIL run suggested, and the default should be treated as open
+rather than settled.** See "Scored results" at the end of this entry.
 
-Second comparison on deliberately fresh material, following the same instinct
-as 2026-07-12's choice of `mentor-meet` over the picked-apart `tho-meet`. The
-ESIIL transcript has now been examined repeatedly and is no longer a fair test
-of anything.
+Second comparison on deliberately fresh material, following the same instinct as
+2026-07-12's choice of `mentor-meet` over the picked-apart `tho-meet`. The ESIIL
+transcript has now been examined repeatedly and is no longer a fair test of
+anything.
 
 Subject: `2026-07-24_MEFA_manuscript-discussion.json` — 51m27s, 587 segments,
 **5 speakers in balanced proportion** (224/148/106/95/14 segments), ~23,700
-estimated input tokens, `research` preset. A different shape from ESIIL in
-every respect that matters: shorter, no dominant speaker, discussion rather
-than instruction.
+estimated input tokens, `research` preset. A different shape from ESIIL in every
+respect that matters: shorter, no dominant speaker, discussion rather than
+instruction.
 
 **Predictions recorded in advance, so the read cannot be retrofitted:**
 
@@ -38,15 +102,15 @@ than instruction.
    Sonnet 5 supplies labels. Refuted if the extra length is padding — more
    words, same information.
 3. **Participant coverage favours neither model.** This is the ESIIL result and
-   the prediction here. A clean win on *both* name-count and mention-weighted
+   the prediction here. A clean win on _both_ name-count and mention-weighted
    coverage would be new information; a split repeats what is already known and
    should not be read as a win for either side.
 4. **Cost ratio holds at roughly 3x** with near-identical cost per output word.
 
 **Bonus observation this run enables, not planned for:** with 5 balanced
-speakers and no speaker-name injection (see the cache→summary parked item),
-both summaries must refer to `SPEAKER_XX` unless a model infers names from
-vocatives in the content. WATERSHED 2026-07-14 recorded exactly that happening
+speakers and no speaker-name injection (see the cache→summary parked item), both
+summaries must refer to `SPEAKER_XX` unless a model infers names from vocatives
+in the content. WATERSHED 2026-07-14 recorded exactly that happening
 spontaneously on the ESIIL lecture. A 5-way discussion where participants
 address each other by name is a far better test of it — this run is incidental
 evidence for the parked Tier 4 LLM-inference item, at no extra cost.
@@ -60,17 +124,16 @@ deliberate choice, not an oversight.
 
 #### Scored results (2026-07-24)
 
-Measured: Sonnet 5 — 20.9s, 1,644 out, 669 words, $0.0633. Opus 5 — 50.0s,
-3,511 out, 1,481 words, $0.2049. Neither truncated at the 16000 ceiling.
+Measured: Sonnet 5 — 20.9s, 1,644 out, 669 words, $0.0633. Opus 5 — 50.0s, 3,511
+out, 1,481 words, $0.2049. Neither truncated at the 16000 ceiling.
 
-**Prediction 1 (mistranscription correction) — REFUTED.** The transcript
-renders the acronym **ERIN** three ways: `Aaron` (4), `ARIN` (3), `Erin` (4).
-Neither model produced the correct form. Opus 5 normalized everything to
-`ARIN`; Sonnet 5 used `"Aaron"/ARIN` and later, unhedged, "the Aaron network's
-model." Consolidating onto a wrong variant is not correction. If anything
-Sonnet 5's hedged form preserves more signal — for a pipeline built to catch
-transcription errors, flagged ambiguity beats confident normalization to the
-wrong answer.
+**Prediction 1 (mistranscription correction) — REFUTED.** The transcript renders
+the acronym **ERIN** three ways: `Aaron` (4), `ARIN` (3), `Erin` (4). Neither
+model produced the correct form. Opus 5 normalized everything to `ARIN`; Sonnet
+5 used `"Aaron"/ARIN` and later, unhedged, "the Aaron network's model."
+Consolidating onto a wrong variant is not correction. If anything Sonnet 5's
+hedged form preserves more signal — for a pipeline built to catch transcription
+errors, flagged ambiguity beats confident normalization to the wrong answer.
 
 This also puts the ESIIL GEDI/"JEDI" finding in doubt. It was scored the same
 way — assuming the plausible-looking spelling was correct — and has not been
@@ -81,29 +144,29 @@ both runs, not replicated.**
 alone, needing no external fact. Opus 5 preserves the disagreement that is the
 actual content of a manuscript-planning meeting: SPEAKER_03 admitting he could
 not define macrosystems after four years in MIFA; SPEAKER_01's "I don't even
-understand where I'm supposed to click"; the explicit warning the paper must
-not read as "a plea for help" or "a jobs program for PUI professors." It also
+understand where I'm supposed to click"; the explicit warning the paper must not
+read as "a plea for help" or "a jobs program for PUI professors." It also
 captured a conflict of interest Sonnet 5 dropped entirely. Sonnet 5 has the
 topics without the tension.
 
-**Prediction 3 (coverage favours neither) — HELD, but only after fixing a bug
-in the checker.** As first reported: Sonnet 12/20 (53%), Opus 14/20 (61%) — a
-clean sweep for Opus, which by pre-registration would have been new
-information. Substring matching was inflating both: `ESOL` matched inside
-"unresolved", `Tim` inside "sometimes" and "verbatim", `ARIN` inside
-"appearing". Corrected to word-boundary matching: **Sonnet 9/20 (41%), Opus
-10/20 (42%)** — a tie, and both under half.
+**Prediction 3 (coverage favours neither) — HELD, but only after fixing a bug in
+the checker.** As first reported: Sonnet 12/20 (53%), Opus 14/20 (61%) — a clean
+sweep for Opus, which by pre-registration would have been new information.
+Substring matching was inflating both: `ESOL` matched inside "unresolved", `Tim`
+inside "sometimes" and "verbatim", `ARIN` inside "appearing". Corrected to
+word-boundary matching: **Sonnet 9/20 (41%), Opus 10/20 (42%)** — a tie, and
+both under half.
 
-**Prediction 4 (cost ratio ~3x, cost per word near-identical) — HALF
-REFUTED.** Ratio held (3.24x). Cost per word did not: Opus 5 is **46% more per
-word here**, against 4% on ESIIL. Input is identical for both models but priced
-2.5x apart, so on a shorter transcript the fixed input premium dominates. The
-ESIIL near-parity was a property of that recording's input/output ratio, not of
-the models.
+**Prediction 4 (cost ratio ~3x, cost per word near-identical) — HALF REFUTED.**
+Ratio held (3.24x). Cost per word did not: Opus 5 is **46% more per word here**,
+against 4% on ESIIL. Input is identical for both models but priced 2.5x apart,
+so on a shorter transcript the fixed input premium dominates. The ESIIL
+near-parity was a property of that recording's input/output ratio, not of the
+models.
 
 **Unpredicted finding — the strongest one.** `Jason` (11 mentions, the
 most-named person in the transcript) appears in neither summary, along with
-LaRue, Erin, Liz, Laurie and Nobel. But Opus 5 plainly *captured* Jason's
+LaRue, Erin, Liz, Laurie and Nobel. But Opus 5 plainly _captured_ Jason's
 contributions — GitHub repos, logging AI session notes, running diarization on
 the recording — and filed them under `SPEAKER_04`. Nothing in the pipeline ever
 tells the model who SPEAKER_04 is. **In a multi-party discussion the summary is
@@ -131,32 +194,32 @@ Opus 5 costs 3.2x more, and per word the premium is unstable.
 
 That is a materially weaker case than the ESIIL entry records. The default is
 not changed here — finding 3 is real, and matters most for exactly the
-completeness-oriented presets this pipeline uses — but it now rests on one
-axis, and that axis is the one most confounded with output length. **Treat the
-default as open, not settled.** A fair next test would control for length
-(cap Opus 5 near Sonnet 5's word count) to separate depth from volume.
+completeness-oriented presets this pipeline uses — but it now rests on one axis,
+and that axis is the one most confounded with output length. **Treat the default
+as open, not settled.** A fair next test would control for length (cap Opus 5
+near Sonnet 5's word count) to separate depth from volume.
 
 #### Method note: a pattern in how this was scored
 
 Three separate over-readings occurred across these two comparisons, **all
 favouring Opus 5**:
 
-1. Inferred "Caitlin" was fabricated from Jason confirming Dr. Ramadan was
-   real — treating confirmation of one name as evidence against another.
+1. Inferred "Caitlin" was fabricated from Jason confirming Dr. Ramadan was real
+   — treating confirmation of one name as evidence against another.
 2. Reported Opus 5 ahead on participant coverage from presence/absence marks
-   against a *synthetic* ranking; real data reversed it.
-3. Scored `ARIN` as a correct catch because it looked like an acronym; the
-   real form is ERIN and neither model found it.
+   against a _synthetic_ ranking; real data reversed it.
+3. Scored `ARIN` as a correct catch because it looked like an acronym; the real
+   form is ERIN and neither model found it.
 
-Each was corrected only because Jason supplied a fact from outside the
-evidence. The direction is the tell: three errors, one direction, is not noise.
-A conclusion was formed early and evidence was fitted to it afterwards.
+Each was corrected only because Jason supplied a fact from outside the evidence.
+The direction is the tell: three errors, one direction, is not noise. A
+conclusion was formed early and evidence was fitted to it afterwards.
 
 Two safeguards followed from this and are worth keeping: **pre-registering
 predictions before a run**, which is the only reason prediction 4's refutation
 was recorded rather than reinterpreted; and **reading the coverage table for
-variant spellings** — `Aaron`/`ARIN`/`Erin` as adjacent rows with similar
-counts was the mistranscription signal, sitting in the output, misread as three
+variant spellings** — `Aaron`/`ARIN`/`Erin` as adjacent rows with similar counts
+was the mistranscription signal, sitting in the output, misread as three
 separate entities.
 
 **Flagged:** 2026-07-24
@@ -168,8 +231,8 @@ separate entities.
 **Status:** parked — decision, surfaced 2026-07-24 while writing session notes
 
 The MEFA recording renders **MEFA** as "MIFA" throughout, and the summary
-propagates it. Adding MEFA to `known-terms.txt` does not help: that file is
-read only by `sanity_check_transcript.py`. `summarize_transcript.py` has no
+propagates it. Adding MEFA to `known-terms.txt` does not help: that file is read
+only by `sanity_check_transcript.py`. `summarize_transcript.py` has no
 vocabulary hinting of any kind, so a term mangled consistently across a whole
 recording — with no correctly-spelled variant anywhere to cue the model — has
 nothing to correct it. Contrast ERIN, which appeared as Aaron/ARIN/Erin: even
@@ -177,12 +240,12 @@ there both models picked a wrong variant rather than the right one.
 
 Three options, none chosen:
 
-1. Give the summarizer a `--known-terms` equivalent, appended to the prompt
-   the way `--roster` now is. Cheap, and symmetric with machinery that exists.
+1. Give the summarizer a `--known-terms` equivalent, appended to the prompt the
+   way `--roster` now is. Cheap, and symmetric with machinery that exists.
 2. Make the sanity pass a routine pre-step rather than an optional tool, so
    mangled terms surface before summarizing.
-3. Accept that spelling correction is the human's job at review time, and say
-   so in the docs.
+3. Accept that spelling correction is the human's job at review time, and say so
+   in the docs.
 
 Option 1 is tempting precisely because the machinery now exists — which is a
 reason to be careful, since it treats a transcription problem at the
@@ -199,9 +262,9 @@ easiest.
 
 `tmp_compare_models.py` reports `stop_reason`, the only reliable signal that a
 summary was truncated rather than merely brief. `summarize_transcript.py`
-discards it. After the 2026-07-24 ceiling raise truncation is much less
-likely — but if it happens it is still silent, and a truncated summary reads
-exactly like a complete one.
+discards it. After the 2026-07-24 ceiling raise truncation is much less likely —
+but if it happens it is still silent, and a truncated summary reads exactly like
+a complete one.
 
 Cheapest fix: warn when `stop_reason == "max_tokens"`. A one-line print in
 `extract_text`'s caller, not a feature.
@@ -216,10 +279,10 @@ Cheapest fix: warn when `stop_reason == "max_tokens"`. A one-line print in
 
 `.speaker-cache.json` lives beside the transcript it describes
 (`review_transcript.py`'s existing convention, which `map_speakers.py` and
-`summarize_transcript.py` now both follow). Keeping names with their
-transcript is the right default and needs no configuration. The cost: moving
-or copying a transcript elsewhere leaves the names behind, silently — the
-summary just reverts to `SPEAKER_XX` with no error.
+`summarize_transcript.py` now both follow). Keeping names with their transcript
+is the right default and needs no configuration. The cost: moving or copying a
+transcript elsewhere leaves the names behind, silently — the summary just
+reverts to `SPEAKER_XX` with no error.
 
 Not a problem while the archive stays flat and permanent, which is the
 documented design. Noted so it is not a surprise if that ever changes.
@@ -246,8 +309,8 @@ so truncation remains invisible in normal use — only the harness reports it.
 The test measured `lecture`, where Opus 5's completeness clearly wins. That
 result does not transfer to `standup` or `general`, where Sonnet 5's 758
 scannable words may beat Opus 5's 2,299 thorough ones. A per-preset default
-would capture this; a single global default cannot. Worth deciding whether
-that complexity earns its keep before building it.
+would capture this; a single global default cannot. Worth deciding whether that
+complexity earns its keep before building it.
 
 **3. ~~Named-entity coverage should be mechanical~~ — BUILT 2026-07-24.**
 Resolved the "Caitlin" question by grep: **Caitlin 86 mentions, Ramadan 17.**
@@ -258,8 +321,8 @@ third check nobody had planned.
 `tmp_compare_models.py` now extracts proper-noun candidates from the transcript
 (stdlib heuristic: capitalized tokens that do not appear lowercase more often
 than capitalized), ranks them by frequency, and reports which appear in each
-summary — plus, separately, any name **no** summary mentions, which is the
-blind spot a side-by-side read structurally cannot show.
+summary — plus, separately, any name **no** summary mentions, which is the blind
+spot a side-by-side read structurally cannot show.
 
 `--coverage-only` scores existing summary files with no API call, so summaries
 already paid for can be re-checked for free:
@@ -269,9 +332,8 @@ python3 tmp_compare_models.py transcript.json --coverage-only \
     summary_a.md summary_b.md
 ```
 
-**Run against the real transcript 2026-07-24** — results and the conclusion
-they overturned are in Resolved/History. Two fixes came out of that first real
-run:
+**Run against the real transcript 2026-07-24** — results and the conclusion they
+overturned are in Resolved/History. Two fixes came out of that first real run:
 
 - **Possessives folded into the base name.** `Caitlin's` was ranking as its own
   entity and reporting absent from summaries that discuss Caitlin at length —
@@ -284,7 +346,7 @@ run:
 **Known false-positive class, not worth fixing:** mistranscribed entities. `ESL`
 (7 mentions) reported as missing from both summaries — but `ESL` is the
 pipeline's own mangling of ESIIL, documented 2026-07-14, and both models
-correctly normalized it. The check flags summaries for *not* reproducing a
+correctly normalized it. The check flags summaries for _not_ reproducing a
 transcription error. Read `NO` rows against known-mangled terms accordingly.
 
 **Flagged:** 2026-07-24
@@ -295,9 +357,9 @@ transcription error. Read `NO` rows against known-mangled terms accordingly.
 
 **Status:** resolved 2026-07-24 — measured, no longer a reasoned guess
 
-The A/B comparison this item called for was run on 2026-07-24 against the
-ESIIL short course (2h09m). Full record — measured numbers, quality scoring,
-and the decision — is in **Resolved / History**, dated 2026-07-24.
+The A/B comparison this item called for was run on 2026-07-24 against the ESIIL
+short course (2h09m). Full record — measured numbers, quality scoring, and the
+decision — is in **Resolved / History**, dated 2026-07-24.
 
 Open follow-ups it surfaced are parked separately above.
 
@@ -378,8 +440,8 @@ neither should start without an explicit ask.
 
 **Status:** RESOLVED 2026-07-24 — promoted as a single tool, `map_speakers.py`.
 See Resolved/History. The "two more tools to maintain" cost that made this a
-decision rather than a task turned out to be avoidable: the VTT converter
-folded in as a `--convert-only` mode of the mapper.
+decision rather than a task turned out to be avoidable: the VTT converter folded
+in as a `--convert-only` mode of the mapper.
 
 Two `tmp_`-prefixed, gitignored one-offs earned their keep on first use
 (2026-07-14, esimil session — see Resolved/History): `tmp_vtt_to_json.py` (Zoom
@@ -444,8 +506,8 @@ to answer.
 
 ### Speaker-name injection — five approaches, ranked by feasibility
 
-**Status:** design map, 2026-07-24. Approaches 4, 3 and 1 built the same day;
-2 and 5 remain parked. Supersedes the "sweep into the probe-promotion session"
+**Status:** design map, 2026-07-24. Approaches 4, 3 and 1 built the same day; 2
+and 5 remain parked. Supersedes the "sweep into the probe-promotion session"
 disposition on the item below, which the MEFA evidence overtook.
 
 The 2026-07-14 taxonomy above answers **where names come from** (reference
@@ -457,10 +519,10 @@ name.
 **Why this jumped the queue:** the MEFA run (2026-07-24) showed `Jason` — 11
 mentions, the most-named person in the transcript — absent from both summaries,
 while Opus 5 plainly captured his contributions and filed them under
-`SPEAKER_04`. Nothing in the pipeline ever resolves that label. In a
-multi-party discussion the summary is structurally incapable of attributing
-anything to a real person, **regardless of model**. That is a larger defect
-than any model-choice question this repo has spent two comparison runs on.
+`SPEAKER_04`. Nothing in the pipeline ever resolves that label. In a multi-party
+discussion the summary is structurally incapable of attributing anything to a
+real person, **regardless of model**. That is a larger defect than any
+model-choice question this repo has spent two comparison runs on.
 
 **The five approaches, unsupervised → supervised:**
 
@@ -474,8 +536,8 @@ than any model-choice question this repo has spent two comparison runs on.
    `.transcript.vtt`, majority-vote account names onto `SPEAKER_XX`, vote share
    self-flags merged clusters. Supervision is free — Zoom's per-account streams
    did the labeling. Limited to platforms that emit named transcripts.
-3. **Roster seeding with closed-vocabulary inference** (semi-supervised).
-   Supply the attendee list from a calendar invite; the LLM does approach 1 but
+3. **Roster seeding with closed-vocabulary inference** (semi-supervised). Supply
+   the attendee list from a calendar invite; the LLM does approach 1 but
    constrained to that vocabulary. The model can no longer invent a name, only
    misassign a real one. Roster also pins speaker count and feeds `--hotwords`
    (taxonomy option 2) — three benefits from one cheap input.
@@ -492,24 +554,24 @@ than any model-choice question this repo has spent two comparison runs on.
 **Feasibility ranking** — effort against value, on this repo's actual
 recordings:
 
-| Rank | Approach | Effort | Reliability | Gated on |
-| ---- | ------------------ | ------ | ---------------- | ---------------------- |
-| 1    | 4 — cache          | ~20 LOC | exact | a one-time human label |
-| 2    | 3 — roster         | ~30 LOC | high, hedged | knowing the attendees |
-| 3    | 1 — inference      | ~15 LOC | format-dependent | nothing |
-| 4    | 2 — VTT alignment  | promote a probe | proven 99.7% | a named reference file |
-| 5    | 5 — embeddings     | large | unknown | enrollment + cold start |
+| Rank | Approach          | Effort          | Reliability      | Gated on                |
+| ---- | ----------------- | --------------- | ---------------- | ----------------------- |
+| 1    | 4 — cache         | ~20 LOC         | exact            | a one-time human label  |
+| 2    | 3 — roster        | ~30 LOC         | high, hedged     | knowing the attendees   |
+| 3    | 1 — inference     | ~15 LOC         | format-dependent | nothing                 |
+| 4    | 2 — VTT alignment | promote a probe | proven 99.7%     | a named reference file  |
+| 5    | 5 — embeddings    | large           | unknown          | enrollment + cold start |
 
 Approach 4 ranks first not because it is cleverest but because it is the only
 one that **cannot be wrong**: a name is either in the cache or it is not. It is
-also upstream of everything else — every other approach needs somewhere to put
-a confirmed name, and the cache is that place. Approaches 2 and 5 are
-deliberately deferred: 2 depends on a file type that only exists for cloud
-recordings, and 5 was already judged (2026-07-11) not worth starting until the
-simpler paths prove insufficient. Both remain parked above.
+also upstream of everything else — every other approach needs somewhere to put a
+confirmed name, and the cache is that place. Approaches 2 and 5 are deliberately
+deferred: 2 depends on a file type that only exists for cloud recordings, and 5
+was already judged (2026-07-11) not worth starting until the simpler paths prove
+insufficient. Both remain parked above.
 
-**These are fallback layers, not competitors.** Intended precedence once all
-are available: cache (4) → alignment (2) → roster (3) → inference (1) → raw
+**These are fallback layers, not competitors.** Intended precedence once all are
+available: cache (4) → alignment (2) → roster (3) → inference (1) → raw
 `SPEAKER_XX`. Each layer is more reliable than the one after it, so the first
 one that produces a name should win.
 
@@ -1328,10 +1390,10 @@ sufficient here, though Opus 5 used 73% of it. See the parked follow-up on
 headroom for 3-hour recordings.
 
 **Cost is not where the difference lives.** Per output word the two models are
-within 4% of each other ($0.000189 vs $0.000197). Opus 5 costs 3.2x more
-because it wrote 3x more, not because its tokens are more expensive in any way
-that matters here. The real question is not "is Opus smarter" but "do you want
-758 words or 2,299."
+within 4% of each other ($0.000189 vs $0.000197). Opus 5 costs 3.2x more because
+it wrote 3x more, not because its tokens are more expensive in any way that
+matters here. The real question is not "is Opus smarter" but "do you want 758
+words or 2,299."
 
 **Quality scoring — three findings that are capability, not length:**
 
@@ -1341,24 +1403,24 @@ that matters here. The real question is not "is Opus smarter" but "do you want
    where Sonnet passed "JEDI" through. This was scored by assuming the
    plausible-looking spelling was the correct one. The MEFA run showed that
    assumption failing: Opus normalized `Aaron`/`ARIN`/`Erin` confidently onto
-   `ARIN`, when the real acronym is **ERIN** and neither model found it.
-   Whether GEDI is genuinely right here has never been checked against the
-   recording. Do not cite this as an established Opus 5 advantage until it is.
+   `ARIN`, when the real acronym is **ERIN** and neither model found it. Whether
+   GEDI is genuinely right here has never been checked against the recording. Do
+   not cite this as an established Opus 5 advantage until it is.
 2. **Both models omitted a real named participant — and Opus 5 omitted the more
-   prominent one.** Corrected finding; see the erratum below. Transcript
-   mention counts: **Caitlin 86, Ramadan 17.** Opus captured Ramadan and
-   dropped Caitlin entirely; Sonnet did the reverse. Opus wrote 3x more words
-   and still omitted the most-frequently-named participant in the session,
-   which makes this a selection failure rather than a length constraint. This
-   finding does **not** favor either model; if anything it counts against Opus,
-   whose extra length is partly justified on completeness grounds.
+   prominent one.** Corrected finding; see the erratum below. Transcript mention
+   counts: **Caitlin 86, Ramadan 17.** Opus captured Ramadan and dropped Caitlin
+   entirely; Sonnet did the reverse. Opus wrote 3x more words and still omitted
+   the most-frequently-named participant in the session, which makes this a
+   selection failure rather than a length constraint. This finding does **not**
+   favor either model; if anything it counts against Opus, whose extra length is
+   partly justified on completeness grounds.
 3. **Opus 5 captured failure modes, Sonnet 5 captured syntax.** "dash +
-   **space** (missing the space was a common error)" vs "Bulleted lists
-   syntax"; "you cannot create an empty folder in GitHub, so add a `.keep`
-   placeholder" vs "creating an `img` folder with `.keep`". For the `lecture`
-   preset — which asks for study notes — the *why* is the reusable part. Opus
-   also produced a 10-row participant/problem/resolution table where Sonnet
-   produced six one-line descriptors.
+   **space** (missing the space was a common error)" vs "Bulleted lists syntax";
+   "you cannot create an empty folder in GitHub, so add a `.keep` placeholder"
+   vs "creating an `img` folder with `.keep`". For the `lecture` preset — which
+   asks for study notes — the _why_ is the reusable part. Opus also produced a
+   10-row participant/problem/resolution table where Sonnet produced six
+   one-line descriptors.
 
 **Sonnet 5's edge, honestly:** far more scannable at 100 lines vs 170. One
 defect against it — it filed the "Danger Zone" concept under a section headed
@@ -1369,46 +1431,45 @@ and rendered late timestamps as `[116:00]` where Opus used `~1:56:00`.
 first draft of this entry claimed. What survives every pass is error correction
 (finding 1) and pedagogical detail (finding 3). Participant coverage — finding
 2, initially written up as Opus 5's strongest result — favours neither model
-once measured properly, and on a mention-weighted view actively favours Sonnet
-5. The evidence is also specific to completeness-oriented presets (`lecture`,
-`grant_planning`) and does not transfer to `standup`/`general` — parked
-separately above rather than generalized.
+once measured properly, and on a mention-weighted view actively favours
+Sonnet 5. The evidence is also specific to completeness-oriented presets
+(`lecture`, `grant_planning`) and does not transfer to `standup`/`general` —
+parked separately above rather than generalized.
 
-**Honest summary of the margin:** Opus 5 costs 3.2x more, explains failure
-modes rather than syntax, and drops one heavily-discussed participant. Sonnet 5
-is a third the price, more scannable, and better on weighted participant
-coverage. Neither is reliable on named-participant coverage, which is why the
-coverage check now runs as part of the harness rather than being left to a
-human read.
+**Honest summary of the margin:** Opus 5 costs 3.2x more, explains failure modes
+rather than syntax, and drops one heavily-discussed participant. Sonnet 5 is a
+third the price, more scannable, and better on weighted participant coverage.
+Neither is reliable on named-participant coverage, which is why the coverage
+check now runs as part of the harness rather than being left to a human read.
 
 **Superseded in part (2026-07-24, MEFA run):** the mistranscription-correction
 advantage claimed above did not replicate and is now recorded as unproven on
-both runs. Only the detail-depth finding survives both. Read this entry
-together with the MEFA entry under Parked, which revises the standing of the
-default downward.
+both runs. Only the detail-depth finding survives both. Read this entry together
+with the MEFA entry under Parked, which revises the standing of the default
+downward.
 
-The margin is thinner than the headline suggests. Sonnet 5 costs a third as
-much and is the better artifact if you want something scannable; Opus 5 earns
-the default only because a mistranscription passed through as fact is the
-failure mode this pipeline exists to catch.
+The margin is thinner than the headline suggests. Sonnet 5 costs a third as much
+and is the better artifact if you want something scannable; Opus 5 earns the
+default only because a mistranscription passed through as fact is the failure
+mode this pipeline exists to catch.
 
 **Erratum (same day, before commit):** finding 2 was first recorded as "Opus
 captured a real participant Sonnet omitted," from Jason confirming Dr. Ramadan
 was real. That inferred Caitlin was fabricated — treating confirmation of one
-name as evidence against the other, which does not follow. A grep showed
-Caitlin at 86 mentions to Ramadan's 17: both real, each model missed one, and
-the more prominent omission was Opus's. Recorded rather than silently fixed,
-because the reasoning error is the more useful artifact: **a single confirmed
-data point was used to settle a question it could not settle.**
+name as evidence against the other, which does not follow. A grep showed Caitlin
+at 86 mentions to Ramadan's 17: both real, each model missed one, and the more
+prominent omission was Opus's. Recorded rather than silently fixed, because the
+reasoning error is the more useful artifact: **a single confirmed data point was
+used to settle a question it could not settle.**
 
 **Corrected as a result:** the cost figures added to `pipeline-reference.md`
 earlier the same day were token arithmetic and wrong by roughly 2x. Transcript
 text tokenizes at **~2.2 chars/token, not ~4** — the `[SPEAKER_00 @ 1234.5s]`
-prefix on every segment is dense in digits and brackets. Real rate is ~470
-input tokens per minute of audio; a 1-hour Opus summary is ~$0.24 (was
-estimated $0.10) and a 3-hour `--merge` ~$1.36 (was estimated $0.75). Lesson
-worth keeping: `chars / 4` is not a safe token estimate for this pipeline's
-transcript format.
+prefix on every segment is dense in digits and brackets. Real rate is ~470 input
+tokens per minute of audio; a 1-hour Opus summary is ~$0.24 (was estimated
+$0.10) and a 3-hour `--merge` ~$1.36 (was estimated $0.75). Lesson worth
+keeping: `chars / 4` is not a safe token estimate for this pipeline's transcript
+format.
 
 **Method note:** the harness reports mechanical facts only (time, tokens, cost,
 `stop_reason`) and writes both summaries side by side. Quality scoring was a
@@ -1417,25 +1478,25 @@ documents for itself: A-says/B-says, not right/wrong.
 
 The erratum exposed a real gap in that method. Two summaries disagreeing tells
 you where to look, but not who is right, and a human read of both will not
-surface what is absent from *both* — or reliably notice which of two omissions
+surface what is absent from _both_ — or reliably notice which of two omissions
 matters more. The grep that settled it took seconds and needed no judgment.
 **Comparison needs a third reference, and for named entities the transcript
-itself is that reference.** Built the same day into `tmp_compare_models.py`
-(see parked item 3).
+itself is that reference.** Built the same day into `tmp_compare_models.py` (see
+parked item 3).
 
 **Coverage measured against the real transcript (2026-07-24), top 25 names:**
 
-| Metric                  | Sonnet 5              | Opus 5     |
-| ----------------------- | --------------------- | ---------- |
-| Names covered           | 17/25                 | **20/25**  |
+| Metric                  | Sonnet 5                                          | Opus 5     |
+| ----------------------- | ------------------------------------------------- | ---------- |
+| Names covered           | 17/25                                             | **20/25**  |
 | Real misses, by mention | Ramadan 17, Gaurav 11, LinkedIn 5, Jim 4 = **37** | Caitlin 86 |
 
-**Participant coverage favours neither model, and which one looks better
-depends entirely on how you count.** Opus 5 covers more distinct names; Sonnet 5
-covers more than twice as much *discussed* content. Opus 5's single omission —
-Caitlin, at 86 mentions the second-most-discussed name in the session after
-Pauline — outweighs all four of Sonnet 5's misses combined, and it made that
-omission while writing 3x more words.
+**Participant coverage favours neither model, and which one looks better depends
+entirely on how you count.** Opus 5 covers more distinct names; Sonnet 5 covers
+more than twice as much _discussed_ content. Opus 5's single omission — Caitlin,
+at 86 mentions the second-most-discussed name in the session after Pauline —
+outweighs all four of Sonnet 5's misses combined, and it made that omission
+while writing 3x more words.
 
 **Rodrigo (5 mentions) appears in neither summary.** A real participant both
 models dropped and no side-by-side read would ever have surfaced. The single
@@ -1443,18 +1504,18 @@ clearest justification for building the check.
 
 **Erratum, second pass:** this entry previously read "on participant coverage
 Opus 5 does come out ahead after all," written from presence/absence marks
-against a *synthetic* ranking. The real ranking overturned it. The synthetic
-run also assumed Nate (the instructor) would rank high; he is not in the top 25
-at all — instructors are doing the talking, not being addressed by name — so
+against a _synthetic_ ranking. The real ranking overturned it. The synthetic run
+also assumed Nate (the instructor) would rank high; he is not in the top 25 at
+all — instructors are doing the talking, not being addressed by name — so
 "Sonnet omitted Nate," reported as a finding, was noise.
 
-**The meta-lesson, having now been wrong twice on this same point:**
-participant coverage kept flipping because the *metric* was doing the work, not
-the evidence. Findings 1 and 3 (mistranscription correction, pedagogical
-detail) held steady across every pass; this one moved every time it was
-measured differently. When a comparison result changes with each new way of
-looking at it, that is a signal the axis is not decisive — not an invitation to
-keep re-measuring until one side wins.
+**The meta-lesson, having now been wrong twice on this same point:** participant
+coverage kept flipping because the _metric_ was doing the work, not the
+evidence. Findings 1 and 3 (mistranscription correction, pedagogical detail)
+held steady across every pass; this one moved every time it was measured
+differently. When a comparison result changes with each new way of looking at
+it, that is a signal the axis is not decisive — not an invitation to keep
+re-measuring until one side wins.
 
 **2026-07-24 — Speaker-name injection built (approaches 4, 3 and 1):** Closes
 the "Summarizer ignores saved speaker names" item parked 2026-07-14, promoted
@@ -1472,30 +1533,30 @@ Built as three layers from the five-approach design map under Parked:
 `summarize_transcript.py` now reads the `.speaker-cache.json` that
 `review_transcript.py --save-speakers` already wrote, keyed by the subject slug
 parsed from the filename convention, and substitutes names into the formatted
-transcript before the LLM call. No inference: a label either has a saved name
-or keeps `SPEAKER_XX`. Labels present in the cache but absent from the
-transcript are ignored, and unnamed labels are reported rather than silently
-left. Missing or corrupt cache returns an empty dict instead of raising —
-failing a summarization run over a cosmetic lookup would be worse than the
-problem being solved.
+transcript before the LLM call. No inference: a label either has a saved name or
+keeps `SPEAKER_XX`. Labels present in the cache but absent from the transcript
+are ignored, and unnamed labels are reported rather than silently left. Missing
+or corrupt cache returns an empty dict instead of raising — failing a
+summarization run over a cosmetic lookup would be worse than the problem being
+solved.
 
 Precedence: explicit `--speakers` > cache > raw labels, with
 `--no-speaker-names` to opt out entirely and `--subject` to override the lookup
 key.
 
-**Approach 3 — roster seeding (`--roster "Jason,Liz,Barry"`).** Appends a
-prompt block naming the attendees and permitting attribution using only those
-names. The model can misassign a real name but cannot invent one, which is the
+**Approach 3 — roster seeding (`--roster "Jason,Liz,Barry"`).** Appends a prompt
+block naming the attendees and permitting attribution using only those names.
+The model can misassign a real name but cannot invent one, which is the
 substantive risk reduction over unconstrained inference.
 
 **Approach 1 — hedged inference (`--infer-speakers`).** Same mechanism with no
-closed vocabulary. Off by default and documented as least reliable. Both
-prompts require every attribution to be marked `(inferred)` and instruct the
-model to keep `SPEAKER_XX` when unsure — following the Tier 4 finding that a
-confidently wrong name is worse than an anonymous one, because a wrong label
-does not invite the double-check an unlabeled one does. A roster wins over bare
-inference whenever both are passed; there is no case where the unconstrained
-version is preferable.
+closed vocabulary. Off by default and documented as least reliable. Both prompts
+require every attribution to be marked `(inferred)` and instruct the model to
+keep `SPEAKER_XX` when unsure — following the Tier 4 finding that a confidently
+wrong name is worse than an anonymous one, because a wrong label does not invite
+the double-check an unlabeled one does. A roster wins over bare inference
+whenever both are passed; there is no case where the unconstrained version is
+preferable.
 
 **Refactor along the way:** `run_pipeline` and `run_pipeline_merged` carried
 identical parse blocks and now share `prepare_transcript()`. Name handling
@@ -1516,36 +1577,35 @@ every cache lookup with no visible error. That test is the guard.
 **Not built:** approach 2 (VTT alignment — `tmp_map_speakers.py` exists and is
 proven, but promoting it is a separate decision tied to the probe-promotion
 item) and approach 5 (voice embeddings — still gated on the simpler paths
-proving insufficient, per the 2026-07-11 judgment). Intended precedence once
-all five exist: cache → alignment → roster → inference → raw labels.
+proving insufficient, per the 2026-07-11 judgment). Intended precedence once all
+five exist: cache → alignment → roster → inference → raw labels.
 
 **Untested against a real recording.** Verified end-to-end against synthetic
-transcripts only, same caveat as Tier 1's speaker-slot caching and Tier 2's
-clip command carried when they were built. The obvious first real use is
-re-running the MEFA summary with `--speakers` and checking whether the
-attribution failure that motivated all of this actually disappears.
+transcripts only, same caveat as Tier 1's speaker-slot caching and Tier 2's clip
+command carried when they were built. The obvious first real use is re-running
+the MEFA summary with `--speakers` and checking whether the attribution failure
+that motivated all of this actually disappears.
 
 **2026-07-24 — Zoom-comparison probes promoted: `map_speakers.py` (approach
-2):** Closes the "Promote the Zoom-comparison probes into committed tools?"
-item parked 2026-07-14, and completes the third of five approaches in the
+2):** Closes the "Promote the Zoom-comparison probes into committed tools?" item
+parked 2026-07-14, and completes the third of five approaches in the
 speaker-name injection design map.
 
 **Both probes became one tool, not two.** The parked item priced this at "two
 more tools to maintain" — `tmp_vtt_to_json.py` plus `tmp_map_speakers.py`.
-Folding the VTT converter in as a module reduces that to one committed file
-with a `--convert-only` mode, which preserves the converter's original use
-(diffing Zoom's transcript against the pipeline's with
-`compare_transcripts.py`) at no extra maintenance cost. The stated objection
-to promotion no longer applies.
+Folding the VTT converter in as a module reduces that to one committed file with
+a `--convert-only` mode, which preserves the converter's original use (diffing
+Zoom's transcript against the pipeline's with `compare_transcripts.py`) at no
+extra maintenance cost. The stated objection to promotion no longer applies.
 
 **What changed from the probe, beyond naming and tests.** The probe printed
 every proposed mapping and left trimming to the human. The tool defaults to
 safe: a **vote share below 80% is reported but never written**. The ESIIL run
-that validated this approach put clean mappings at ~99.7% and merged clusters
-at 42%/29%, so the gap is wide and the threshold sits comfortably inside it.
-Rationale is the Tier 4 finding, applied again: a merged label must not
-silently acquire one of the names it merged, because a wrong name does not
-invite the double-check an anonymous label does. `--min-share` adjusts it.
+that validated this approach put clean mappings at ~99.7% and merged clusters at
+42%/29%, so the gap is wide and the threshold sits comfortably inside it.
+Rationale is the Tier 4 finding, applied again: a merged label must not silently
+acquire one of the names it merged, because a wrong name does not invite the
+double-check an anonymous label does. `--min-share` adjusts it.
 
 **Composition with approach 4 is the real payoff.** `--write-cache` writes
 confident mappings straight into the `.speaker-cache.json` that
@@ -1559,8 +1619,8 @@ than inferred.
 components, the UTF-8 BOM Zoom writes, cues with no speaker prefix, and a long
 sentence-colon that must not be mistaken for "Name:"), the voting logic (clean
 1:1 mapping, merged clusters self-flagging at 50%, disagreed words casting no
-vote, `UNKNOWN` reference speakers yielding nothing so a `.cc.vtt` fails
-loudly rather than silently), and threshold behaviour at the boundary.
+vote, `UNKNOWN` reference speakers yielding nothing so a `.cc.vtt` fails loudly
+rather than silently), and threshold behaviour at the boundary.
 
 **Verified end-to-end on synthetic data only** — same caveat every tool in this
 repo has carried at build time. The chain was exercised: VTT parsed, names
@@ -1575,12 +1635,12 @@ approach 3 independently reproduced a video-verified mapping.** First real-data
 use of the injection work built the same day, on the MEFA manuscript discussion
 (51m27s, 5 speakers, `research` preset).
 
-**Result: the failure that motivated the whole thread is gone.** The earlier
-run produced summaries that could not name a single participant. This one
-attributes arguments to Laurie Anderson, Claire Lunch, Barry Logan, Timothy
-McCay and Jason throughout, including who raised reciprocity, who set the "not
-a plea for help" framing constraint, and who volunteered to draft the outline.
-Every "next step" now has an owner.
+**Result: the failure that motivated the whole thread is gone.** The earlier run
+produced summaries that could not name a single participant. This one attributes
+arguments to Laurie Anderson, Claire Lunch, Barry Logan, Timothy McCay and Jason
+throughout, including who raised reciprocity, who set the "not a plea for help"
+framing constraint, and who volunteered to draft the outline. Every "next step"
+now has an owner.
 
 **Approach 3 (roster-constrained inference) got both unknowns right.** Three
 labels were supplied exactly via `--speakers`; SPEAKER_00 and SPEAKER_03 were
@@ -1605,9 +1665,9 @@ not evidence of a mistranscription** — the ERIN case (Aaron/ARIN/Erin) and the
 LaRue case look nearly identical in that table and only one is a mangling.
 
 **Still unfixed: MEFA is transcribed throughout as "MIFA", and the summary
-propagates it.** Adding MEFA to `known-terms.txt` does not help here — that
-list is only consulted by `sanity_check_transcript.py`, not by the summarizer.
-The summarizer has no vocabulary hinting of any kind. Options, none chosen: a
+propagates it.** Adding MEFA to `known-terms.txt` does not help here — that list
+is only consulted by `sanity_check_transcript.py`, not by the summarizer. The
+summarizer has no vocabulary hinting of any kind. Options, none chosen: a
 `--known-terms` equivalent for the summarizer prompt, running the sanity pass
 before summarizing as a matter of course, or accepting that fixing spelling is
 the human's job at review time. Worth a decision rather than a silent gap.
@@ -1620,31 +1680,30 @@ exact and removes the `(inferred)` hedge on future runs of this subject.
 `extract_text()`.** Found by running the pipeline, not by reviewing it — the
 file had been read twice the same day without the problem being noticed.
 
-`response.json()["content"][0]["text"]` assumed the first content block is
-text. It is a *list of blocks*, and models with adaptive thinking may emit a
+`response.json()["content"][0]["text"]` assumed the first content block is text.
+It is a _list of blocks_, and models with adaptive thinking may emit a
 `thinking` block ahead of the answer, producing `KeyError: 'text'`. Because
-thinking engages adaptively rather than always, this failed intermittently:
-the same request could succeed twice and crash on the third run, which is why
+thinking engages adaptively rather than always, this failed intermittently: the
+same request could succeed twice and crash on the third run, which is why
 neither the ESIIL nor the first MEFA run hit it.
 
 `extract_text()` collects every text block in order, falls back to any block
 carrying a text field before giving up, and on genuine absence raises with the
 block types and `stop_reason` included — plus a specific message for the case
 where reasoning consumed the whole token budget before any answer was written,
-since that one's fix is a larger `--max-tokens` rather than a retry. Applied
-at both Anthropic call sites (`summarize_anthropic`, `merge_summaries`) and in
-the comparison harness. Seven regression tests.
+since that one's fix is a larger `--max-tokens` rather than a retry. Applied at
+both Anthropic call sites (`summarize_anthropic`, `merge_summaries`) and in the
+comparison harness. Seven regression tests.
 
 **Worth keeping as a lesson:** this is the second bug this session that only
-appears when a *response* varies rather than when input varies (the first was
+appears when a _response_ varies rather than when input varies (the first was
 adaptive thinking's effect on token budget). Static review does not surface
 either. The `--merge` path would have hit this one too, at twice the cost.
 
 **2026-07-24 — Session notes written:** `docs/2026-07-24_session-notes.md`.
 Writing them surfaced three gaps that were fixed or parked in the process:
-README's speaker-name section had inherited a broken 0/1/2/3 numbering when
-VTT alignment was inserted ahead of the existing three options; the
-`known-terms.txt`-never-reaches-the-summarizer gap and the input-relative
-cache limitation had both been mentioned in conversation but never recorded.
-All three are now in this file or the README. The write-up step earned its
-keep.
+README's speaker-name section had inherited a broken 0/1/2/3 numbering when VTT
+alignment was inserted ahead of the existing three options; the
+`known-terms.txt`-never-reaches-the-summarizer gap and the input-relative cache
+limitation had both been mentioned in conversation but never recorded. All three
+are now in this file or the README. The write-up step earned its keep.
