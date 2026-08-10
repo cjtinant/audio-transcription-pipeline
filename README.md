@@ -142,9 +142,9 @@ redacted summary — that's a deliberate, manual step you do yourself: edit a co
 down to what's safe to share, then move only that copy into wherever it actually
 needs to go. The original stays in the archive.
 
-The location is a default, not a requirement — export `TRANSCRIBE_OUTPUT_DIR`
-to put the archive somewhere else (both `transcribe` and the summarizer honor
-it). See `docs/installation.md` for one-time setup of this folder.
+The location is a default, not a requirement — export `TRANSCRIBE_OUTPUT_DIR` to
+put the archive somewhere else (both `transcribe` and the summarizer honor it).
+See `docs/installation.md` for one-time setup of this folder.
 
 ---
 
@@ -201,7 +201,7 @@ If you installed the `transcribe` script, this is all you need:
 transcribe "/full/path/to/your/meeting.m4a"
 
 # Pin speaker count for better diarization (see Speaker count tuning below)
-transcribe "/full/path/to/your/meeting.m4a" --min_speakers 3 --max_speakers 3
+22 --min_speakers 3 --max_speakers 3
 ```
 
 Or call WhisperX directly:
@@ -226,8 +226,8 @@ problems without an internet connection. Recordings here live in `~/Zoom/`
 instead, moved there for that reason. Copy the path in Finder (right-click the
 file → Copy "audio.m4a" as Pathname), then rename the folder and file to the
 convention above before transcribing. Zoom folder names always contain spaces —
-always wrap the path in quotes. Keep `~` outside the quotes (or use `$HOME`):
-a tilde inside double quotes is not expanded, and the path fails as written.
+always wrap the path in quotes. Keep `~` outside the quotes (or use `$HOME`): a
+tilde inside double quotes is not expanded, and the path fails as written.
 
 ```bash
 transcribe ~/"Zoom/2026-07-07_soil-moisture/2026-07-07_soil-moisture_audio.m4a"
@@ -243,11 +243,11 @@ Output saved to:
 
 ### Speaker count tuning (diarization quality)
 
-By default, pyannote estimates how many speakers are present. In this
-pipeline's own recordings (small meetings, 2–4 speakers), auto-detection has
-worked well for 1–2 speakers but degraded with 3 or more, or when speakers
-have similar voices or talk over each other — an observation from limited
-use, not a benchmark.
+By default, pyannote estimates how many speakers are present. In this pipeline's
+own recordings (small meetings, 2–4 speakers), auto-detection has worked well
+for 1–2 speakers but degraded with 3 or more, or when speakers have similar
+voices or talk over each other — an observation from limited use, not a
+benchmark.
 
 **When you know the speaker count, always pin it.** This is the single highest-
 impact change you can make to diarization quality:
@@ -340,14 +340,13 @@ python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_so
 ### Harden your transcript (optional)
 
 Two more optional tools sit between Step 1 and Step 2, aimed at catching
-transcription errors before they reach a summary. Neither is required for
-daily use — reach for them when a recording matters enough to double-check.
+transcription errors before they reach a summary. Neither is required for daily
+use — reach for them when a recording matters enough to double-check.
 
 **Cross-model agreement (`compare_transcripts.py`)** — only useful if you
 transcribed the same recording twice with different models (e.g. re-running
-`transcribe --model large-v2` after your usual `large-v3` pass). Diffs the
-two transcripts word-by-word and reports every disagreement with a
-timestamp:
+`transcribe --model large-v2` after your usual `large-v3` pass). Diffs the two
+transcripts word-by-word and reports every disagreement with a timestamp:
 
 ```bash
 python3 compare_transcripts.py \
@@ -356,15 +355,14 @@ python3 compare_transcripts.py \
   --out ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_compare.txt
 ```
 
-The agreement percentage it reports is a confidence signal, not a
-correctness score — high agreement means the models mostly heard the same
-thing, not that either is right. Where they disagree is where to actually
-look.
+The agreement percentage it reports is a confidence signal, not a correctness
+score — high agreement means the models mostly heard the same thing, not that
+either is right. Where they disagree is where to actually look.
 
-**LLM plausibility pass (`sanity_check_transcript.py`)** — reads the
-transcript and flags phrases that sound semantically odd, checked against
-`known-terms.txt` so real vocabulary (institution names, technical terms)
-isn't flagged as an error:
+**LLM plausibility pass (`sanity_check_transcript.py`)** — reads the transcript
+and flags phrases that sound semantically odd, checked against `known-terms.txt`
+so real vocabulary (institution names, technical terms) isn't flagged as an
+error:
 
 ```bash
 python3 sanity_check_transcript.py \
@@ -381,9 +379,9 @@ python3 sanity_check_transcript.py \
   --known-terms my-terms.txt
 ```
 
-As with `--report` above, flags are a signal to check manually, not
-automatic corrections — expect some false positives on genuinely unusual
-but correct phrasing.
+As with `--report` above, flags are a signal to check manually, not automatic
+corrections — expect some false positives on genuinely unusual but correct
+phrasing.
 
 ---
 
@@ -436,28 +434,28 @@ Output is written to `~/PROJECTS/audio-transcription-output/` by default (the
 
 By default a summary can only ever say `SPEAKER_00`, because diarization
 produces anonymous clusters and nothing downstream resolves them. In a
-multi-party discussion that makes the summary unable to attribute anything to
-a real person — measured on a 5-speaker meeting where the most-mentioned
+multi-party discussion that makes the summary unable to attribute anything to a
+real person — measured on a 5-speaker meeting where the most-mentioned
 participant appeared in no summary at all.
 
-Four ways to fix that, most reliable first. All of them feed the same place —
-a `.speaker-cache.json` next to your transcript — so once names are in, the
+Four ways to fix that, most reliable first. All of them feed the same place — a
+`.speaker-cache.json` next to your transcript — so once names are in, the
 summarizer picks them up with no flags at all.
 
 **1. Zoom cloud recording? Let Zoom's own attribution do the work.**
 
-Zoom names speakers from per-account audio streams, which is more reliable
-than voice clustering. `map_speakers.py` aligns the two transcripts word by
-word and transfers those names across:
+Zoom names speakers from per-account audio streams, which is more reliable than
+voice clustering. `map_speakers.py` aligns the two transcripts word by word and
+transfers those names across:
 
 ```bash
 python3 map_speakers.py meeting.transcript.vtt meeting.json --write-cache
 ```
 
-Use `.transcript.vtt` (speaker-attributed), not `.cc.vtt` (plain captions).
-Run without `--write-cache` first to inspect. Labels below an 80% vote share
-are reported but never written — a split vote means diarization merged two
-people into one label, and naming it would pick one of them at random.
+Use `.transcript.vtt` (speaker-attributed), not `.cc.vtt` (plain captions). Run
+without `--write-cache` first to inspect. Labels below an 80% vote share are
+reported but never written — a split vote means diarization merged two people
+into one label, and naming it would pick one of them at random.
 
 **2. Label them yourself, once.** Identify each speaker in the review tool
 (`--clip` plays a few seconds of any timestamp), save the mapping, and every
@@ -477,9 +475,8 @@ python3 review_transcript.py meeting.json \
   --speakers "SPEAKER_00=Jason,SPEAKER_02=Liz"
 ```
 
-**4. Roster** — you know who attended but not which label is whom. The model
-may attribute speakers using only these names, and marks each one
-`(inferred)`:
+**4. Roster** — you know who attended but not which label is whom. The model may
+attribute speakers using only these names, and marks each one `(inferred)`:
 
 ```bash
 .venv/bin/python3 summarize_transcript.py meeting.json \
@@ -487,23 +484,22 @@ may attribute speakers using only these names, and marks each one
 ```
 
 Options 1–3 are exact: a label either has a name or keeps `SPEAKER_XX`, and
-nothing is guessed. Option 4 does involve the model guessing, but from a
-closed list, so it can misassign a real name and never invent one. The three
-compose — supply the labels you know with `--speakers` and let `--roster`
-handle the rest.
+nothing is guessed. Option 4 does involve the model guessing, but from a closed
+list, so it can misassign a real name and never invent one. The three compose —
+supply the labels you know with `--speakers` and let `--roster` handle the rest.
 
-`--infer-speakers` lets the model name speakers with no roster at all. It is
-off by default and the least reliable option, because it can produce a name
-nobody said. A wrong name is worse than `SPEAKER_00` — an anonymous label
-invites a check, a confident wrong one does not. Whether it works depends on
-the meeting: it succeeded on a lecture where the instructor addressed students
-by name, and produced nothing on a peer discussion where people spoke about
-each other in the third person.
+`--infer-speakers` lets the model name speakers with no roster at all. It is off
+by default and the least reliable option, because it can produce a name nobody
+said. A wrong name is worse than `SPEAKER_00` — an anonymous label invites a
+check, a confident wrong one does not. Whether it works depends on the meeting:
+it succeeded on a lecture where the instructor addressed students by name, and
+produced nothing on a peer discussion where people spoke about each other in the
+third person.
 
 Use `--no-speaker-names` to ignore the cache and summarize with raw labels.
 
-The cache lives next to the transcript, so moving a transcript leaves its
-names behind — re-save or re-run `map_speakers.py` if you reorganize.
+The cache lives next to the transcript, so moving a transcript leaves its names
+behind — re-save or re-run `map_speakers.py` if you reorganize.
 
 ### Long recordings (multi-hour lectures and course sessions)
 
@@ -593,8 +589,8 @@ audio-transcription-pipeline/
 ```
 
 `00_admin/`, `docs/references/`, `scratch.md`, and personal draft files are
-intentionally excluded here — they're gitignored and stay local, not part of
-the tracked structure.
+intentionally excluded here — they're gitignored and stay local, not part of the
+tracked structure.
 
 There is no `output/` folder in this repo. All transcription output lives in a
 separate, private, local-git folder — see
@@ -604,10 +600,10 @@ separate, private, local-git folder — see
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE.md) — free to use, modify, and share
-for any noncommercial purpose, including use by educational institutions and
-public research organizations regardless of funding source. Commercial use
-requires separate permission from the author.
+[PolyForm Noncommercial 1.0.0](LICENSE.md) — free to use, modify, and share for
+any noncommercial purpose, including use by educational institutions and public
+research organizations regardless of funding source. Commercial use requires
+separate permission from the author.
 
 Required Notice: Copyright (c) 2026 C. Jason Tinant
 
