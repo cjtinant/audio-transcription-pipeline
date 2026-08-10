@@ -33,20 +33,153 @@ standard as the Sonnet-vs-Opus comparisons elsewhere in this file, not a
 benchmark-blog number. Until decided, `--model` must be passed explicitly for
 the Ollama engine to work at all.
 
+### Next Steps:
+
+**Measure first** The entry's own stated standard is to run
+sanity_check_transcript.py against a real transcript before adopting — same bar
+as the Sonnet-vs-Opus comparisons. Swapping the default without that run would
+contradict the reason the decision was parked in the first place. I don't have
+the script's actual flag names in front of me, so I won't guess at the
+invocation.
+
+```
+bash
+rg -n 'llama3\.1' ~/PROJECTS/audio-transcription-pipeline
+
+```
+
+Session notes and the 2026-07-14 research note will show up in that output —
+those are historical records and should stay as written. Only README/docs that
+describe current behavior need updating.
+
+Then WATERSHED.md. This entry stops being parked. My assumption is you'd replace
+it with a short resolved note (what was chosen, on what evidence) and put the
+fuller reasoning in the dated session note — tell me if your convention is
+instead to delete the entry outright once resolved.
+
+Then commit — fix: rather than chore:, since the current default is a live
+break:
+
+```
+text
+
+fix: point Ollama default at qwen3.6:36b
+
+llama3.1:8b-instruct-q6_k was removed in the 2026-07-27 stack
+refresh, leaving --engine ollama broken without an explicit
+--model. Adopted after sanity_check comparison against <n>
+transcripts.
+
+```
+
 **Also carried over from the 2026-07-14 research note, not yet done:** run
 `ollama show <model>` on each of the three new models to confirm local weights,
 not a cloud-routed manifest, before routing sensitive material through any of
 them — the exact check that protects the sensitive-data lane this refresh exists
 for.
 
+NAME ID SIZE MODIFIED  
+granite4.1:30b 3f3e5df8a021 17 GB 2 weeks ago  
+nemotron3:33b f6d8b7ff496c 27 GB 2 weeks ago  
+qwen3.6:35b 07d35212591f 23 GB 2 weeks ago
+
+.venv~/PROJECTS/audio-transcription-pipeline (main) % ollama show granite4.1:30b
+Model architecture granite  
+ parameters 28.9B  
+ context length 131072  
+ embedding length 4096  
+ quantization Q4_K_M
+
+Capabilities completion  
+ tools
+
+License Apache License  
+ Version 2.0, January 2004  
+ ...
+
+.venv~/PROJECTS/audio-transcription-pipeline (main) % ollama show nemotron3:33b
+Model architecture nemotron_h_omni  
+ parameters 33.0B  
+ context length 131072  
+ embedding length 2688  
+ quantization Q4_K_M
+
+Capabilities completion  
+ vision  
+ tools  
+ thinking
+
+License NVIDIA Open Model License Agreement  
+ Last Modified: October 24, 2025  
+ ...
+
+.venv~/PROJECTS/audio-transcription-pipeline (main) % ollama show qwen3.6:35b  
+ Model architecture qwen35moe  
+ parameters 36.0B  
+ context length 262144  
+ embedding length 2048  
+ quantization Q4_K_M
+
+Capabilities completion  
+ vision  
+ tools  
+ thinking
+
+Parameters min_p 0  
+ presence_penalty 1.5  
+ repeat_penalty 1  
+ temperature 1  
+ top_k 20  
+ top_p 0.95
+
+License Apache License  
+ Version 2.0, January 2004  
+ ...
+
+Then **two known code references**, both named in the entry:
+DEFAULT_OLLAMA_MODEL at summarize_transcript.py line 64, and the docstring in
+sanity_check_transcript.py. Worth sweeping for stragglers rather than trusting
+the entry to be complete:
+
 `docs/pipeline-reference.md`'s Ollama section (install command, pull examples,
 `--model` override examples) still references the deleted `llama3.1` variants
 too — same class of stale-reference drift as 2026-07-24's README fixes. Not
 touched yet; out of scope for what prompted this entry.
 
+**Resolved:** the tag is qwen3.6:35b. The 36b came from ollama show reporting
+36.0B parameters — Ollama's tag and the actual parameter count disagree here.
+The WATERSHED entry is already correct as written, so there's no rename to do.
+The only work is the measurement and the swap, exactly as scoped last turn.
+
+Three things the show output adds that bear on the choice:
+
+- Context length. qwen3.6 is 262144 vs 131072 for the other two. For long
+  meeting transcripts that's the one hard, non-subjective differentiator in this
+  table — it halves the odds you hit a chunking boundary.
+
+- thinking capability. qwen3.6 and nemotron3 both have it; granite4.1 doesn't.
+  If summarize_transcript.py doesn't strip reasoning blocks, this shows up as
+  contaminated summaries rather than a clean failure — the "silently misbehave"
+  mode the current break avoided. Worth checking before the comparison run,
+  otherwise you'll be measuring the wrapper, not the model.
+
+- Sampling defaults. qwen3.6 ships temperature 1 and presence_penalty 1.5. Those
+  are conversational defaults; presence penalty in particular pushes away from
+  repeated tokens, which is not what you want when a summary should faithfully
+  reuse the transcript's proper nouns and terminology. Speculative as to how
+  much it actually degrades output — but it's a plausible confound if the
+  comparison run comes back worse than expected, and it's adjustable.
+
+None of that decides it. It does mean the comparison isn't three symmetric
+candidates: qwen3.6 has the context advantage and the two configuration caveats,
+granite4.1 is the simplest to wire up.
+
 **Flagged:** 2026-07-27
 
----
+Does summarize_transcript.py already handle thinking-model output, or is that
+unexplored?
+
+## **Flagged:** 2026-08-10
 
 ### Ollama upgrade left an orphaned server process — version mismatch gotcha
 
