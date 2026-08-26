@@ -40,6 +40,8 @@ cspell.json
 # ── Scratch files ──────────────────────────────────────────────────────
 scratch.md
 tmp_*
+_inbox/
+
 
 # ── Admin, archive, and personal reference files ───────────────────────
 00_admin/
