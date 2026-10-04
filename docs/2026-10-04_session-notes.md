@@ -306,3 +306,24 @@ Optional later additions are
 baseline and [Earnings-22](https://arxiv.org/abs/2203.15591) for long recordings
 and varied accents. Start with QMSum and AMI to keep the work focused on this
 repository's meeting workflow.
+
+
+## Follow-up — transcription startup troubleshooting
+
+Added README navigation and installation troubleshooting for the user's
+TorchCodec loader warning, Lightning checkpoint migration notice, and blank
+`Transcript:` line. Corrected the installation guide's claim that unpinned
+commands and the Python package snapshot reproduce the entire runtime exactly.
+
+Read-only inspection confirmed WhisperX 3.8.6 decodes via the FFmpeg executable
+and passes waveform dictionaries to pyannote VAD and diarization. Both FFmpeg
+8.1.2_1 and ffmpeg@7 7.1.5_1 were installed. Importing TorchCodec's AudioDecoder
+succeeded with `DYLD_LIBRARY_PATH=/opt/homebrew/opt/ffmpeg@7/lib` scoped to that
+Python process. This verifies library loading only. No recording was processed,
+checkpoint migrated, dependency installed, or shell configuration changed.
+The supplied log does not establish whether the original run completed.
+
+Next runtime check: transcribe a short known-speech sample into a separate
+output directory with the scoped library path, then verify exit status, text,
+word timestamps, and speaker labels. Full instructions and upstream references
+are in [installation troubleshooting](installation.md#torchcodec-and-ffmpeg-on-macos).

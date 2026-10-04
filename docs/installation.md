@@ -73,20 +73,25 @@ read the default paths in this repo's examples as your custom location.
 
 ---
 
-## Exact Versions (Reproducibility)
+## Version snapshot and fresh installs
 
-The install steps below deliberately pin only the direct dependencies
-(torch/torchaudio, whisperx, httpx) and let the resolver pick the rest. The
-exact versions this pipeline was built and tested against are snapshotted in
-[`requirements-lock.txt`](../requirements-lock.txt) (recorded 2026-07-12,
-macOS arm64, Python 3.11). Check it first when debugging version-specific
-behavior — the torchcodec warnings and the pyannote model-default claims in
-this repo were all verified against those versions. To reproduce the tested
-environment exactly:
+[`requirements-lock.txt`](../requirements-lock.txt) records a July 12, 2026
+macOS arm64 / Python 3.11 environment. The setup commands below are unpinned
+fresh installs; they may resolve different versions. The snapshot records Python
+packages, not macOS, FFmpeg shared libraries, or their loader paths, and does
+not guarantee exact reproduction or warning-free decoding.
+
+To investigate that snapshot, install it into a separate environment rather
+than replacing a working `.venv`:
 
 ```bash
-uv pip install -r requirements-lock.txt
+uv venv --python 3.11 .venv-check
+uv pip install --python .venv-check/bin/python -r requirements-lock.txt
 ```
+
+Validate decoding, transcription, alignment, and diarization before adopting
+an updated environment. For the TorchCodec 0.7.0 loader warning, see
+[TorchCodec and FFmpeg on macOS](#torchcodec-and-ffmpeg-on-macos).
 
 ---
 
@@ -613,6 +618,139 @@ rm test.wav ~/PROJECTS/audio-transcription-output/test.json
 ---
 
 ## Troubleshooting
+
+### Startup warnings and blank transcript output
+
+The October 4 log reached `Performing transcription...` after the TorchCodec
+warning and Lightning notice. That establishes progress, not completion. A
+`Transcript: [2.782 --> 27.875]` line without words may represent an empty
+recognized segment; it does not establish that the entire recording is blank.
+Wait for alignment, diarization, and the command to finish. Immediately after
+it returns, check `echo $?` (zero means successful process exit), then inspect
+the newly written JSON for nonempty segment text, word timestamps, and speaker
+labels. Confirm the file's modification time belongs to this run; a prior JSON
+or the wrapper's `.source-audio.json` is not proof of success.
+
+Running `transcribe` from another project directory is supported. The wrapper
+finds its own repository and `.venv`; the relative checkpoint path printed by
+Lightning is not a reliable command to copy from an arbitrary directory.
+
+### TorchCodec and FFmpeg on macOS
+
+**Symptom:** `Could not load libtorchcodec`, `@rpath/libavutil.59.dylib`, and
+`no LC_RPATH's found`, followed by attempts to load FFmpeg 6, 5, and 4 libraries.
+These are alternative loader attempts, not a request to install all four.
+
+The installed WhisperX 3.8.6 source uses the FFmpeg executable to load audio
+and supplies an in-memory waveform to pyannote for VAD and diarization. This
+explains why processing can continue despite pyannote's import-time warning
+about its own file decoder. Treat the warning as non-blocking only after
+verifying the completed output. Direct pyannote file decoding can still fail.
+
+TorchCodec 0.7.0 documents FFmpeg 4–7 support. A working FFmpeg 8 command does
+not supply the versioned shared libraries this older loader requests. See the
+[version-specific TorchCodec instructions](https://github.com/pytorch/torchcodec/blob/v0.7.0/README.md#installing-torchcodec).
+
+**1. Record the environment without importing the failing decoder:**
+
+```bash
+cd ~/PROJECTS/audio-transcription-pipeline
+.venv/bin/python - <<'PYVERSIONS'
+import platform
+from importlib.metadata import version
+print(platform.platform(), platform.machine(), platform.python_version())
+for name in ("torch", "torchaudio", "torchcodec", "whisperx", "pyannote.audio", "lightning"):
+    print(name, version(name))
+PYVERSIONS
+command -v ffmpeg
+ffmpeg -version
+brew list --versions ffmpeg ffmpeg@7
+```
+
+October 4 inspection found Python 3.11.11, Torch/torchaudio 2.8.0,
+TorchCodec 0.7.0, WhisperX 3.8.6, pyannote.audio 4.0.4, Lightning 2.6.4,
+and both FFmpeg 8.1.2_1 and ffmpeg@7 7.1.5_1 on macOS arm64. This is an
+observed inventory, not an independently validated dependency combination.
+
+**2. Check the FFmpeg 7 library path in a single process:**
+
+If absent, install `brew install ffmpeg@7` first.
+[Homebrew's ffmpeg@7 formula](https://formulae.brew.sh/formula/ffmpeg@7)
+is keg-only, so installation alone does not put its libraries on every loader's
+search path. Use `brew --prefix` to accommodate different Homebrew locations:
+
+```bash
+ffmpeg7_prefix="$(brew --prefix ffmpeg@7)"
+ls "$ffmpeg7_prefix/lib/libavutil.59.dylib"
+DYLD_LIBRARY_PATH="$ffmpeg7_prefix/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}" \
+  .venv/bin/python -c 'from torchcodec.decoders import AudioDecoder; print("TorchCodec import OK")'
+```
+
+On October 4, this scoped import check succeeded with the installed FFmpeg 7
+libraries. No end-to-end transcription was run during that documentation check.
+
+If the import succeeds, try a short known-speech sample with the same scoped
+setting. Use a new output folder to avoid replacing an existing transcript:
+
+```bash
+TRANSCRIBE_OUTPUT_DIR="$HOME/PROJECTS/audio-transcription-output/decoder-check" \
+DYLD_LIBRARY_PATH="$ffmpeg7_prefix/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}" \
+  transcribe "/absolute/path/to/short-known-speech.m4a"
+echo $?
+```
+
+Use `TRANSCRIBE_OUTPUT_DIR`, rather than `--output_dir`, so the current wrapper
+writes its audio sidecar beside the test output. An import success validates
+library loading only; the sample run must still complete with usable text,
+alignment, and speaker labels. Do not force-link FFmpeg versions or add global
+warning suppression to make the diagnostic disappear.
+
+If loading still fails, retain the complete exception: missing libraries,
+architecture mismatch, and undefined symbols need different fixes. Check the
+[TorchCodec/PyTorch compatibility table](https://github.com/pytorch/torchcodec#installing-torchcodec)
+before changing package versions. Test a compatible set in a separate venv;
+do not assume upgrading TorchCodec alone will work with the installed Torch.
+
+### Lightning checkpoint upgrade notice
+
+**`Lightning automatically upgraded your loaded checkpoint from v1.5.4 to
+v2.6.4`** reports an in-memory checkpoint migration. It is separate from the
+TorchCodec loader failure and is not itself a transcription error. Leaving the
+checkpoint unchanged is acceptable if the run completes; the notice may recur.
+
+A permanent migration is optional and changes an installed WhisperX asset.
+After verifying transcription works, back up the asset before using the
+suggested utility. Use absolute paths so this also works from another project:
+
+```bash
+checkpoint="$HOME/PROJECTS/audio-transcription-pipeline/.venv/lib/python3.11/site-packages/whisperx/assets/pytorch_model.bin"
+cp -n "$checkpoint" "$checkpoint.before-upgrade.bak"
+"$HOME/PROJECTS/audio-transcription-pipeline/.venv/bin/python" \
+  -m lightning.pytorch.utilities.upgrade_checkpoint "$checkpoint"
+```
+
+Adjust the Python directory if using another version. Retest a short sample
+after migration; restore the backup if behavior regresses. A WhisperX reinstall
+may replace this asset and bring the notice back. This does not repair decoding
+or improve recognition of an empty segment.
+
+### If the completed transcript is empty
+
+Listen around the reported interval and confirm there is audible speech. Check
+that FFmpeg can decode the source independently:
+
+```bash
+ffmpeg -v error -i "/absolute/path/to/recording.m4a" -f null -
+```
+
+A successful decode checks file readability, not speech recognition. If known
+speech is still missing, compare a short sample with `--vad_method silero` or
+an explicit correct `--language` (the wrapper defaults to English), changing
+one setting at a time and using separate output folders. Silero changes VAD;
+it does not remove the wrapper's diarization step or guarantee the pyannote
+import warning disappears. Preserve the full final traceback if the command
+fails instead of producing JSON.
+
 
 **`whisperx: command not found` even after activating the venv** Use the full
 path to the whisperx binary instead:

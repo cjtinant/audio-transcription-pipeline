@@ -241,6 +241,16 @@ Output saved to:
 
 ---
 
+### Startup warnings or blank transcript lines?
+
+For `Could not load libtorchcodec`, missing `libavutil` libraries, Lightning
+checkpoint upgrade notices, or a `Transcript:` line with no words, see
+[installation troubleshooting](docs/installation.md#startup-warnings-and-blank-transcript-output).
+The first transcription line does not confirm completion; verify the process
+exit and newly generated JSON after alignment and diarization finish.
+
+---
+
 ### Speaker count tuning (diarization quality)
 
 By default, pyannote estimates how many speakers are present. In this pipeline's
