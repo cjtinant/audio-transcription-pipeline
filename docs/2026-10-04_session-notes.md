@@ -323,7 +323,39 @@ Python process. This verifies library loading only. No recording was processed,
 checkpoint migrated, dependency installed, or shell configuration changed.
 The supplied log does not establish whether the original run completed.
 
-Next runtime check: transcribe a short known-speech sample into a separate
+Initial proposed runtime check (subsequently attempted below): transcribe a short
+known-speech sample into a separate
 output directory with the scoped library path, then verify exit status, text,
 word timestamps, and speaker labels. Full instructions and upstream references
 are in [installation troubleshooting](installation.md#torchcodec-and-ffmpeg-on-macos).
+
+
+## Follow-up — public speech test results and repair boundary
+
+The user supplied two runs of the Open Speech Repository Harvard Sentences
+sample, with `--min_speakers 1 --max_speakers 1`. Both produced recognizable
+text, reached alignment and diarization, and returned exit status `0`.
+
+- **15:44 run:** assigning `DYLD_LIBRARY_PATH` before `transcribe` left the
+  original TorchCodec loader warning intact. A local shell-propagation check
+  showed that the variable disappeared through `/bin/bash`.
+- **15:48 run:** exporting the variable inside `/bin/bash` and sourcing
+  `transcribe.sh` removed the TorchCodec warning. It introduced duplicate
+  Objective-C class warnings for `AVFFrameReceiver` and `AVFAudioReceiver`,
+  defined by both PyAV's bundled `libavdevice.62.1.100.dylib` and Homebrew
+  FFmpeg 7's `libavdevice.61.3.100.dylib`.
+
+Both logs retained the Lightning checkpoint migration notice and pyannote's
+pooling `std()` warning. There was no crash, but the duplicate-library warning
+prevents treating the scoped path workaround as a stable repair. The generated
+JSON was not independently inspected; an attempted read at the expected path
+found no file in the assistant's filesystem view. The original recording's
+blank segment and multi-speaker accuracy remain unverified.
+
+Updated the installation guide to replace the earlier wrapper workaround with
+these findings and an isolated repair plan. Next: inventory PyAV and the other
+package/native-library requirements, choose a compatible candidate environment,
+then test combined imports, actual decoding, and the full public sample before
+adoption. No candidate versions selected, environment created, dependencies
+changed, libraries deleted, or wrapper modified during this documentation update.
+See [the repair plan](installation.md#next-repair-step-isolate-and-validate-the-decoder-dependencies).

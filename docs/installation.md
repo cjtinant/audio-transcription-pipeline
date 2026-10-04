@@ -659,7 +659,7 @@ cd ~/PROJECTS/audio-transcription-pipeline
 import platform
 from importlib.metadata import version
 print(platform.platform(), platform.machine(), platform.python_version())
-for name in ("torch", "torchaudio", "torchcodec", "whisperx", "pyannote.audio", "lightning"):
+for name in ("torch", "torchaudio", "torchcodec", "av", "faster-whisper", "whisperx", "pyannote.audio", "lightning"):
     print(name, version(name))
 PYVERSIONS
 command -v ffmpeg
@@ -687,29 +687,90 @@ DYLD_LIBRARY_PATH="$ffmpeg7_prefix/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
 ```
 
 On October 4, this scoped import check succeeded with the installed FFmpeg 7
-libraries. No end-to-end transcription was run during that documentation check.
+libraries. It is a loader diagnostic, not a validated permanent fix. The full
+pipeline subsequently exposed the conflict described below.
 
-If the import succeeds, try a short known-speech sample with the same scoped
-setting. Use a new output folder to avoid replacing an existing transcript:
+**3. Results of the public speech test (October 4):**
 
-```bash
-TRANSCRIBE_OUTPUT_DIR="$HOME/PROJECTS/audio-transcription-output/decoder-check" \
-DYLD_LIBRARY_PATH="$ffmpeg7_prefix/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}" \
-  transcribe "/absolute/path/to/short-known-speech.m4a"
-echo $?
-```
+The user ran the approximately 33-second Harvard Sentences sample
+[`OSR_us_000_0010_8k.wav`](https://www.voiptroubleshooter.com/open_speech/american.html)
+from the Open Speech Repository, with one speaker specified and output directed
+to `~/PROJECTS/audio-transcription-output/decoder-check/`.
 
-Use `TRANSCRIBE_OUTPUT_DIR`, rather than `--output_dir`, so the current wrapper
-writes its audio sidecar beside the test output. An import success validates
-library loading only; the sample run must still complete with usable text,
-alignment, and speaker labels. Do not force-link FFmpeg versions or add global
-warning suppression to make the diagnostic disappear.
+| Invocation | Loader result | Pipeline result from supplied log |
+| --- | --- | --- |
+| `DYLD_LIBRARY_PATH` assigned before invoking `transcribe` | Original TorchCodec missing-library warning remained | Recognizable text, alignment and diarization stages, exit status `0` |
+| Variable exported inside `/bin/bash`, then wrapper sourced in that shell | TorchCodec warning disappeared; duplicate Objective-C class warnings appeared | Same recognized text, alignment and diarization stages, exit status `0` |
 
-If loading still fails, retain the complete exception: missing libraries,
-architecture mismatch, and undefined symbols need different fixes. Check the
-[TorchCodec/PyTorch compatibility table](https://github.com/pytorch/torchcodec#installing-torchcodec)
-before changing package versions. Test a compatible set in a separate venv;
-do not assume upgrading TorchCodec alone will work with the installed Torch.
+The first invocation did not establish that the variable reached Python. A
+separate local check showed `DYLD_LIBRARY_PATH` disappeared when passed through
+`/bin/bash`. Exporting it inside that shell addressed propagation in the second
+run. Assigning it before the ordinary wrapper should therefore not be treated
+as a reliable workaround on this Mac.
+
+The second run loaded both PyAV's bundled
+`av/.dylibs/libavdevice.62.1.100.dylib` and Homebrew FFmpeg 7's
+`libavdevice.61.3.100.dylib`. Both defined `AVFFrameReceiver` and
+`AVFAudioReceiver`; the runtime warned about possible casting failures and
+crashes. No crash occurred in this sample, but a zero exit status does not
+establish that mixing these libraries is stable. Do not make this
+`DYLD_LIBRARY_PATH` workaround permanent or delete/rename package libraries.
+
+Both runs also printed the Lightning migration notice and pyannote's
+`std(): degrees of freedom is <= 0` warning. Neither stopped these runs; their
+absence or presence does not establish diarization quality. The supplied logs
+show successful process completion, but the generated JSON's word timestamps
+and speaker labels have not been independently inspected. This single-speaker
+sample does not measure separation of multiple speakers, and it does not
+resolve the original recording's blank segment.
+
+For interim use, the ordinary `transcribe` invocation avoids deliberately
+loading the conflicting FFmpeg 7 libraries. The earlier warning-bearing sample
+completed; continue verifying each run's output rather than suppressing the
+warning or assuming the decoder is repaired.
+
+### Next repair step: isolate and validate the decoder dependencies
+
+**Status: planned, not performed.** Preserve the current `.venv` and wrapper
+while investigating a separate candidate environment. No replacement package
+versions have been selected yet.
+
+1. Record the installed package versions and dependency requirements, including
+   `av` (PyAV), `faster-whisper`, Torch, torchaudio, TorchCodec, WhisperX, and
+   pyannote.audio. Record the FFmpeg executable and shared-library paths too.
+   Inspect the native library dependencies to identify which FFmpeg libraries
+   PyAV and TorchCodec actually load; matching version numbers alone is not
+   enough to rule out duplicate libraries.
+2. Check the upstream
+   [TorchCodec/PyTorch compatibility table](https://github.com/pytorch/torchcodec#installing-torchcodec),
+   [PyAV installation guidance](https://pyav.org/docs/stable/overview/installation.html),
+   and the selected WhisperX/pyannote package requirements. Choose a candidate
+   combination whose native libraries can coexist on macOS arm64. Evaluate
+   compatible wheels or a shared FFmpeg build as supported by those packages;
+   do not assume a PyAV downgrade or TorchCodec-only upgrade fixes the conflict.
+3. Create a separate environment, such as `.venv-decoder-check`, and install
+   the explicit candidate versions there. Check dependency consistency. Invoke
+   its Python/WhisperX directly: merely activating it and running `transcribe`
+   still selects the original repository `.venv` through the current wrapper.
+4. In one Python process, import both PyAV and TorchCodec and decode the public
+   sample with TorchCodec. Require successful decoding without missing-library
+   errors or duplicate-class warnings. A standalone TorchCodec import alone
+   missed the conflict in the earlier diagnostic.
+5. Run the full public sample through that environment's WhisperX with the
+   usual CPU/int8, alignment, and diarization settings, using a distinct output
+   folder. Verify exit status `0`, expected text, word timestamps, and speaker
+   labels in the newly written JSON. Record unrelated warnings separately;
+   inspect any remaining pooling warning before claiming all issues resolved.
+6. Only after those checks pass, document the exact package/native-library
+   combination and a reproducible launch method, then plan adoption in the
+   working environment. Retain the existing environment for rollback. A later
+   multi-speaker test is needed to assess diarization quality.
+
+Use `TRANSCRIBE_OUTPUT_DIR` for tests through the existing wrapper so its audio
+sidecar follows the transcript. Direct candidate-WhisperX runs use
+`--output_dir` and do not create the wrapper's source-audio sidecar. Keep test
+artifacts outside the tracked source tree and credentials out of diagnostic
+logs.
 
 ### Lightning checkpoint upgrade notice
 
