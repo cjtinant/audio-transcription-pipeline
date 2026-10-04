@@ -186,11 +186,11 @@ separate publishing decision.
 
 ## Suggested next session
 
-Start with the documentation index and active-task extraction, which make the
-remaining work easier to track. Then resolve the model default and wrapper
-behavior in separate changes, followed by an isolated dependency-validation
-session. For each completed item, record the evidence and outcome in a dated
-note, update the active backlog, and keep the historical record intact.
+The follow-up discussion prioritizes a public-benchmark comparison of the
+installed Ollama models; see the plan below. Documentation organization,
+wrapper fixes, and isolated dependency validation remain separate follow-ups.
+For each completed item, record the evidence and outcome in a dated note,
+update the active backlog, and keep the historical record intact.
 
 ## Follow-up — Ollama model update results
 
@@ -229,3 +229,80 @@ their IDs with the results, using `a7eb95c53bcf` as the Qwen evaluation baseline
 Then select and validate a default, update current-use documentation, and close
 the WATERSHED decision. The repository's old Ollama fallback remains unchanged;
 pulling these models alone does not repair it.
+
+## Next-step plan — public benchmarks
+
+**Status:** recommended plan; no datasets downloaded or benchmark runs completed.
+Use public reference data instead of personal recordings. Keep the two stages
+separate: WhisperX transcribes audio; the Ollama models receive text for
+summarization and sanity checking in this repository.
+
+### First: compare the Ollama models using QMSum
+
+[QMSum](https://aclanthology.org/2021.naacl-main.472/) provides meeting
+transcripts, queries, and reference summaries. It is a query-based summarization
+benchmark, so use its questions explicitly rather than treating its references
+as generic summaries for the repository's meeting presets.
+
+1. Select and freeze a small development subset spanning shorter and longer
+   meetings. Record the dataset revision, split, meeting/query IDs, and selection
+   rule. Reserve separate examples for confirming the final choice.
+2. Convert reference transcripts into the summarizer's text input format,
+   preserving speaker labels and turn order. Retain the original reference data
+   for scoring. Keep reference answers out of the model input.
+3. Run the same transcript/query pairs through each installed model with
+   `--engine ollama`, explicit `--model`, and `--type custom --prompt` carrying
+   the query and identical instructions. Use single runs initially, without
+   `--merge`, and keep outputs in separate model/run directories.
+4. Compare factual accuracy, relevant information coverage, speaker attribution,
+   unsupported claims, incomplete or blank responses, and elapsed time. Review
+   against both the reference answer and source transcript; wording differences
+   alone are not errors. Repeat promising candidates to assess variability.
+5. Record exact model IDs, prompts, input length, hardware, Ollama version, and
+   effective context/generation settings. Check that long inputs fit the actual
+   configured context; advertised model capacity alone does not establish that.
+   Report model-loading time separately from warm-run inference time.
+6. Confirm the preferred candidate on the reserved examples and a small
+   sanity-check evaluation before changing the shared default. QMSum reference
+   text alone does not test detection of transcription errors: use ASR output
+   paired with a reference transcript and manually score whether flags identify
+   real errors. Record useful flags, false alarms, and missed errors; zero flags
+   is not proof of correctness.
+7. Document the choice and limitations, change the default and current-use
+   examples together, and verify both tools without `--model`. Check environment
+   and explicit model overrides, run the unit suite, and close the WATERSHED item.
+
+Initial model IDs are Granite `3f3e5df8a021`, Nemotron `f6d8b7ff496c`, and
+Qwen `a7eb95c53bcf`, from the user's October 4 results. Recheck IDs when running
+the comparison. Keep benchmark audio and generated outputs outside the tracked
+source tree; track the selection manifest, evaluation procedure, and compact
+results summary. No new default has been selected.
+
+### Second: benchmark the audio pipeline using AMI
+
+Use a fixed subset of the [AMI Meeting Corpus](https://groups.inf.ed.ac.uk/ami/download/)
+for meeting transcription and speaker separation. Record the exact
+[AMI partition](https://groups.inf.ed.ac.uk/ami/corpus/datasets.shtml), meeting
+IDs, audio channel/microphone condition, and reference annotation version.
+Tune on development data and reserve test data for final evaluation.
+
+Measure these quantities separately:
+
+| Measure | Meaning and reporting rule |
+| --- | --- |
+| Word error rate (WER) | Substitutions + deletions + insertions, divided by reference words; lower is better. Use identical text normalization and report corpus totals. |
+| Real-time factor (RTF) | Processing seconds divided by audio seconds; lower is faster. A 0.25 RTF means 15 minutes to process one hour. State whether loading, alignment, and diarization are included. |
+| Peak memory | Record the measurement method and whether it covers the full pipeline or one process. |
+| Diarization error rate (DER) | Missed speech, false speech detections, and speaker confusion; record overlap handling and boundary tolerance. |
+
+[JiWER](https://github.com/jitsi/jiwer) provides WER scoring, and
+[pyannote.metrics](https://pyannote.github.io/pyannote-metrics/) provides DER
+evaluation. Use the same hardware, settings, and inputs for each comparison.
+Separate cold-start timing from repeated warm runs. Call a small selected subset
+a local regression benchmark, not a full published benchmark result.
+
+Optional later additions are
+[LibriSpeech test-clean/test-other](https://www.openslr.org/12) for a read-speech
+baseline and [Earnings-22](https://arxiv.org/abs/2203.15591) for long recordings
+and varied accents. Start with QMSum and AMI to keep the work focused on this
+repository's meeting workflow.

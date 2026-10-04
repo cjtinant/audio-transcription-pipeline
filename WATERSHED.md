@@ -24,6 +24,17 @@ for the before/after record. Candidate evaluation and default selection remain
 pending; no pipeline default was changed. Use the updated Qwen ID in future
 evaluation records. Earlier inventory output below is historical.
 
+**Next action (2026-10-04):** compare the three installed Ollama models on a
+fixed public QMSum subset, using identical reference transcripts and queries.
+Record factual accuracy, coverage, unsupported claims, runtime, and model IDs;
+confirm the preferred candidate on reserved examples and a reference-backed
+sanity-check evaluation before adopting it. Benchmark WhisperX separately with
+AMI meeting audio using WER, DER, real-time factor, and peak memory. This replaces
+the earlier suggestion to start with personal transcripts. See the
+[public-benchmark plan](docs/2026-10-04_session-notes.md#next-step-plan--public-benchmarks)
+for selection, scoring, and completion criteria. No benchmark has run yet and
+the default decision remains open.
+
 The 2026-07-27 Ollama stack refresh (see session notes) removed all three
 `llama3.1:8b` variants, including `llama3.1:8b-instruct-q6_k` — the exact model
 `summarize_transcript.py`'s `DEFAULT_OLLAMA_MODEL` (line 64) hardcodes, and the
