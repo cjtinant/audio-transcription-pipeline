@@ -13,6 +13,17 @@ Move items to a commit and add to Resolved/History when resolved.
 
 **Status:** parked — needs a decision
 
+**2026-10-04 update:** installed inventory and same-tag update checks are
+complete, based on terminal results supplied by the user. All three pulls
+succeeded. `granite4.1:30b` remains `3f3e5df8a021` (17 GB), and
+`nemotron3:33b` remains `f6d8b7ff496c` (27 GB). `qwen3.6:35b` changed from
+`07d35212591f` (23 GB) to `a7eb95c53bcf` (22 GB). Modification timestamps
+refreshed even for unchanged IDs. See the
+[October 4 session note](docs/2026-10-04_session-notes.md#follow-up--ollama-model-update-results)
+for the before/after record. Candidate evaluation and default selection remain
+pending; no pipeline default was changed. Use the updated Qwen ID in future
+evaluation records. Earlier inventory output below is historical.
+
 The 2026-07-27 Ollama stack refresh (see session notes) removed all three
 `llama3.1:8b` variants, including `llama3.1:8b-instruct-q6_k` — the exact model
 `summarize_transcript.py`'s `DEFAULT_OLLAMA_MODEL` (line 64) hardcodes, and the

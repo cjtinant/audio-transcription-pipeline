@@ -2,16 +2,18 @@
 
 ## Purpose and scope
 
-Review the repository and recommend steps to update and organize it. This
-session adds this note only; the changes below are proposals, not implemented
-fixes. No dependencies were upgraded, models invoked, files relocated, or
-commits created.
+Review the repository and recommend steps to update and organize it. The
+initial review added this note only; the changes below are proposals, not
+implemented fixes. A subsequent documentation update records the user's model
+pull results here and in WATERSHED. No pipeline code was changed, inference
+run, files relocated, or commits created by the assistant.
 
 Reviewed tracked structure, the shell wrapper, Python entry points and tests,
 installation/reference documentation, prior session notes, WATERSHED, and local
 scratch context. This was a maintenance review, not a full security audit or
 end-to-end transcription test. Provider model availability and the current
-Ollama installation were not checked.
+Ollama installation were not checked during the initial review. The follow-up
+below records installation evidence supplied by the user.
 
 ## Baseline
 
@@ -37,7 +39,11 @@ fails without a model override. Current-use examples in
 `docs/pipeline-reference.md` and `sanity_check_transcript.py` retain the old
 model reference.
 
-**Steps:** confirm the installed model inventory; evaluate candidates on an
+**Progress:** installed inventory and same-tag update checks completed by the
+user on October 4; see the results below. Evaluation and default selection
+remain open.
+
+**Remaining steps:** evaluate candidates on an
 appropriate transcript using summarization and sanity checking; record quality,
 runtime, and any incomplete output; then select the default and update current
 instructions together. Verify the Anthropic default against the provider before
@@ -185,3 +191,41 @@ remaining work easier to track. Then resolve the model default and wrapper
 behavior in separate changes, followed by an isolated dependency-validation
 session. For each completed item, record the evidence and outcome in a dated
 note, update the active backlog, and keep the historical record intact.
+
+## Follow-up — Ollama model update results
+
+On 2026-10-04, the user supplied terminal output showing the installed models
+before and after these commands:
+
+```bash
+ollama pull granite4.1:30b
+ollama pull nemotron3:33b
+ollama pull qwen3.6:35b
+ollama list
+```
+
+All three pulls reported successful SHA-256 verification and manifest writing.
+The resulting inventory was:
+
+| Model tag | Previous ID | Resulting ID | Size before → after | Result |
+| --- | --- | --- | --- | --- |
+| `granite4.1:30b` | `3f3e5df8a021` | `3f3e5df8a021` | 17 GB → 17 GB | Unchanged |
+| `nemotron3:33b` | `f6d8b7ff496c` | `f6d8b7ff496c` | 27 GB → 27 GB | Unchanged |
+| `qwen3.6:35b` | `07d35212591f` | `a7eb95c53bcf` | 23 GB → 22 GB | Updated |
+
+Granite and Nemotron already matched the published artifacts for those tags
+at the time of the successful pulls. Qwen's artifact changed; its pull also
+reported removal of unused layers. These results do not identify what changed
+inside Qwen or establish a quality improvement. Sizes are the rounded values
+reported by `ollama list`.
+
+All three modification timestamps refreshed, including the two unchanged
+models. Compare IDs, not modification times, when recording whether an artifact
+changed. The model tags stayed the same; these commands do not establish an
+Ollama application upgrade or the availability of newer model families.
+
+**Next:** evaluate the installed candidates on the same transcripts and record
+their IDs with the results, using `a7eb95c53bcf` as the Qwen evaluation baseline.
+Then select and validate a default, update current-use documentation, and close
+the WATERSHED decision. The repository's old Ollama fallback remains unchanged;
+pulling these models alone does not repair it.
