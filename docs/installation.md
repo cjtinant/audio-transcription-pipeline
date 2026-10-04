@@ -103,6 +103,10 @@ WSL2 setup first, then use the Ubuntu terminal.
 
 ### macOS Apple Silicon (Simple)
 
+For the current wrapper, also complete the
+[FFmpeg 7 / source-built PyAV setup](#validated-macos-decoder-repair) before
+testing. The unpinned package installs below alone do not reproduce that repair.
+
 > For MacBook Pro/Air/Mac Mini with M1, M2, M3, or M4 chip.
 
 **Step 1 — Install Homebrew (Mac package manager)**
@@ -687,8 +691,9 @@ DYLD_LIBRARY_PATH="$ffmpeg7_prefix/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
 ```
 
 On October 4, this scoped import check succeeded with the installed FFmpeg 7
-libraries. It is a loader diagnostic, not a validated permanent fix. The full
-pipeline subsequently exposed the conflict described below.
+libraries. That import alone was insufficient: the full pipeline exposed the
+conflict below. The subsequent source-build repair is now validated on the
+public sample; see [the repair procedure](#validated-macos-decoder-repair).
 
 **3. Results of the public speech test (October 4):**
 
@@ -713,8 +718,9 @@ The second run loaded both PyAV's bundled
 `libavdevice.61.3.100.dylib`. Both defined `AVFFrameReceiver` and
 `AVFAudioReceiver`; the runtime warned about possible casting failures and
 crashes. No crash occurred in this sample, but a zero exit status does not
-establish that mixing these libraries is stable. Do not make this
-`DYLD_LIBRARY_PATH` workaround permanent or delete/rename package libraries.
+establish that mixing these libraries is stable. Setting `DYLD_LIBRARY_PATH`
+alone with the old bundled PyAV is not the repair; rebuild PyAV as below.
+Do not delete or rename package libraries.
 
 Both runs also printed the Lightning migration notice and pyannote's
 `std(): degrees of freedom is <= 0` warning. Neither stopped these runs; their
@@ -724,53 +730,146 @@ and speaker labels have not been independently inspected. This single-speaker
 sample does not measure separation of multiple speakers, and it does not
 resolve the original recording's blank segment.
 
-For interim use, the ordinary `transcribe` invocation avoids deliberately
-loading the conflicting FFmpeg 7 libraries. The earlier warning-bearing sample
-completed; continue verifying each run's output rather than suppressing the
-warning or assuming the decoder is repaired.
+### Validated macOS decoder repair
 
-### Next repair step: isolate and validate the decoder dependencies
+**Status: adopted and tested on October 4, 2026, macOS arm64 / Python 3.11.11.**
+The user built PyAV 14.4.0 from source against Homebrew ffmpeg@7 7.1.5_1,
+first in a separate environment and then in the working `.venv`. Torch and
+torchaudio remained 2.8.0, TorchCodec 0.7.0, WhisperX 3.8.6,
+faster-whisper 1.2.1, and pyannote.audio 4.0.4. The installed requirements
+constrain TorchCodec to `>=0.7,<0.8` when WhisperX and pyannote are combined.
+This is a tested configuration for this machine, not a cross-platform guarantee.
 
-**Status: planned, not performed.** Preserve the current `.venv` and wrapper
-while investigating a separate candidate environment. No replacement package
-versions have been selected yet.
+The source build matters: installing an older PyAV wheel can still introduce
+its own bundled libraries. PyAV 14.4.0's
+[build source](https://github.com/PyAV-Org/PyAV/blob/v14.4.0/setup.py)
+requires FFmpeg 7. See also the
+[PyAV source-install guidance](https://pyav.org/docs/stable/overview/installation.html#bring-your-own-ffmpeg).
 
-1. Record the installed package versions and dependency requirements, including
-   `av` (PyAV), `faster-whisper`, Torch, torchaudio, TorchCodec, WhisperX, and
-   pyannote.audio. Record the FFmpeg executable and shared-library paths too.
-   Inspect the native library dependencies to identify which FFmpeg libraries
-   PyAV and TorchCodec actually load; matching version numbers alone is not
-   enough to rule out duplicate libraries.
-2. Check the upstream
-   [TorchCodec/PyTorch compatibility table](https://github.com/pytorch/torchcodec#installing-torchcodec),
-   [PyAV installation guidance](https://pyav.org/docs/stable/overview/installation.html),
-   and the selected WhisperX/pyannote package requirements. Choose a candidate
-   combination whose native libraries can coexist on macOS arm64. Evaluate
-   compatible wheels or a shared FFmpeg build as supported by those packages;
-   do not assume a PyAV downgrade or TorchCodec-only upgrade fixes the conflict.
-3. Create a separate environment, such as `.venv-decoder-check`, and install
-   the explicit candidate versions there. Check dependency consistency. Invoke
-   its Python/WhisperX directly: merely activating it and running `transcribe`
-   still selects the original repository `.venv` through the current wrapper.
-4. In one Python process, import both PyAV and TorchCodec and decode the public
-   sample with TorchCodec. Require successful decoding without missing-library
-   errors or duplicate-class warnings. A standalone TorchCodec import alone
-   missed the conflict in the earlier diagnostic.
-5. Run the full public sample through that environment's WhisperX with the
-   usual CPU/int8, alignment, and diarization settings, using a distinct output
-   folder. Verify exit status `0`, expected text, word timestamps, and speaker
-   labels in the newly written JSON. Record unrelated warnings separately;
-   inspect any remaining pooling warning before claiming all issues resolved.
-6. Only after those checks pass, document the exact package/native-library
-   combination and a reproducible launch method, then plan adoption in the
-   working environment. Retain the existing environment for rollback. A later
-   multi-speaker test is needed to assess diarization quality.
+User-supplied validation results:
 
-Use `TRANSCRIBE_OUTPUT_DIR` for tests through the existing wrapper so its audio
-sidecar follows the transcript. Direct candidate-WhisperX runs use
-`--output_dir` and do not create the wrapper's source-audio sidecar. Keep test
-artifacts outside the tracked source tree and credentials out of diagnostic
-logs.
+- Candidate dependency check: 102 packages, compatible declared requirements.
+- PyAV and TorchCodec imported together and decoded 268,985 samples at 8 kHz
+  (one channel), without loader or duplicate-class warnings.
+- Candidate transcription completed with exit status `0`; JSON contained 10
+  nonempty segments, 81 words with timestamps, and `SPEAKER_00`.
+- Candidate runtime trace showed the inspected `libavdevice`, `libavformat`,
+  `libavcodec`, and `libavutil` libraries only from Homebrew ffmpeg@7.
+- At 16:22, the working `~/bin/transcribe` command completed the same sample
+  with exit status `0` and no TorchCodec or duplicate-class warnings.
+  The candidate JSON counts above were not separately rechecked for this run.
+
+Lightning migration and pyannote pooling notices remain separate unresolved
+items. The public single-speaker test does not establish multi-speaker quality
+or resolve the original recording's blank segment.
+
+#### Reproduce the build and retain rollback
+
+For this existing version combination, finish running transcriptions first.
+Run each block separately and stop if it fails. Keep the printed backup path.
+Do not move a candidate virtual environment into place: its scripts contain
+absolute paths. The July package snapshot still records the earlier environment;
+it does not capture this native source-build requirement.
+
+```bash
+cd ~/PROJECTS/audio-transcription-pipeline
+backup_dir="$(mktemp -d "$HOME/PROJECTS/audio-transcription-rollback.XXXXXX")"
+ditto .venv "$backup_dir/.venv"
+cp -p transcribe.sh "$backup_dir/transcribe.sh"
+uv pip freeze --python .venv/bin/python > "$backup_dir/requirements-before.txt"
+echo "Rollback directory: $backup_dir"
+
+xcode-select -p
+pkg-config --version
+```
+
+If needed, install Command Line Tools with `xcode-select --install`, and install
+`pkg-config` and `ffmpeg@7` with Homebrew. Do not force-link FFmpeg 7 globally.
+Then build only PyAV, keeping other dependencies unchanged:
+
+```bash
+ffmpeg7_prefix="$(brew --prefix ffmpeg@7)"
+PKG_CONFIG_PATH="$ffmpeg7_prefix/lib/pkgconfig" pkg-config --modversion libavcodec
+# Expected major version: 61 (61.19.101 in the tested installation).
+
+PKG_CONFIG_PATH="$ffmpeg7_prefix/lib/pkgconfig" \
+  uv pip install --python .venv/bin/python \
+  --no-binary av --no-cache --no-deps --reinstall-package av "av==14.4.0"
+uv pip check --python .venv/bin/python
+```
+
+The supported flag here is `uv pip install --no-binary av`, not
+`--no-binary-package`. A dependency check on an empty environment is not a
+successful install. For a different package combination, first repeat the
+isolated candidate validation rather than applying these pins blindly.
+
+#### Wrapper and installed command
+
+The updated `transcribe.sh` checks for Homebrew FFmpeg 7 on macOS and sets
+`DYLD_LIBRARY_PATH` inside the wrapper, after shell startup. It launches the
+venv's Python directly with the WhisperX entry-point script. No global shell
+profile setting is required. The macOS library setup is skipped on other
+platforms. Current macOS installs require the compatible source-built PyAV
+setup as well as FFmpeg 7; an unpinned PyAV reinstall can reintroduce the conflict.
+
+**Verify the installed command, not just the repository file.** During adoption,
+`~/bin/transcribe` was an old standalone July 12 copy. It still emitted the
+loader warning even though the repository wrapper was correct and passed
+`bash -n`. Backing up that command and running `make install` replaced it with
+a symlink to the updated wrapper:
+
+```bash
+command_backup="$(mktemp -d "$HOME/PROJECTS/transcribe-command-backup.XXXXXX")"
+cp -p "$HOME/bin/transcribe" "$command_backup/transcribe"
+make install
+ls -l "$HOME/bin/transcribe"
+bash -n transcribe.sh
+```
+
+For first-time installation, omit the copy if no old command exists. The listing
+must show a link to this repository's `transcribe.sh`. On the repaired machine,
+the old standalone command was saved in
+`~/PROJECTS/transcribe-command-backup.wncvFv/transcribe`.
+
+Test the normal installed command with the previously downloaded public sample:
+
+```bash
+TRANSCRIBE_OUTPUT_DIR="$HOME/PROJECTS/audio-transcription-output/decoder-check-working" \
+  "$HOME/bin/transcribe" \
+  "$HOME/PROJECTS/audio-transcription-output/decoder-check/harvard-test.wav" \
+  --min_speakers 1 --max_speakers 1
+echo "Exit status: $?"
+```
+
+Expect recognizable text, alignment, diarization, exit status `0`, and no
+TorchCodec loader or duplicate-class warnings. Inspect the new JSON for text,
+word timestamps, and speaker labels. Repeating the command replaces this test's
+output. Ordinary recordings can now use `transcribe` without a manual library
+path prefix. Keep the backups until normal recordings have also been checked.
+
+#### Rollback
+
+With no transcription running, restore the environment to its original path
+and restore the wrapper. Set `backup_dir` to the saved location if using a new
+terminal. The backup must predate the changes being rolled back.
+
+```bash
+mv .venv "$backup_dir/failed-working-venv"
+ditto "$backup_dir/.venv" .venv
+cp -p "$backup_dir/transcribe.sh" transcribe.sh
+```
+
+Run from the repository directory. Use an unused destination name if a previous
+rollback already created `failed-working-venv`. To restore the old standalone
+command too, preserve the installed symlink before copying the old file back:
+
+```bash
+mv "$HOME/bin/transcribe" "$command_backup/transcribe-repaired-link"
+cp -p "$command_backup/transcribe" "$HOME/bin/transcribe"
+```
+
+This avoids copying through the symlink and accidentally overwriting the
+repository wrapper. Neither rollback deletes the candidate environment.
 
 ### Lightning checkpoint upgrade notice
 

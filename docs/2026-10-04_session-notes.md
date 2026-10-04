@@ -358,4 +358,37 @@ package/native-library requirements, choose a compatible candidate environment,
 then test combined imports, actual decoding, and the full public sample before
 adoption. No candidate versions selected, environment created, dependencies
 changed, libraries deleted, or wrapper modified during this documentation update.
-See [the repair plan](installation.md#next-repair-step-isolate-and-validate-the-decoder-dependencies).
+See [the repair plan](installation.md#validated-macos-decoder-repair).
+
+
+## Follow-up — decoder repair adopted and verified
+
+The user built PyAV 14.4.0 from source against Homebrew ffmpeg@7 7.1.5_1 in a
+separate environment, preserving the remaining package versions. The corrected
+uv flag was `--no-binary av`; the initial `--no-binary-package` attempt installed
+nothing. The successful install contained 102 packages and passed `uv pip check`.
+
+Combined PyAV/TorchCodec imports decoded the public WAV to shape `(1, 268985)`
+at 8 kHz. The candidate full pipeline exited `0`; its JSON had 10 nonempty
+segments, 81 timestamped words, and `SPEAKER_00`. A runtime trace showed only
+Homebrew FFmpeg 7 copies of the four inspected core FFmpeg libraries, with no
+bundled PyAV copies or duplicate-class warnings.
+
+The user reproduced the build in the working `.venv` and edited `transcribe.sh`
+to set the macOS library path internally and invoke Python directly. The first
+working-command test still warned because `~/bin/transcribe` was an old regular
+file, not the assumed symlink. Read-only inspection confirmed the repository
+wrapper was correct and PyAV 14.4.0 was installed. After saving the old command
+in `~/PROJECTS/transcribe-command-backup.wncvFv/transcribe`, the user ran
+`make install` and verified the symlink.
+
+The 16:22 normal-command run completed transcription, alignment, and diarization
+with exit status `0`, without TorchCodec or duplicate-class warnings. Working-run
+JSON counts were not independently rechecked. Lightning migration and pyannote
+pooling notices remain; the original recording and multi-speaker quality have
+not been revalidated. Preserve rollback backups pending normal-recording tests.
+
+Updated the installation guide with the adopted build, wrapper behavior,
+installed-command check, validation boundaries, and rollback procedure. The
+July requirements snapshot remains historical; a package pin alone does not
+record the native source-build linkage. No commit was created in this update.

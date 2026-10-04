@@ -243,6 +243,12 @@ Output saved to:
 
 ### Startup warnings or blank transcript lines?
 
+The macOS FFmpeg/TorchCodec repair is documented in the
+[validated decoder setup](docs/installation.md#validated-macos-decoder-repair):
+source-built PyAV 14.4.0, Homebrew FFmpeg 7, and the updated wrapper installed
+with `make install`. Verify `~/bin/transcribe` is a symlink; an old copied
+command will not pick up repository edits.
+
 For `Could not load libtorchcodec`, missing `libavutil` libraries, Lightning
 checkpoint upgrade notices, or a `Transcript:` line with no words, see
 [installation troubleshooting](docs/installation.md#startup-warnings-and-blank-transcript-output).

@@ -18,10 +18,9 @@
 #       if the folder name contains spaces.
 # ─────────────────────────────────────────────────────────────────────
 
-# Suppress UserWarnings raised from pyannote modules. Known limitation:
-# this does NOT catch the torchcodec/FFmpeg-8 startup warnings (they come
-# from other modules with a different category) — those are cosmetic and
-# tracked in WATERSHED.md, not suppressed here.
+# Suppress selected pyannote UserWarnings.
+# Decoder/library problems must be diagnosed, not hidden.
+
 export PYTHONWARNINGS="ignore::UserWarning:pyannote"
 
 # Locate the repo from this script's own path rather than assuming
@@ -42,6 +41,20 @@ repo_dir=$(cd -P "$(dirname "$src")" && pwd)
 
 # Activate the WhisperX virtual environment
 source "$repo_dir/.venv/bin/activate"
+
+# macOS: source-built PyAV and TorchCodec share Homebrew FFmpeg 7.
+# Set this inside the wrapper because macOS can strip DYLD_* variables
+# when launching system shell executables.
+if [[ "$OSTYPE" == darwin* ]]; then
+    if ! ffmpeg7_prefix="$(brew --prefix ffmpeg@7 2>/dev/null)" ||
+       [[ ! -r "$ffmpeg7_prefix/lib/libavutil.59.dylib" ]]; then
+        echo "Error: Homebrew FFmpeg 7 libraries are required." >&2
+        exit 1
+    fi
+    export DYLD_LIBRARY_PATH="$ffmpeg7_prefix/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+fi
+
+
 
 # Load the HF token. An exported HF_TOKEN wins — that is what installation.md
 # tells WSL2 users to set, and nothing reads ~/.Renviron automatically there.
@@ -103,7 +116,7 @@ sidecar.write_text(json.dumps(data, indent=2, sort_keys=True))
 # first, a user-supplied override (e.g. --model large-v2) was silently beaten
 # by the hardcoded --model large-v3 coming after it. Defaults first, "$@"
 # last means any hardcoded flag below can actually be overridden.
-exec "$repo_dir/.venv/bin/whisperx" \
+exec "$repo_dir/.venv/bin/python" "$repo_dir/.venv/bin/whisperx" \
     --model large-v3 \
     --diarize \
     --hf_token "$hf_token" \
