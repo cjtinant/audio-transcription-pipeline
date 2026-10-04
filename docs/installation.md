@@ -759,9 +759,22 @@ User-supplied validation results:
   with exit status `0` and no TorchCodec or duplicate-class warnings.
   The candidate JSON counts above were not separately rechecked for this run.
 
+The longer recording 7 run subsequently completed with exit status `0` through
+the normal command, without TorchCodec or duplicate-library warnings. Its log
+contained speech through about 20:53 before alignment and diarization. This
+extends runtime validation beyond the short sample, but its saved JSON and
+recognition accuracy were not independently checked in this follow-up.
+
+Recording 8's prior finished JSON was independently inspected: 46 nonempty
+segments, 644 words all with timestamps, and `SPEAKER_00` on every segment.
+Speech spans 4.443–650.445 seconds. Three populated segments overlap the
+original apparently blank terminal interval (2.782–27.875 seconds); the saved
+file therefore does not show that interval as entirely missing text. This prior
+artifact does not establish a new recording 8 run under the repaired environment.
+
 Lightning migration and pyannote pooling notices remain separate unresolved
-items. The public single-speaker test does not establish multi-speaker quality
-or resolve the original recording's blank segment.
+items. Neither stopped the completed tests. Accuracy and multi-speaker quality
+still require listening; use the [review workflow](transcript-review.md).
 
 #### Reproduce the build and retain rollback
 

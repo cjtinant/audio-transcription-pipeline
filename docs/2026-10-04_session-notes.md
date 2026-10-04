@@ -392,3 +392,27 @@ Updated the installation guide with the adopted build, wrapper behavior,
 installed-command check, validation boundaries, and rollback procedure. The
 July requirements snapshot remains historical; a package pin alone does not
 record the native source-build linkage. No commit was created in this update.
+
+
+## Follow-up — longer run completed; accuracy review remains
+
+The user supplied the completed recording 7 log and an immediately checked exit
+status of `0`. Transcribed speech reached approximately 20:53; alignment and
+diarization followed. No TorchCodec loader or duplicate-library warnings were
+shown. The pooling warning persisted without stopping the run. Recording 7's
+saved JSON and audio accuracy were not independently inspected in this update.
+
+The assistant separately inspected recording 8's prior finished JSON: 46
+nonempty segments, 644 words all with timestamps, and one speaker label on all
+segments. Speech spans 4.443–650.445 seconds. Three populated segments overlap
+the original apparently blank terminal interval. The user suggested an initial
+thinking pause; that is plausible but unverified against audio. A prior finished
+JSON is not evidence of a repaired-environment rerun. No private transcript text
+is reproduced in these tracked notes.
+
+Added an accuracy-review guide covering audio comparisons, low-confidence
+reports, source-linked clips, speaker attribution, and a separate corrected
+text export. Corrected README threshold guidance: raising the threshold flags
+more words; lowering it flags fewer. Remaining work is content review and,
+separately, investigation of the Lightning/pooling notices if needed. Keep
+rollback backups pending satisfaction with normal use. No commit created.

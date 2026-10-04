@@ -305,6 +305,9 @@ guarantee correct output — always review proper nouns in the transcript.
 
 ### Review the transcript (optional)
 
+For a listening checklist and commands for the October recordings, see
+[Reviewing transcript accuracy](docs/transcript-review.md).
+
 After Step 1, you can convert the JSON to a browser-based review tool before
 summarizing. Open it to:
 
@@ -333,9 +336,9 @@ file listing words below a confidence threshold, with timestamps:
 python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
   --report
 
-# Lower the threshold to flag more words (default: 0.2)
+# Raise the threshold to flag more words (default: 0.2)
 python3 review_transcript.py ~/PROJECTS/audio-transcription-output/2026-07-07_soil-moisture_audio.json \
-  --report --threshold 0.15
+  --report --threshold 0.4
 ```
 
 To hear the actual audio around a flagged timestamp instead of guessing from
