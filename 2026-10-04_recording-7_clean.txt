@@ -1,0 +1,82 @@
+0:01] SPEAKER_00: if we could get 100 gigabytes of storage on a local drive.
+[0:16] SPEAKER_00: And as an easiest, quickest step, as a first step perhaps,
+[0:28] SPEAKER_00: as a Google Drive.
+[0:29] SPEAKER_00: The reason for that is that I recognize that some of the questions about the word maintain or concerns about the word maintain that Kami was having might be
+[0:54] SPEAKER_00: fixed with the Google Drive.
+[1:07] SPEAKER_00: And if down the line we need a different approach, that would be okay.
+[1:12] SPEAKER_00: The second thought was
+[1:16] SPEAKER_00: In terms of outward-facing materials that others would be using, it would be to set up something similar to the Data Cube that was set up as part of another project.
+[1:35] SPEAKER_00: I think it uses a Git.io format.
+[1:41] SPEAKER_00: And essentially creating a...
+[1:45] SPEAKER_00: believe the public-facing version could be a landing page that would hit there.
+[1:50] SPEAKER_00: If that backends up against a Google Drive that end users, that would link to files that end users would need,
+[2:11] SPEAKER_00: uh... to help them uh... for them to download things i think uh... one of the concerns cami had was with uh... maintenance uh... she showed me what uh... referred to as a uh... ramada uh... repository and it's uh...
+[2:29] SPEAKER_00: It's a nice web page.
+[2:33] SPEAKER_00: I think Kami's concern was that she didn't have the capability to quote-unquote maintain that web page.
+[2:42] SPEAKER_00: She said she was comfortable with maintaining content.
+[2:45] SPEAKER_00: So what we thought would be a doable process was to use that web page
+[2:59] SPEAKER_00: get uh... uh... model uh... datacube model with uh... with the github io page she could maintain uh... whatever content or whatever things that needed to be maintained uh... from the from the google site uh... from the google
+[3:30] SPEAKER_00: folder side this would be something that probably that should be kept separate from project management things of course a project manager folder so I guess what I'm trying to say is having a separate hundred gigabyte folder that that
+[3:59] SPEAKER_00: contains data that could be used by the or could be the data things like data the data used by students could be maintained in the
+[4:32] SPEAKER_00: in the lesson pages, then the data by various instructors, it could be updated in the Google page.
+[4:50] SPEAKER_00: This brings up an unresolved question, which deals with maintaining a record.
+[5:04] SPEAKER_00: a change log record how could that which brings up another potential complexity or maybe not which is that this though PI private folder was something that I'd created having a lot of different
+[5:36] SPEAKER_00: HAVING BOTH PRIVATE, MY PRIVATE THOUGHTS AND CONCERNS IN THIS FOLDER AS WELL AS POTENTIALLY SENSITIVE DATA FROM STUDENTS IN THE REPO OR IN THE OVERALL FOLDER STRUCTURE.
+[6:04] SPEAKER_00: and some concerns about capacity of various faculty so my i guess my thoughts in regard to that is to scour this particular repository of any um
+[6:35] SPEAKER_00: of sensitive data to scour this repository of sensitive data to scour it of any of my
+[7:06] SPEAKER_00: private thoughts about the project coordination, which I believe I may have done to some extent already, and to make this repo available for
+[7:34] SPEAKER_00: for the project management team to be able to work from, which would help.
+[7:43] SPEAKER_00: I think we could build capacity in that area so that we could begin tracking that.
+[7:54] SPEAKER_00: I think keeping things within a
+[8:03] SPEAKER_00: keeping files within a Google Drive.
+[8:05] SPEAKER_00: In terms of data, heavier things that don't belong on Git could resolve the concern about maintenance perhaps that Kemi had about the IT types of maintenance
+[8:33] SPEAKER_00: And because that maintenance could be, because it's under the OLC umbrella, then it would be within the college IT ability to keep things maintained.
+[8:53] SPEAKER_00: So I guess what I'm proposing is that
+[9:06] SPEAKER_00: is that for the very, very, very short term, sensitive data would be locally held involving students on my machine until we can identify a pathway for purpose-sensitive data
+[9:32] SPEAKER_00: to be shared among the pi team perhaps parking that question until having a conversation with kyler that second repo would be public facing for students in the or for public facing for students to be able to download data for the classes
+[10:05] SPEAKER_00: So Google Drive linked with the same model as the... As the... As the...
+[10:36] SPEAKER_00: DataCube approach using a splash page with the GitHub I.O.
+[10:51] SPEAKER_00: to be able to provide for easy maintenance.
+[10:56] SPEAKER_00: Again, one of the open questions is... Oh, no, that might be okay.
+[11:06] SPEAKER_00: So myself, Kami, and a third person, at least a yellow thunder, we could maintain that piece in the same way as the GitHub IO.
+[11:27] SPEAKER_00: And so I think that resolves some of those questions.
+[11:30] SPEAKER_00: I'm having a meeting with Tyler on Monday.
+[11:35] SPEAKER_00: suggestion meeting so dropping a trouble ticket in the an issue ticket with for Tyler I said that's what I said to be able to kind of finalize that conversation make sure everything looks good
+[11:58] SPEAKER_00: And so I think that should help with some of the complexity.
+[12:03] SPEAKER_00: There's a third question that, or third issue that surfaced, third and fourth, fifth.
+[12:18] SPEAKER_00: I have a Google, everything's in Google.
+[12:24] SPEAKER_00: We have a shared Google Drive that involves a grant that is kind of a mess of a data lake of various things without much organization.
+[12:37] SPEAKER_00: That's causing frustration for me.
+[12:40] SPEAKER_00: It's causing a...
+[12:45] SPEAKER_00: It's not usable for anybody at this point, and so that's another issue that could be partially resolved with this as a pilot project is finding what is there, where it's at, mapping that, maybe moving out the Objective 1.3, defining or getting a readme page together.
+[13:07] SPEAKER_00: Again, some of the challenges have to do with we've got people with various levels of...
+[13:15] SPEAKER_00: of experience and so being able to deal with both of those levels of somebody who's less comfortable using a Git environment that would still be navigable for them as well as
+[13:35] SPEAKER_00: providing a little bit stronger background for myself.
+[13:38] SPEAKER_00: I think Cami would be able to, as some, I think it would not be difficult to help Cami to develop the skills that she would need to begin to add version control on her end.
+[14:07] SPEAKER_00: In the same way Foster is beginning, John Foster Sawyer, JFS, is beginning to build some skills.
+[14:21] SPEAKER_00: He's beginning to take some data science classes.
+[14:32] SPEAKER_00: And so I was able to get him started on Positron.
+[14:36] SPEAKER_00: He's beginning to take a Python class.
+[14:38] SPEAKER_00: And so it's beginning to help him.
+[14:40] SPEAKER_00: He's beginning to build some skills in that regard.
+[14:44] SPEAKER_00: The other outstanding piece has to do with the AHEC learning portal, which was a proposal, I think, that has changed.
+[15:03] SPEAKER_00: on a similar project involving data science that we're beginning to... We're doing a shared conference in October that is building a community of...
+[15:32] SPEAKER_00: a data science community that's also with some of the principals from ESIIL.
+[15:50] SPEAKER_00: And so working with that piece, I think using what ESO's done kind of as a model to try to work together.
+[16:05] SPEAKER_00: So this conference, I guess I see it as a place to...
+[16:15] SPEAKER_00: START THAT CONVERSATION ABOUT A SHARED COMMUNITY OF PRACTICE TO SEE WHERE, GET A SENSE ABOUT WHERE THE COMMUNITY IS AT, AND TO SET UP A SERIES OF
+[16:42] SPEAKER_00: follow-up workshops to up-skill various people in the TCU and each wine-serving community to have some similar skills where we can begin as a group to use common approaches like GitHub to share resource materials together.
+[17:20] SPEAKER_00: using open data rather than stepping away from any concerns about sensitive data.
+[17:38] SPEAKER_00: I think these involve a lot more conversation internally with various organizations.
+[17:47] SPEAKER_00: So for me, the next steps then are to diarize this conversation, some other conversations, perhaps to add various folders that are
+[18:05] SPEAKER_00: mirrored on my machine to begin to maybe broaden the search window a little bit to identify anything that's potentially sensitive, get that moved out.
+[18:22] SPEAKER_00: and to begin that organization process and documentation process so that the various pieces are organized so that we have perhaps a working model that we can share out at the conference to begin to more fully share my ideas out with
+[18:50] SPEAKER_00: with Al Kuslikis of that objective 1.3 shared resource.
+[19:09] SPEAKER_00: So to create the model and to provide an opportunity for some feedback loops with CAMI,
+[19:20] SPEAKER_00: And with Al, with Cami, to ensure that what I'm seeing addresses her concerns.
+[19:39] SPEAKER_00: and is a workable model for her in the same way to share out with Al how I see how this is working and then to be able to have that shared out with the broader community to see how they feel about
+[20:03] SPEAKER_00: adopting this as a broad model to begin to better work together, also to identify skills gaps that
+[20:15] SPEAKER_00: that could be taught in order to bring the community as a whole to better work with commonly used tools along the way.
+[20:30] SPEAKER_00: So I'm going to stop now because this is a long and rambling conversation.
+[20:36] SPEAKER_00: And I'll begin to diarize these conversations.
+[20:46] SPEAKER_00: and add these so that we can begin to identify tangible next steps.
