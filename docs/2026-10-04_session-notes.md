@@ -416,3 +416,29 @@ text export. Corrected README threshold guidance: raising the threshold flags
 more words; lowering it flags fewer. Remaining work is content review and,
 separately, investigation of the Lightning/pooling notices if needed. Keep
 rollback backups pending satisfaction with normal use. No commit created.
+
+
+## Follow-up — first local summarizer comparison
+
+Compared user-supplied Qwen, Granite, and Nemotron summaries with the same
+corrected recording 7 text and its original confidence report. The qualitative
+ranking was Qwen, Nemotron, then Granite for usefulness as an editable draft.
+All three converted proposals to decisions and used meeting framing for a
+single-speaker reflection. Qwen had stronger broad coverage but added unsupported
+process claims; Nemotron retained useful concrete details but omitted broader
+themes; Granite added the most unsupported specifics. No summary was suitable
+as authoritative minutes without edits.
+
+The corrected source retained ambiguous terms, so the comparison measures
+fidelity to that text rather than audio accuracy. The confidence report reflects
+the original JSON and does not update when exported text is corrected. Private
+source passages and names are not reproduced here. This was one recording and
+one supplied output per model; runtime, model digests at execution, and repeat
+variability were not evaluated. No model default changed.
+
+Added `prompts/planning-reflection.txt` and custom-prompt instructions in the
+pipeline reference. The prompt requests separate proposals, commitments, next
+steps, and explicit open questions, with source timestamps and no invented
+owners or requirements. The tighter-prompt runs have not been performed in this
+update. Next: rerun all three on the same input/prompt, compare fidelity, then
+confirm any preferred model on additional recordings.

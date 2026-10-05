@@ -293,3 +293,60 @@ unreachable, start Ollama with `OLLAMA_HOST=0.0.0.0:11434 ollama serve` to make
 it listen on all interfaces.
 
 `--engine ollama` (Python CLI) or `engine="ollama"` (interactive/script usage).
+
+
+## Comparing models on a planning reflection
+
+The October 4 qualitative comparison of one corrected, single-speaker recording
+ranked Qwen first, Nemotron second, and Granite third as editable drafts. This
+was one run per model with the `general` preset, not a benchmark or a default
+selection. All three promoted tentative proposals into decisions; the preset's
+meeting/decision framing is a potential confound.
+
+| Model tag | Observed strengths | Observed limitations |
+| --- | --- | --- |
+| `qwen3.6:35b` | Best overall coverage of broader goals and feedback | Added unsupported process requirements and an unresolved question; omitted an explicit record-keeping question and a quantity |
+| `nemotron3:33b` | Retained practical details and the record-keeping question | Missed broader planning themes; added assignments and implementation details |
+| `granite4.1:30b` | Broad topic coverage | Most unsupported elaboration, including timing, policy, and technical options; conflated storage concepts |
+
+These findings concern fidelity to the supplied text, not verification against
+audio. The source still contained ambiguous names/acronyms. Original outputs
+remain in the private archive. No timing, resource-use, repeated-run, or verified
+model-digest comparison was performed; no default changed.
+
+### Use the tighter prompt
+
+The reusable [planning-reflection prompt](../prompts/planning-reflection.txt)
+separates proposals from commitments and asks for timestamp evidence. The CLI
+accepts prompt text with `--prompt`; it does not have a `--prompt-file` option.
+Use `--type custom` to replace the preset. Supplying `--prompt` with
+`--type general` does not apply that custom text.
+
+```bash
+cd ~/PROJECTS/audio-transcription-pipeline
+prompt_text="$(cat prompts/planning-reflection.txt)"
+comparison_dir="$(mktemp -d "$HOME/PROJECTS/audio-transcription-output/prompt-comparison.XXXXXX")"
+
+.venv/bin/python summarize_transcript.py \
+  "$HOME/PROJECTS/audio-transcription-output/2026-10-04_recording-7_clean.txt" \
+  --engine ollama \
+  --model qwen3.6:35b \
+  --type custom \
+  --prompt "$prompt_text" \
+  --output-dir "$comparison_dir/qwen"
+```
+
+Repeat with `--model granite4.1:30b --output-dir "$comparison_dir/granite"`
+and `--model nemotron3:33b --output-dir "$comparison_dir/nemotron"`, keeping
+the same input, prompt, and other settings. Keep the same terminal open for
+these shell variables. Do not use `--merge` for this first controlled comparison.
+The unique parent directory preserves earlier runs; per-model folders identify
+outputs without relying on timestamps alone. All three runs use local Ollama.
+
+Compare unsupported claims, missed explicit points, proposal-versus-commitment
+accuracy, speaker attribution, and correctness of timestamp references. A
+citation-looking timestamp is not proof: check that the cited passage supports
+the claim. Correct source ambiguities against audio before a new comparison,
+and use that same corrected revision for every model. Record any input changes
+when comparing against the earlier `general` runs. Repeat promising candidates
+on additional recordings before selecting a default.
