@@ -207,3 +207,56 @@ open model-selection and evaluation work, wrapper validation/sidecar issues,
 runtime snapshot drift, checkpoint-upgrade observation, and documentation
 organization as explicit decisions. No refactor design or implementation was
 approved or started in this session.
+
+## Follow-up — checkpoint upgrade and live transcription check
+
+The user subsequently ran the permanent Lightning checkpoint migration.
+These results are user-supplied terminal evidence; the assistant did not run
+the migration or modify the installed checkpoint. They supersede the earlier
+observation that a successful upgrade had not been recorded.
+
+1. Adding `--map-to-cpu` passed the earlier CUDA-device problem but exposed a
+   second failure: PyTorch's default weights-only loader rejected the legacy
+   checkpoint's `omegaconf.listconfig.ListConfig` metadata.
+2. The user retried with `TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1` scoped to the
+   upgrade command, retaining `--map-to-cpu`. This allows full deserialization
+   and is appropriate only for a checkpoint whose source is trusted.
+3. The utility reached **100%, 1/1** and returned to the shell without a
+   traceback. This is evidence that the migration completed; the checkpoint's
+   saved metadata was not independently inspected. The installed utility
+   creates `pytorch_model.bak` before migration and preserves an existing backup.
+
+Successful command reported by the user:
+
+```zsh
+TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1 \
+"$HOME/PROJECTS/audio-transcription-pipeline/.venv/bin/python" \
+  -m lightning.pytorch.utilities.upgrade_checkpoint \
+  "$HOME/PROJECTS/audio-transcription-pipeline/.venv/lib/python3.11/site-packages/whisperx/assets/pytorch_model.bin" \
+  --map-to-cpu
+```
+
+The direct upgrade command emitted a TorchCodec loader warning about missing
+FFmpeg shared-library paths. It did not stop the migration. This invocation
+bypassed `transcribe.sh`, which sets the Homebrew FFmpeg 7 library path on macOS;
+the warning alone does not show that the normal wrapper's decoder repair failed.
+The environment override above was not exported as a persistent setting.
+
+### Normal transcription run — still in progress
+
+The user then invoked `transcribe` on the October 23 DSW meeting M4A. Supplied
+output shows voice activity detection at **10:51:09 on October 24**, followed
+by transcription at **10:51:12** and a populated first segment spanning
+**0.031–29.528 seconds**. The supplied startup excerpt contains neither the
+Lightning automatic-migration notice nor the TorchCodec loader warning.
+
+At the time of this update, the user reports that diarization is still running
+and appears to be working. The excerpt itself shows VAD/transcription rather
+than diarization completion. **Final exit status, saved JSON, speaker labels,
+and recognition/diarization accuracy remain unverified.** No private transcript
+text is reproduced in this note.
+
+Remaining validation is to let the current run finish, confirm successful exit
+and nonempty saved output, and inspect speaker attribution. Do not rerun the
+checkpoint migration merely because the separate direct-command decoder warning
+appeared. The broader refactor and model-selection work remain deferred.
