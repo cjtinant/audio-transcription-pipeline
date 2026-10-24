@@ -350,3 +350,65 @@ the claim. Correct source ambiguities against audio before a new comparison,
 and use that same corrected revision for every model. Record any input changes
 when comparing against the earlier `general` runs. Repeat promising candidates
 on additional recordings before selecting a default.
+
+### Tighter-prompt results and second revision
+
+The first tighter-prompt outputs improved planning-reflection framing in all
+three models and removed several earlier unsupported elaborations. Qwen remained
+the preferred editable draft on this recording; no definitive new ordering of
+Granite and Nemotron or default change was established.
+
+| Model | Remaining issues in supplied tighter-prompt output |
+| --- | --- |
+| Qwen | Downgraded explicit personal intentions to proposals; inferred task/event timing and an unsupported reuse option |
+| Nemotron | Recognized an already scheduled event, but invented related-task timing; gave one explicit question an incorrect timestamp and strengthened a tentative action |
+| Granite | Still treated an already scheduled event as needing scheduling; missed explicit intentions and attached several weak timestamp references |
+
+The source distinction is between an undecided broader proposal and an explicit
+personal intention to take a step. Asking only for “decisions or commitments”
+led some outputs to overcorrect. Timestamp formatting also did not guarantee
+that the cited passage supported the claim. These are qualitative findings from
+one supplied output per model, not measured accuracy or timing benchmarks.
+
+The original prompt is retained unchanged as the first-round baseline.
+[Revision 2](../prompts/planning-reflection-v2.txt) separates final decisions
+from personal intentions, preserves tentative qualifiers, prohibits inferred
+event/task timing, and requires existing source timestamp anchors.
+
+### Run the next test
+
+Keep the same corrected transcript revision to isolate the prompt change. If
+source corrections are necessary, record them and treat the next comparison as
+changing both source and prompt. Do not silently mix input revisions.
+
+```bash
+cd ~/PROJECTS/audio-transcription-pipeline
+bash scripts/compare-planning-prompts.sh \
+  "$HOME/PROJECTS/audio-transcription-output/2026-10-04_recording-7_clean.txt"
+```
+
+The runner uses local Ollama and sequentially runs Qwen, Granite, and Nemotron
+with identical custom-prompt settings and no merge. It snapshots input and prompt,
+records their SHA-256 checksums, `ollama list` inventory, model tags, and start/end
+UTC times, and saves logs and outputs in separate model folders under a unique
+private `planning-v2.*` directory. The inventory records displayed model IDs,
+not independently verified full digests. Run times include loading and are not
+controlled speed benchmarks. The runner prints its output directory, stays quiet
+during each inference, and stops on failure; inspect that model's `run.log`.
+A rerun creates a new comparison directory, leaving prior outputs intact.
+
+Evaluate the outputs against the frozen input, using this checklist:
+
+- Broader proposals remain tentative; explicit personal intentions are retained.
+- Already scheduled events are not reassigned as scheduling tasks.
+- Related-task timing is left unspecified unless explicitly stated.
+- Timestamp anchors exist in the input and actually support each claim.
+- No invented assignments, solutions, requirements, or open questions appear.
+- Important explicit questions, quantities, constraints, and feedback steps survive.
+
+For each defect, record the model, summary claim, source timestamp, and correction
+in a private review note. Compare v2 against that model's first tighter-prompt
+output, not just against the other models. Report unsupported claims and omissions
+separately. These examples informed v2, so improvement on this recording is a
+regression check, not an independent evaluation. Confirm promising results on a
+new recording before choosing a default. The v2 runs have not yet been executed.

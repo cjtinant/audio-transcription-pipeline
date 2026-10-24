@@ -442,3 +442,23 @@ steps, and explicit open questions, with source timestamps and no invented
 owners or requirements. The tighter-prompt runs have not been performed in this
 update. Next: rerun all three on the same input/prompt, compare fidelity, then
 confirm any preferred model on additional recordings.
+
+## Follow-up — tighter-prompt comparison and v2 test preparation
+
+Reviewed the three user-supplied tighter-prompt outputs against the previously
+supplied source. All improved proposal framing and reduced unsupported additions.
+Qwen remained the preferred draft, but understated explicit personal intentions
+and inferred task timing. Nemotron preserved the scheduled-event distinction
+but invented timing, strengthened tentative wording, and mis-cited an explicit
+question. Granite still confused scheduling with attendance and missed explicit
+intentions. Timestamp references required manual verification in every model.
+No model default changed; this remains a one-recording qualitative comparison.
+
+Preserved the first prompt and added `prompts/planning-reflection-v2.txt` to
+separate decisions from intentions, retain qualifiers, and tighten time/evidence
+rules. Added `scripts/compare-planning-prompts.sh` to snapshot input/prompt and
+run all three models sequentially in private, unique output folders, with local
+inventory, checksums, settings, logs, and start/end times. The pipeline reference
+contains the command and evaluation checklist. Preparation only: no new inference
+was run. Because v2 was informed by these examples, test a separate recording
+before treating improvements as evidence for a general model preference.
